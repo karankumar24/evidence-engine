@@ -1,13 +1,21 @@
 """Alembic migration environment — configured for async SQLAlchemy with asyncpg."""
 
 import asyncio
+import os
+import sys
 from logging.config import fileConfig
+from pathlib import Path
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+
+# Ensure src/ is on sys.path so evidenceengine package can be imported
+_src_dir = str(Path(__file__).parent.parent / "src")
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
 
 # Load all models so autogenerate can detect them
 from evidenceengine.models import Base  # noqa: F401 — must import to register metadata
