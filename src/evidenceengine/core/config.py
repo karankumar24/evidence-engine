@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     debug: bool = False
     openai_api_key: str = ""
     extraction_model: str = "gpt-4o-mini"
+    retrieval_top_k_bm25: int = 10
+    retrieval_top_k_final: int = 5
+    reranker_model: str = "cross-encoder/ms-marco-MiniLM-L6-v2"
+    index_dir: str = "./indexes"
 
 
 settings = Settings()
