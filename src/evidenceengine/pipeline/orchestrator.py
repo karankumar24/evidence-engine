@@ -1,0 +1,164 @@
+"""Pipeline orchestrator — async background task that chains extract → retrieve → classify.
+
+IMPORTANT: run_full_pipeline() opens its own DB session via async_session_factory.
+NEVER call it with a request-scope session. The RunVersion row MUST be committed
+before this task is scheduled (BackgroundTasks or asyncio.create_task).
+"""
+
+import logging
+import uuid
+from datetime import datetime, timezone
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from evidenceengine.classification.pipeline import classify_verdicts_for_run
+from evidenceengine.core.database import async_session_factory
+from evidenceengine.extraction.pipeline import extract_claims_for_document
+from evidenceengine.models.document import SourceDocument
+from evidenceengine.models.run import RunVersion
+from evidenceengine.retrieval.pipeline import retrieve_evidence_for_run
+
+logger = logging.getLogger(__name__)
+
+STAGE_STATUSES = ["queued", "extracting", "retrieving", "classifying", "completed", "failed"]
+
+
+async def _set_stage(run_version_id: str, stage: str, session: AsyncSession) -> RunVersion:
+    """Load RunVersion, update status (and started_at if entering 'extracting'), commit."""
+    run = await session.get(RunVersion, uuid.UUID(run_version_id))
+    run.status = stage
+    if stage == "extracting":
+        run.started_at = datetime.now(timezone.utc)
+    await session.commit()
+    return run
+
+
+async def _mark_failed(run_version_id: str, exc: Exception) -> None:
+    """Write status=failed and error_summary using a **fresh** session.
+
+    Called from the except block in run_full_pipeline — by then the primary
+    session may be in a bad state, so we always open a new one here.
+    """
+    async with async_session_factory() as err_session:
+        run = await err_session.get(RunVersion, uuid.UUID(run_version_id))
+        if run is not None:
+            run.status = "failed"
+            run.error_summary = f"{type(exc).__name__}: {exc}"
+            run.completed_at = datetime.now(timezone.utc)
+            await err_session.commit()
+
+
+async def _classify_with_error_collection(
+    run_version_id: str,
+    session: AsyncSession,
+) -> tuple[list, list[dict]]:
+    """Wrap classify_verdicts_for_run, collecting stage-level errors without aborting.
+
+    Per-claim error collection strategy (PIPE-05):
+    The classification pipeline already handles zero-evidence and unresolvable-anchor
+    edge cases gracefully (needs_review / insufficient_support). The remaining failure
+    mode is LLM API errors, which abort the entire classify call. We collect those at
+    the stage level here — a single claim_error entry is added if classification fails.
+
+    Full per-claim granularity (v1.1 enhancement): would require modifying
+    classify_verdicts_for_run to yield errors per claim. Not in scope for Phase 5.
+
+    Returns:
+        (verdicts, claim_errors) where claim_errors is [] on success.
+    """
+    claim_errors: list[dict] = []
+    try:
+        verdicts = await classify_verdicts_for_run(run_version_id, session)
+    except Exception as exc:
+        logger.warning(
+            "Classification stage error for run %s: %s: %s",
+            run_version_id,
+            type(exc).__name__,
+            exc,
+        )
+        claim_errors.append(
+            {
+                "stage": "classification",
+                "error": f"{type(exc).__name__}: {exc}",
+            }
+        )
+        verdicts = []
+    return verdicts, claim_errors
+
+
+async def run_full_pipeline(run_version_id: str) -> None:
+    """Background task: extract → retrieve → classify for a given RunVersion.
+
+    Owns its own DB session (via async_session_factory). The RunVersion must
+    already exist in the DB with status="queued" before this is called.
+
+    Status progression:
+        queued → extracting → retrieving → classifying → completed
+        (or → failed if a top-level stage raises)
+
+    Per-claim errors from classification are stored in pipeline_config["claim_errors"].
+    The run still reaches "completed" even if some claims fail to classify.
+
+    Top-level stage errors (extract/retrieve explode) → status=failed, error_summary set.
+
+    Args:
+        run_version_id: String UUID of the RunVersion row to process.
+
+    Raises:
+        Exception: Re-raises any top-level exception after marking the run as failed,
+                   so that the task runner (uvicorn / asyncio) can log it.
+    """
+    try:
+        async with async_session_factory() as session:
+            # ── Stage 1: Extract ──────────────────────────────────────────────
+            await _set_stage(run_version_id, "extracting", session)
+
+            # Find the report SourceDocument for this run's packet
+            run = await session.get(RunVersion, uuid.UUID(run_version_id))
+            result = await session.execute(
+                select(SourceDocument).where(
+                    SourceDocument.packet_id == run.packet_id,
+                    SourceDocument.is_report.is_(True),
+                )
+            )
+            report = result.scalar_one()
+
+            await extract_claims_for_document(str(report.id), run_version_id, session)
+
+            # ── Stage 2: Retrieve ─────────────────────────────────────────────
+            await _set_stage(run_version_id, "retrieving", session)
+            await retrieve_evidence_for_run(run_version_id, session)
+
+            # ── Stage 3: Classify (with error collection) ─────────────────────
+            await _set_stage(run_version_id, "classifying", session)
+            _verdicts, claim_errors = await _classify_with_error_collection(
+                run_version_id, session
+            )
+
+            # ── Finalize ──────────────────────────────────────────────────────
+            run = await session.get(RunVersion, uuid.UUID(run_version_id))
+            run.status = "completed"
+            run.completed_at = datetime.now(timezone.utc)
+            run.pipeline_config = {
+                **(run.pipeline_config or {}),
+                "claim_errors": claim_errors,
+                "failed_claim_count": len(claim_errors),
+            }
+            await session.commit()
+
+            logger.info(
+                "Pipeline completed for run %s — %d claim errors",
+                run_version_id,
+                len(claim_errors),
+            )
+
+    except Exception as exc:
+        logger.error(
+            "Pipeline failed for run %s: %s: %s",
+            run_version_id,
+            type(exc).__name__,
+            exc,
+        )
+        await _mark_failed(run_version_id, exc)
+        raise  # re-raise so uvicorn / task runner logs full traceback

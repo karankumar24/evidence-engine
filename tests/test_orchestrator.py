@@ -8,13 +8,41 @@ Tests cover:
 - Top-level failure recovery (extract raises → status=failed, error_summary set)
 """
 
+import os
 import uuid
+from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import pytest_asyncio
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+# Function-scoped engine avoids asyncpg "another operation is in progress" errors
+# that occur when the session-scoped engine from conftest.py is shared across
+# async tests that use different event loops.
+TEST_DATABASE_URL = os.environ.get(
+    "TEST_DATABASE_URL",
+    "postgresql+asyncpg://evidenceengine:evidenceengine_dev@localhost:5432/evidenceengine",
+)
+
+
+@pytest_asyncio.fixture
+async def orch_engine():
+    """Function-scoped async engine for orchestrator tests."""
+    engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+    yield engine
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def db_session(orch_engine) -> AsyncGenerator[AsyncSession, None]:
+    """Function-scoped async session — rolls back after each test."""
+    factory = async_sessionmaker(orch_engine, class_=AsyncSession, expire_on_commit=False)
+    async with factory() as session:
+        yield session
+        await session.rollback()
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -132,6 +160,9 @@ def test_run_status_response_no_pipeline_config():
     mock_run.completed_at = None
     mock_run.error_summary = None
     mock_run.pipeline_config = None
+    # Explicitly set failed_claim_count to 0 — without this, MagicMock auto-generates
+    # a truthy MagicMock attribute that Pydantic coerces to int(True) == 1.
+    mock_run.failed_claim_count = 0
 
     resp = RunStatusResponse.model_validate(mock_run)
 
