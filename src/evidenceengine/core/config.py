@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     retrieval_top_k_final: int = 5
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L6-v2"
     index_dir: str = "./indexes"
+    classification_model: str = "gpt-4o-mini"
+    verdict_needs_review_threshold: float = 0.7
+    verdict_prompt_version: str = "v1"
 
 
 settings = Settings()
