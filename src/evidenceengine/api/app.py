@@ -2,10 +2,66 @@
 
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from evidenceengine.core.config import settings
+from evidenceengine.schemas.common import APIError
+
+
+def register_exception_handlers(app: FastAPI) -> None:
+    """Register global exception handlers that emit a consistent error envelope.
+
+    All error responses from Phase 5+ routes use:
+        {"error": {"code": "...", "message": "...", "detail": ...}}
+
+    Existing packets.py / extraction.py routes that raise HTTPException with a
+    dict ``detail`` will surface as HTTP_{status_code} with the dict as the
+    message string — acceptable for Phase 5. A full packets.py migration to
+    APIError is out of scope here.
+    """
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": {
+                    "code": f"HTTP_{exc.status_code}",
+                    "message": str(exc.detail),
+                    "detail": None,
+                }
+            },
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Request validation failed",
+                    "detail": exc.errors(),
+                }
+            },
+        )
+
+    @app.exception_handler(APIError)
+    async def api_error_handler(request: Request, exc: APIError) -> JSONResponse:
+        return JSONResponse(
+            status_code=exc.status,
+            content={
+                "error": {
+                    "code": exc.code,
+                    "message": exc.message,
+                    "detail": exc.detail,
+                }
+            },
+        )
 
 
 def create_app() -> FastAPI:
@@ -25,16 +81,23 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Register global exception handlers (Phase 5+)
+    register_exception_handlers(app)
+
     # Include routers
     from evidenceengine.api.routes.packets import router as packets_router
     from evidenceengine.api.routes.extraction import router as extraction_router
     from evidenceengine.api.routes.retrieval import router as retrieval_router
     from evidenceengine.api.routes.classification import router as classification_router
+    from evidenceengine.api.routes.pipeline import router as pipeline_router
+    from evidenceengine.api.routes.runs import router as runs_router
 
     app.include_router(packets_router)
     app.include_router(extraction_router)
     app.include_router(retrieval_router)
     app.include_router(classification_router)
+    app.include_router(pipeline_router)
+    app.include_router(runs_router)
 
     @app.on_event("startup")
     async def startup_event() -> None:

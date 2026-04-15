@@ -119,9 +119,10 @@ async def test_upload_invalid_file_type_returns_422(client):
     )
     assert response.status_code == 422, f"Expected 422, got {response.status_code}: {response.text}"
     data = response.json()
-    # Should have error details
-    detail = data.get("detail", {})
-    assert "errors" in detail or isinstance(detail, list)
+    # Phase 5: global exception handler wraps all errors in the error envelope
+    # {"error": {"code": "HTTP_422", "message": "...", "detail": null}}
+    assert "error" in data, f"Expected error envelope, got: {data}"
+    assert data["error"]["code"] == "HTTP_422"
 
 
 # --------------------------------------------------------------------------- #
