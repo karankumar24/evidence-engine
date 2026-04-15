@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     upload_dir: str = "./uploads"
     max_file_size_mb: int = 50
     debug: bool = False
+    openai_api_key: str = ""
+    extraction_model: str = "gpt-4o-mini"
 
 
 settings = Settings()
