@@ -1,6 +1,7 @@
 """Shared pytest fixtures for the EvidenceEngine test suite."""
 
 import os
+from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
@@ -34,7 +35,3 @@ async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
     async with async_session() as session:
         yield session
         await session.rollback()
-
-
-# Forward reference for type hint
-from collections.abc import AsyncGenerator  # noqa: E402
