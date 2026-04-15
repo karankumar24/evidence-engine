@@ -28,9 +28,11 @@ def create_app() -> FastAPI:
     # Include routers
     from evidenceengine.api.routes.packets import router as packets_router
     from evidenceengine.api.routes.extraction import router as extraction_router
+    from evidenceengine.api.routes.retrieval import router as retrieval_router
 
     app.include_router(packets_router)
     app.include_router(extraction_router)
+    app.include_router(retrieval_router)
 
     @app.on_event("startup")
     async def startup_event() -> None:

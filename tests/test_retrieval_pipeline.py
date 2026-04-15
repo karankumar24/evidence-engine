@@ -303,6 +303,7 @@ async def test_multiple_anchors_per_claim(db_session, monkeypatch):
         parsed_content={"blocks": [{"text": "Different evidence text in second source document.", "block_type": "paragraph", "position": {"page": 1, "paragraph": 1, "char_start": 0, "char_end": 49, "section_header": None}}]},
     )
     db_session.add(doc_b)
+    await db_session.flush()  # ensure doc_b.id is assigned
 
     # Add second anchor to same claim pointing to doc_b
     claim = claims[0]
