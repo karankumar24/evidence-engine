@@ -1,2 +1,54 @@
 {% extends "base.html" %}
-{% block content %}dashboard{% endblock %}
+
+{% block title %}EvidenceEngine — {{ packet.report_filename }}{% endblock %}
+
+{% block topbar %}
+  <!-- Packet title -->
+  <span class="font-semibold text-slate-800 text-sm truncate max-w-xs">{{ packet.report_filename }}</span>
+
+  <!-- Run metadata -->
+  <span class="text-slate-400 text-xs">Run: {{ run.id | string | truncate(8, True, '') }}</span>
+  {% if run.completed_at %}
+    <span class="text-slate-400 text-xs">{{ run.completed_at.strftime('%Y-%m-%d %H:%M') }} UTC</span>
+  {% endif %}
+  <span class="text-xs px-2 py-0.5 rounded-full font-medium
+    {% if run.status == 'completed' %}bg-green-100 text-green-700
+    {% elif run.status == 'failed' %}bg-red-100 text-red-700
+    {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+    {{ run.status }}
+  </span>
+
+  <!-- Spacer -->
+  <div class="flex-1"></div>
+
+  <!-- Verdict distribution pills -->
+  <div class="flex items-center gap-2 text-xs">
+    {% set verdict_styles = {
+      "contradicted": "bg-red-100 text-red-700",
+      "needs_review": "bg-amber-100 text-amber-700",
+      "insufficient_support": "bg-orange-100 text-orange-700",
+      "supported": "bg-green-100 text-green-700"
+    } %}
+    {% set verdict_labels = {
+      "contradicted": "Contradicted",
+      "needs_review": "Needs Review",
+      "insufficient_support": "Insufficient",
+      "supported": "Supported"
+    } %}
+    {% for vtype in ["contradicted", "needs_review", "insufficient_support", "supported"] %}
+      {% if distribution[vtype].count > 0 %}
+        <span class="px-2 py-0.5 rounded-full font-medium {{ verdict_styles[vtype] }}">
+          {{ verdict_labels[vtype] }}: {{ distribution[vtype].count }} ({{ distribution[vtype].pct }}%)
+        </span>
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endblock %}
+
+{% block sidebar %}
+  {% include "partials/queue_list.html" %}
+{% endblock %}
+
+{% block scripts %}
+  <script src="/static/dashboard.js"></script>
+{% endblock %}
