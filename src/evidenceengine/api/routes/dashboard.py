@@ -13,6 +13,7 @@ from evidenceengine.api.dependencies import get_db
 from evidenceengine.api.services.dashboard_queries import (
     load_claim_detail,
     load_dashboard_context,
+    load_runs_index,
     upsert_review_decision,
 )
 from evidenceengine.schemas.common import APIError
@@ -21,6 +22,20 @@ TEMPLATES_DIR = Path(__file__).parent.parent.parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 router = APIRouter(tags=["dashboard"])
+
+
+@router.get("/dashboard", response_class=HTMLResponse)
+async def dashboard_index(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Index page — lists recent pipeline runs for the reviewer to select."""
+    runs = await load_runs_index(db)
+    return templates.TemplateResponse(
+        request=request,
+        name="dashboard_index.html",
+        context={"runs": runs},
+    )
 
 
 @router.get("/dashboard/{packet_id}/{run_id}", response_class=HTMLResponse)

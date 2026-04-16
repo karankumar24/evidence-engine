@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EvidenceEngine — Select Run</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased min-h-full">
+  <header class="h-14 border-b border-slate-200 bg-white flex items-center px-6">
+    <span class="font-semibold text-slate-800">EvidenceEngine</span>
+    <span class="ml-3 text-slate-400 text-sm">/ Select a run to review</span>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-6 py-8">
+    <h1 class="text-xl font-semibold text-slate-800 mb-6">Pipeline Runs</h1>
+
+    {% if runs %}
+    <div class="bg-white border border-slate-200 rounded-lg overflow-hidden divide-y divide-slate-100">
+      {% for run in runs %}
+      <a href="/dashboard/{{ run.packet_id }}/{{ run.id }}"
+         class="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors group">
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-slate-800 truncate group-hover:text-blue-600">
+            {{ run.packet.report_filename if run.packet else run.packet_id }}
+          </div>
+          <div class="text-xs text-slate-400 mt-0.5 font-mono">{{ run.id }}</div>
+        </div>
+        <div class="flex items-center gap-3 flex-shrink-0">
+          <span class="px-2 py-0.5 rounded text-xs font-medium
+            {% if run.status == 'completed' %}bg-green-50 text-green-700
+            {% elif run.status == 'classification_complete' %}bg-blue-50 text-blue-700
+            {% elif run.status == 'failed' %}bg-red-50 text-red-700
+            {% else %}bg-slate-100 text-slate-600{% endif %}">
+            {{ run.status }}
+          </span>
+          <span class="text-xs text-slate-400 w-36 text-right">
+            {{ run.created_at.strftime('%Y-%m-%d %H:%M') if run.created_at else '' }}
+          </span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-20 text-slate-400 text-sm">
+      No pipeline runs found. Upload a packet and run the pipeline first.
+    </div>
+    {% endif %}
+  </main>
+</body>
+</html>

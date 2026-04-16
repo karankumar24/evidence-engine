@@ -203,3 +203,14 @@ async def upsert_review_decision(
     await db.commit()
     await db.refresh(decision)
     return decision
+
+
+async def load_runs_index(db: AsyncSession, limit: int = 50) -> list[RunVersion]:
+    """Load recent runs with their packets for the dashboard index page."""
+    result = await db.execute(
+        select(RunVersion)
+        .options(selectinload(RunVersion.packet))
+        .order_by(RunVersion.created_at.desc())
+        .limit(limit)
+    )
+    return list(result.scalars().all())
