@@ -1,0 +1,302 @@
+[
+  {
+    "id": "synth-sup-001",
+    "verdict_class": "supported",
+    "claim_text": "Global CO2 concentrations in 2023 exceeded 420 ppm.",
+    "evidence_spans": [
+      {
+        "span_text": "CO2 concentrations measured in 2023 were above 420 ppm at Mauna Loa.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Direct confirmation"
+  },
+  {
+    "id": "synth-sup-002",
+    "verdict_class": "supported",
+    "claim_text": "Renewable energy provided over 25% of global electricity in 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "Renewables exceeded 25% of global electricity generation in 2020.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Percentage match"
+  },
+  {
+    "id": "synth-sup-003",
+    "verdict_class": "supported",
+    "claim_text": "Sea level rise accelerated after 1993 according to satellite data.",
+    "evidence_spans": [
+      {
+        "span_text": "Satellite altimetry shows an acceleration in sea level rise since 1993.",
+        "relevance_score": 0.87,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Trend match"
+  },
+  {
+    "id": "synth-sup-004",
+    "verdict_class": "supported",
+    "claim_text": "Wind and solar together produce more than 10% of global electricity.",
+    "evidence_spans": [
+      {
+        "span_text": "Combined solar and wind output accounts for over 10% of world electricity.",
+        "relevance_score": 0.89,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Share confirmation"
+  },
+  {
+    "id": "synth-sup-005",
+    "verdict_class": "supported",
+    "claim_text": "Battery costs have declined dramatically since 2010.",
+    "evidence_spans": [
+      {
+        "span_text": "Lithium-ion battery prices dropped sharply between 2010 and 2020.",
+        "relevance_score": 0.85,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Trend match"
+  },
+  {
+    "id": "synth-sup-006",
+    "verdict_class": "supported",
+    "claim_text": "The Paris Agreement was adopted in 2015.",
+    "evidence_spans": [
+      {
+        "span_text": "The Paris Agreement was agreed upon at COP21 in 2015.",
+        "relevance_score": 0.95,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Date match"
+  },
+  {
+    "id": "synth-sup-007",
+    "verdict_class": "supported",
+    "claim_text": "Ice loss in Greenland contributes to global sea level rise.",
+    "evidence_spans": [
+      {
+        "span_text": "Mass loss from the Greenland ice sheet raises global mean sea levels.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Mechanism confirmed"
+  },
+  {
+    "id": "synth-sup-008",
+    "verdict_class": "supported",
+    "claim_text": "EV sales have grown rapidly since 2018.",
+    "evidence_spans": [
+      {
+        "span_text": "Electric vehicle sales increased significantly each year after 2018.",
+        "relevance_score": 0.86,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Trend match"
+  },
+  {
+    "id": "synth-sup-009",
+    "verdict_class": "supported",
+    "claim_text": "Ocean acidification is caused by absorption of atmospheric CO2.",
+    "evidence_spans": [
+      {
+        "span_text": "The oceans absorb CO2 from the atmosphere, causing pH to decrease.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Causal mechanism"
+  },
+  {
+    "id": "synth-sup-010",
+    "verdict_class": "supported",
+    "claim_text": "Agricultural emissions include methane from livestock and nitrous oxide from soils.",
+    "evidence_spans": [
+      {
+        "span_text": "Livestock produce methane and fertilised soils release N2O, both greenhouse gases.",
+        "relevance_score": 0.89,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Sector emissions confirmed"
+  },
+  {
+    "id": "synth-sup-011",
+    "verdict_class": "supported",
+    "claim_text": "Global mean temperature is higher today than in the pre-industrial era.",
+    "evidence_spans": [
+      {
+        "span_text": "The current global average temperature exceeds the 1850\u20131900 baseline.",
+        "relevance_score": 0.92,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Relative warming confirmed"
+  },
+  {
+    "id": "synth-sup-012",
+    "verdict_class": "supported",
+    "claim_text": "The ozone layer is recovering following the Montreal Protocol.",
+    "evidence_spans": [
+      {
+        "span_text": "Ozone layer recovery is underway as ozone-depleting substances decline.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Recovery trend confirmed"
+  },
+  {
+    "id": "synth-sup-013",
+    "verdict_class": "supported",
+    "claim_text": "Solar PV costs fell faster than projected by IEA models from 2010 to 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "Solar PV cost reductions exceeded IEA projections over 2010\u20132020.",
+        "relevance_score": 0.87,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Outperformance confirmed"
+  },
+  {
+    "id": "synth-sup-014",
+    "verdict_class": "supported",
+    "claim_text": "Deforestation in tropical regions releases stored carbon into the atmosphere.",
+    "evidence_spans": [
+      {
+        "span_text": "Tropical deforestation releases large amounts of carbon previously stored in trees.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Process confirmed"
+  },
+  {
+    "id": "synth-sup-015",
+    "verdict_class": "supported",
+    "claim_text": "China has the largest installed wind capacity in the world.",
+    "evidence_spans": [
+      {
+        "span_text": "China leads the world in total installed wind power capacity.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Ranking match"
+  },
+  {
+    "id": "synth-sup-016",
+    "verdict_class": "supported",
+    "claim_text": "Permafrost contains organic carbon frozen for millennia.",
+    "evidence_spans": [
+      {
+        "span_text": "Permafrost soils hold large amounts of ancient organic carbon.",
+        "relevance_score": 0.87,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Fact confirmed"
+  },
+  {
+    "id": "synth-sup-017",
+    "verdict_class": "supported",
+    "claim_text": "Coral bleaching is caused by elevated sea temperatures.",
+    "evidence_spans": [
+      {
+        "span_text": "Thermal stress from warm ocean temperatures triggers coral bleaching.",
+        "relevance_score": 0.89,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Cause confirmed"
+  },
+  {
+    "id": "synth-sup-018",
+    "verdict_class": "supported",
+    "claim_text": "Nuclear power emits very little CO2 per unit of electricity generated.",
+    "evidence_spans": [
+      {
+        "span_text": "Nuclear energy has among the lowest lifecycle GHG emissions per kWh.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Low-carbon confirmed"
+  },
+  {
+    "id": "synth-sup-019",
+    "verdict_class": "supported",
+    "claim_text": "Building insulation reduces heating energy demand.",
+    "evidence_spans": [
+      {
+        "span_text": "Better insulation lowers the amount of energy needed to heat buildings.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Energy relationship confirmed"
+  },
+  {
+    "id": "synth-sup-020",
+    "verdict_class": "supported",
+    "claim_text": "Rising temperatures increase the risk of wildfires globally.",
+    "evidence_spans": [
+      {
+        "span_text": "Higher temperatures and drought increase wildfire probability in many regions.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "synthetic",
+    "notes": "[synthetic] Risk relationship confirmed"
+  }
+]

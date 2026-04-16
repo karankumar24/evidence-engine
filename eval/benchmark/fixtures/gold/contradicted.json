@@ -1,0 +1,827 @@
+[
+  {
+    "id": "gold-con-001",
+    "verdict_class": "contradicted",
+    "claim_text": "Renewable energy accounted for 40% of global electricity generation in 2023.",
+    "evidence_spans": [
+      {
+        "span_text": "Renewables contributed approximately 30% of global electricity generation in 2023, up from 28% in 2022.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "40% claim vs 30% figure"
+  },
+  {
+    "id": "gold-con-002",
+    "verdict_class": "contradicted",
+    "claim_text": "Global CO2 emissions declined by 10% in 2020 due to COVID-19.",
+    "evidence_spans": [
+      {
+        "span_text": "Global energy-related CO2 emissions fell by approximately 5.8% in 2020, the largest annual drop on record.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "10% vs 5.8% \u2014 numeric contradiction"
+  },
+  {
+    "id": "gold-con-003",
+    "verdict_class": "contradicted",
+    "claim_text": "China surpassed the US as the world's largest economy in 2015 based on nominal GDP.",
+    "evidence_spans": [
+      {
+        "span_text": "In 2015, the US remained the world's largest economy by nominal GDP; China surpassed the US only on purchasing-power-parity terms.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "PPP vs nominal GDP distinction"
+  },
+  {
+    "id": "gold-con-004",
+    "verdict_class": "contradicted",
+    "claim_text": "The IPCC AR6 concluded global warming is likely to exceed 3\u00b0C by 2100 under the most ambitious mitigation scenario.",
+    "evidence_spans": [
+      {
+        "span_text": "Under the most ambitious mitigation scenario (SSP1-1.9), the IPCC AR6 projects global warming of 1.0\u00b0C\u20131.8\u00b0C by 2100.",
+        "relevance_score": 0.94,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "3\u00b0C contradicted by 1.0\u20131.8\u00b0C projection"
+  },
+  {
+    "id": "gold-con-005",
+    "verdict_class": "contradicted",
+    "claim_text": "Wind energy is currently the cheapest source of new electricity generation globally.",
+    "evidence_spans": [
+      {
+        "span_text": "As of 2021, utility-scale solar PV holds the lowest levelised cost of electricity for new capacity globally, below onshore wind.",
+        "relevance_score": 0.87,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Wind vs solar cost leadership"
+  },
+  {
+    "id": "gold-con-006",
+    "verdict_class": "contradicted",
+    "claim_text": "Electric vehicles account for over 20% of all cars on the road globally as of 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "EVs represented approximately 1% of the total global car stock in 2022, though they accounted for a higher share of new sales in some markets.",
+        "relevance_score": 0.93,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "20% vs ~1% stock share"
+  },
+  {
+    "id": "gold-con-007",
+    "verdict_class": "contradicted",
+    "claim_text": "NASA confirmed that 2022 was the hottest year on record globally.",
+    "evidence_spans": [
+      {
+        "span_text": "NASA and NOAA data ranked 2022 as the fifth-warmest year on record globally.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Hottest vs fifth-hottest"
+  },
+  {
+    "id": "gold-con-008",
+    "verdict_class": "contradicted",
+    "claim_text": "The Montreal Protocol was signed in 1997.",
+    "evidence_spans": [
+      {
+        "span_text": "The Montreal Protocol on Substances that Deplete the Ozone Layer was adopted and opened for signature in September 1987.",
+        "relevance_score": 0.95,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "1997 vs 1987 date"
+  },
+  {
+    "id": "gold-con-009",
+    "verdict_class": "contradicted",
+    "claim_text": "Brazil has the world's largest hydropower capacity.",
+    "evidence_spans": [
+      {
+        "span_text": "China has the world's largest installed hydropower capacity, far exceeding Brazil which ranks second.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Brazil vs China ranking"
+  },
+  {
+    "id": "gold-con-010",
+    "verdict_class": "contradicted",
+    "claim_text": "The global average surface temperature in 2020 was 1.5\u00b0C above pre-industrial levels.",
+    "evidence_spans": [
+      {
+        "span_text": "The global average surface temperature in 2020 was approximately 1.25\u00b0C above the 1850\u20131900 pre-industrial baseline.",
+        "relevance_score": 0.92,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "1.5\u00b0C vs 1.25\u00b0C"
+  },
+  {
+    "id": "gold-con-011",
+    "verdict_class": "contradicted",
+    "claim_text": "European Union achieved carbon neutrality by 2030.",
+    "evidence_spans": [
+      {
+        "span_text": "The EU's target is to achieve climate neutrality by 2050; no carbon neutrality was achieved by 2030.",
+        "relevance_score": 0.94,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "2030 vs 2050 target date"
+  },
+  {
+    "id": "gold-con-012",
+    "verdict_class": "contradicted",
+    "claim_text": "Global fish catches have been increasing steadily since 1990.",
+    "evidence_spans": [
+      {
+        "span_text": "Global marine fish catch has been roughly stable or declining since the late 1980s, with capture fisheries peaking around 86\u201390 Mt in the early 1990s.",
+        "relevance_score": 0.86,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Increasing claim contradicted by flat/declining trend"
+  },
+  {
+    "id": "gold-con-013",
+    "verdict_class": "contradicted",
+    "claim_text": "Offshore wind is cheaper than onshore wind globally as of 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "Onshore wind remains cheaper than offshore wind on a global average levelised cost basis as of 2022.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Offshore vs onshore cost order"
+  },
+  {
+    "id": "gold-con-014",
+    "verdict_class": "contradicted",
+    "claim_text": "India is the world's second-largest CO2 emitter.",
+    "evidence_spans": [
+      {
+        "span_text": "The US is the second-largest CO2 emitter behind China; India is typically ranked third.",
+        "relevance_score": 0.89,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "India rank 3 not 2"
+  },
+  {
+    "id": "gold-con-015",
+    "verdict_class": "contradicted",
+    "claim_text": "Permafrost covers more than 50% of the Earth's land surface.",
+    "evidence_spans": [
+      {
+        "span_text": "Permafrost underlies approximately 25% of the Northern Hemisphere's land area, not more than half of Earth's total land surface.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "50% vs 25%"
+  },
+  {
+    "id": "gold-con-016",
+    "verdict_class": "contradicted",
+    "claim_text": "The world population reached 8 billion in 2018.",
+    "evidence_spans": [
+      {
+        "span_text": "The global population reached 8 billion in November 2022.",
+        "relevance_score": 0.93,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "2018 vs 2022"
+  },
+  {
+    "id": "gold-con-017",
+    "verdict_class": "contradicted",
+    "claim_text": "Coal provided less than 20% of global electricity in 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "Coal accounted for approximately 36% of global electricity generation in 2022.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Less than 20% vs 36%"
+  },
+  {
+    "id": "gold-con-018",
+    "verdict_class": "contradicted",
+    "claim_text": "Antarctic ice sheets gained mass on net between 1992 and 2017.",
+    "evidence_spans": [
+      {
+        "span_text": "A comprehensive study found that Antarctica lost 2,720 Gt of ice between 1992 and 2017, contributing to sea level rise.",
+        "relevance_score": 0.92,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Gained vs lost mass"
+  },
+  {
+    "id": "gold-con-019",
+    "verdict_class": "contradicted",
+    "claim_text": "Global deforestation rates have declined every year since 2010.",
+    "evidence_spans": [
+      {
+        "span_text": "While overall deforestation rates showed a declining trend, individual years after 2010 (e.g., 2020\u20132021 in the Brazilian Amazon) saw sharp increases.",
+        "relevance_score": 0.84,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Every-year decline contradicted by observed increases"
+  },
+  {
+    "id": "gold-con-020",
+    "verdict_class": "contradicted",
+    "claim_text": "The US Inflation Reduction Act committed $370 billion to defence spending.",
+    "evidence_spans": [
+      {
+        "span_text": "The Inflation Reduction Act of 2022 committed approximately $369 billion to climate and clean energy investments, not defence.",
+        "relevance_score": 0.94,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Defence vs climate energy domain"
+  },
+  {
+    "id": "gold-con-021",
+    "verdict_class": "contradicted",
+    "claim_text": "Solar power is more expensive than natural gas for new capacity in the US as of 2021.",
+    "evidence_spans": [
+      {
+        "span_text": "By 2021, utility-scale solar PV in the US was cheaper than new natural gas on a levelised cost basis.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Solar more expensive vs cheaper"
+  },
+  {
+    "id": "gold-con-022",
+    "verdict_class": "contradicted",
+    "claim_text": "The Sahel region became wetter from 1970 to 2000 due to increased precipitation.",
+    "evidence_spans": [
+      {
+        "span_text": "The Sahel experienced severe drought from the late 1960s through the 1980s, with partial recovery in some areas from the 1990s; the period 1970\u20131980 was characterized by significantly reduced rainfall.",
+        "relevance_score": 0.86,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Wetter claim contradicted by drought period"
+  },
+  {
+    "id": "gold-con-023",
+    "verdict_class": "contradicted",
+    "claim_text": "The 2021 Glasgow COP26 committed all signatories to net-zero emissions by 2030.",
+    "evidence_spans": [
+      {
+        "span_text": "COP26 resulted in pledges toward net-zero by 2050 for most countries, with 2030 targets for interim cuts \u2014 not a universal 2030 net-zero commitment.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "2030 vs 2050 net-zero commitment"
+  },
+  {
+    "id": "gold-con-024",
+    "verdict_class": "contradicted",
+    "claim_text": "More than half of the world's coral reefs have died since 1950.",
+    "evidence_spans": [
+      {
+        "span_text": "Estimates suggest approximately 50% of the world's coral reefs have been lost since the 1950s, though methodologies vary; the claim of 'more than half dead' overstates the scientific consensus slightly.",
+        "relevance_score": 0.79,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "More than half vs roughly half"
+  },
+  {
+    "id": "gold-con-025",
+    "verdict_class": "contradicted",
+    "claim_text": "Nuclear power is the largest source of low-carbon electricity globally.",
+    "evidence_spans": [
+      {
+        "span_text": "Hydropower is the largest source of low-carbon electricity globally, ahead of nuclear power.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Nuclear vs hydro as largest"
+  },
+  {
+    "id": "gold-con-026",
+    "verdict_class": "contradicted",
+    "claim_text": "The US exceeded its Nationally Determined Contribution target under the Paris Agreement by 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "The US withdrew from the Paris Agreement under the Trump administration and did not meet the NDC emissions target by 2020.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Exceeded target vs withdrawal"
+  },
+  {
+    "id": "gold-con-027",
+    "verdict_class": "contradicted",
+    "claim_text": "Biodiversity loss is primarily driven by climate change.",
+    "evidence_spans": [
+      {
+        "span_text": "According to IPBES, land-use change is the primary driver of biodiversity loss globally, with climate change as a growing but currently secondary driver.",
+        "relevance_score": 0.89,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Climate as primary vs land-use as primary driver"
+  },
+  {
+    "id": "gold-con-028",
+    "verdict_class": "contradicted",
+    "claim_text": "Arctic summer sea ice could disappear by 2030 under all emission scenarios.",
+    "evidence_spans": [
+      {
+        "span_text": "Ice-free Arctic summers are projected to become more likely by the 2040s\u20132050s under higher emission scenarios, and possibly later under lower scenarios.",
+        "relevance_score": 0.87,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "2030 all-scenario vs 2040s+ higher-scenario"
+  },
+  {
+    "id": "gold-con-029",
+    "verdict_class": "contradicted",
+    "claim_text": "Coal consumption in Asia declined between 2015 and 2021.",
+    "evidence_spans": [
+      {
+        "span_text": "Coal consumption in Asia continued to grow between 2015 and 2021, driven primarily by demand in China, India, and Southeast Asia.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Declined vs grew"
+  },
+  {
+    "id": "gold-con-030",
+    "verdict_class": "contradicted",
+    "claim_text": "Global water stress affects fewer than 25% of the world's population.",
+    "evidence_spans": [
+      {
+        "span_text": "Approximately 40% of the world's population is affected by water scarcity according to UN Water assessments.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "<25% vs ~40%"
+  },
+  {
+    "id": "gold-con-031",
+    "verdict_class": "contradicted",
+    "claim_text": "Solar panels have a carbon payback period of over 10 years.",
+    "evidence_spans": [
+      {
+        "span_text": "Modern solar PV panels typically recoup the carbon cost of their manufacture within 1\u20134 years depending on location.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": ">10 years vs 1\u20134 years"
+  },
+  {
+    "id": "gold-con-032",
+    "verdict_class": "contradicted",
+    "claim_text": "Fossil fuel subsidies globally were less than $100 billion in 2021.",
+    "evidence_spans": [
+      {
+        "span_text": "IMF estimates global fossil fuel subsidies (explicit and implicit) exceeded $5.9 trillion in 2020.",
+        "relevance_score": 0.92,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "<$100B vs $5.9T (IMF implicit)"
+  },
+  {
+    "id": "gold-con-033",
+    "verdict_class": "contradicted",
+    "claim_text": "The EU banned internal combustion engine cars from 2025.",
+    "evidence_spans": [
+      {
+        "span_text": "The EU agreed to phase out new internal combustion engine car sales by 2035, not 2025.",
+        "relevance_score": 0.95,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "2025 vs 2035"
+  },
+  {
+    "id": "gold-con-034",
+    "verdict_class": "contradicted",
+    "claim_text": "Wetlands store more carbon per unit area than tropical forests.",
+    "evidence_spans": [
+      {
+        "span_text": "Peatlands and wetlands store more carbon per unit area than tropical forests, making this claim broadly correct \u2014 but the evidence refers to peatlands specifically, not all wetlands uniformly.",
+        "relevance_score": 0.75,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Broad claim partially correct but overgeneralised"
+  },
+  {
+    "id": "gold-con-035",
+    "verdict_class": "contradicted",
+    "claim_text": "The proportion of people living in extreme poverty increased between 2000 and 2019.",
+    "evidence_spans": [
+      {
+        "span_text": "The share of the global population living in extreme poverty fell from approximately 28% in 2000 to under 9% in 2019.",
+        "relevance_score": 0.94,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Increased vs decreased"
+  },
+  {
+    "id": "gold-con-036",
+    "verdict_class": "contradicted",
+    "claim_text": "Ocean pH has increased by 0.1 units since the Industrial Revolution due to CO2 absorption.",
+    "evidence_spans": [
+      {
+        "span_text": "Ocean pH has decreased by approximately 0.1 units since the Industrial Revolution \u2014 ocean acidification, not alkalization.",
+        "relevance_score": 0.95,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Increased vs decreased pH"
+  },
+  {
+    "id": "gold-con-037",
+    "verdict_class": "contradicted",
+    "claim_text": "Australia relies on renewables for over 60% of its electricity as of 2021.",
+    "evidence_spans": [
+      {
+        "span_text": "Australia's renewable energy share was approximately 29\u201330% of total electricity generation in 2020\u20132021.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": ">60% vs ~30%"
+  },
+  {
+    "id": "gold-con-038",
+    "verdict_class": "contradicted",
+    "claim_text": "Global plastic production peaked in 2010 and has declined since.",
+    "evidence_spans": [
+      {
+        "span_text": "Global plastic production reached approximately 460 million tonnes in 2019, continuing to grow past 2010.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Peak/decline vs continued growth"
+  },
+  {
+    "id": "gold-con-039",
+    "verdict_class": "contradicted",
+    "claim_text": "All 197 UNFCCC parties submitted updated NDCs before the Glasgow COP26 in 2021.",
+    "evidence_spans": [
+      {
+        "span_text": "As of COP26, only about 151 of the 197 UNFCCC parties had submitted new or updated NDCs.",
+        "relevance_score": 0.87,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "All 197 vs 151"
+  },
+  {
+    "id": "gold-con-040",
+    "verdict_class": "contradicted",
+    "claim_text": "Food systems contribute less than 10% of global greenhouse gas emissions.",
+    "evidence_spans": [
+      {
+        "span_text": "Food systems are responsible for approximately 21\u201337% of global GHG emissions according to the IPCC.",
+        "relevance_score": 0.92,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "<10% vs 21\u201337%"
+  },
+  {
+    "id": "gold-con-041",
+    "verdict_class": "contradicted",
+    "claim_text": "Green hydrogen is currently competitive with natural gas for industrial use.",
+    "evidence_spans": [
+      {
+        "span_text": "Green hydrogen production costs were still 3\u20135 times higher than natural gas in most markets as of 2021.",
+        "relevance_score": 0.89,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Competitive vs 3\u20135\u00d7 more expensive"
+  },
+  {
+    "id": "gold-con-042",
+    "verdict_class": "contradicted",
+    "claim_text": "The Gulf Stream has already completely stopped due to climate change.",
+    "evidence_spans": [
+      {
+        "span_text": "While AMOC has weakened, scientists have not observed a complete stoppage; modelling suggests possible threshold crossing later this century.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Already stopped vs weakened"
+  },
+  {
+    "id": "gold-con-043",
+    "verdict_class": "contradicted",
+    "claim_text": "Soil carbon stocks globally are smaller than atmospheric carbon stocks.",
+    "evidence_spans": [
+      {
+        "span_text": "Global soil carbon stocks (approximately 1,500\u20132,400 Gt C) exceed the atmospheric CO2 carbon pool of around 870 Gt C.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Soil smaller vs larger than atmosphere"
+  },
+  {
+    "id": "gold-con-044",
+    "verdict_class": "contradicted",
+    "claim_text": "The US and China signed a bilateral agreement to phase out coal by 2025.",
+    "evidence_spans": [
+      {
+        "span_text": "No bilateral US\u2013China coal phase-out agreement with a 2025 timeline was concluded; COP26 produced a broader multilateral coal phase-down pledge without a US\u2013China 2025 deadline.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Fabricated bilateral deadline"
+  },
+  {
+    "id": "gold-con-045",
+    "verdict_class": "contradicted",
+    "claim_text": "Burning biomass for energy is classified as carbon-neutral in all national accounting frameworks.",
+    "evidence_spans": [
+      {
+        "span_text": "Biomass carbon accounting remains contested; some frameworks allow carbon-neutral classification but the IPCC and many scientists dispute its universal applicability.",
+        "relevance_score": 0.83,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "All-frameworks claim contradicted by ongoing dispute"
+  },
+  {
+    "id": "gold-con-046",
+    "verdict_class": "contradicted",
+    "claim_text": "Sub-Saharan Africa is responsible for 25% of global greenhouse gas emissions.",
+    "evidence_spans": [
+      {
+        "span_text": "Sub-Saharan Africa accounts for approximately 3\u20135% of global greenhouse gas emissions.",
+        "relevance_score": 0.93,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "25% vs 3\u20135%"
+  },
+  {
+    "id": "gold-con-047",
+    "verdict_class": "contradicted",
+    "claim_text": "Mangroves have declined in area by 50% globally since 1990.",
+    "evidence_spans": [
+      {
+        "span_text": "Global mangrove area has declined by approximately 20\u201335% since the 1980s, with losses slowing in recent decades.",
+        "relevance_score": 0.87,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "50% vs 20\u201335%"
+  },
+  {
+    "id": "gold-con-048",
+    "verdict_class": "contradicted",
+    "claim_text": "The US is the world's largest producer of wind energy.",
+    "evidence_spans": [
+      {
+        "span_text": "China is the world's largest producer of wind energy by total installed capacity and annual generation.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "US vs China as largest wind producer"
+  },
+  {
+    "id": "gold-con-049",
+    "verdict_class": "contradicted",
+    "claim_text": "Electric vehicles have no lifecycle carbon emissions.",
+    "evidence_spans": [
+      {
+        "span_text": "EVs have lower lifecycle emissions than ICE vehicles in most contexts but still produce emissions during manufacturing and through grid electricity depending on the energy mix.",
+        "relevance_score": 0.92,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Zero vs positive lifecycle emissions"
+  },
+  {
+    "id": "gold-con-050",
+    "verdict_class": "contradicted",
+    "claim_text": "Carbon capture removes more CO2 from the atmosphere than global fossil fuel emissions produce annually.",
+    "evidence_spans": [
+      {
+        "span_text": "Operational CCS captured roughly 40 Mt CO2 in 2021, compared to approximately 33 billion tonnes of fossil fuel CO2 emissions that year.",
+        "relevance_score": 0.95,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "40 Mt vs 33 Gt \u2014 orders of magnitude apart"
+  },
+  {
+    "id": "gold-con-051",
+    "verdict_class": "contradicted",
+    "claim_text": "Africa has the highest per-capita CO2 emissions of any continent.",
+    "evidence_spans": [
+      {
+        "span_text": "North America and Australia/Oceania have among the highest per-capita CO2 emissions; Africa has among the lowest per-capita emissions.",
+        "relevance_score": 0.93,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Highest vs lowest per-capita"
+  },
+  {
+    "id": "gold-con-052",
+    "verdict_class": "contradicted",
+    "claim_text": "The Intergovernmental Panel on Climate Change was established in 2000.",
+    "evidence_spans": [
+      {
+        "span_text": "The IPCC was established in 1988 by the WMO and UNEP.",
+        "relevance_score": 0.96,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "2000 vs 1988"
+  },
+  {
+    "id": "gold-con-053",
+    "verdict_class": "contradicted",
+    "claim_text": "Global methane concentrations have been stable since 2000.",
+    "evidence_spans": [
+      {
+        "span_text": "After a brief plateau in the early 2000s, atmospheric methane concentrations resumed rising from around 2007 and accelerated sharply after 2014.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Stable claim contradicted by resumed rise"
+  },
+  {
+    "id": "gold-con-054",
+    "verdict_class": "contradicted",
+    "claim_text": "Japan has committed to closing all nuclear power plants by 2030.",
+    "evidence_spans": [
+      {
+        "span_text": "After Fukushima, Japan suspended nuclear plants but has since restarted some and as of 2023 was pursuing a policy of restarting and extending reactor lifetimes, not closing all by 2030.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Committed to closure vs restart policy"
+  },
+  {
+    "id": "gold-con-055",
+    "verdict_class": "contradicted",
+    "claim_text": "Land-based wind farms are universally opposed by local communities.",
+    "evidence_spans": [
+      {
+        "span_text": "Studies show mixed community attitudes to wind farms; many projects receive local support, particularly where communities share economic benefits.",
+        "relevance_score": 0.85,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "gold",
+    "notes": "Universal opposition vs mixed attitudes"
+  }
+]

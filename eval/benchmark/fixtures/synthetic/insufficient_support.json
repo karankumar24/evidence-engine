@@ -1,0 +1,302 @@
+[
+  {
+    "id": "synth-ins-001",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Net biodiversity gain policies increased species richness by 15%.",
+    "evidence_spans": [
+      {
+        "span_text": "Biodiversity net gain policies are being adopted in several countries.",
+        "relevance_score": 0.43,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Policy exists, 15% figure absent"
+  },
+  {
+    "id": "synth-ins-002",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Carbon border adjustments generated \u20ac5 billion in EU revenue in 2023.",
+    "evidence_spans": [
+      {
+        "span_text": "The EU CBAM is being phased in from 2023.",
+        "relevance_score": 0.45,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Mechanism exists, revenue figure absent"
+  },
+  {
+    "id": "synth-ins-003",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Wave energy contributes 2 GW to UK electricity.",
+    "evidence_spans": [
+      {
+        "span_text": "Wave energy is an emerging sector being tested in UK waters.",
+        "relevance_score": 0.4,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Sector mentioned, 2 GW not confirmed"
+  },
+  {
+    "id": "synth-ins-004",
+    "verdict_class": "insufficient_support",
+    "claim_text": "City heat islands are on average 4\u00b0C warmer than surrounding rural areas.",
+    "evidence_spans": [
+      {
+        "span_text": "Urban heat islands are well documented in cities worldwide.",
+        "relevance_score": 0.47,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Effect confirmed, 4\u00b0C figure not given"
+  },
+  {
+    "id": "synth-ins-005",
+    "verdict_class": "insufficient_support",
+    "claim_text": "EU methane regulation reduced livestock emissions by 8% by 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "The EU has introduced methane regulation for energy and agriculture.",
+        "relevance_score": 0.44,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Regulation exists, 8% reduction absent"
+  },
+  {
+    "id": "synth-ins-006",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Switzerland's carbon offset market transacted 10 million credits in 2021.",
+    "evidence_spans": [
+      {
+        "span_text": "Switzerland operates a domestic carbon offset market.",
+        "relevance_score": 0.42,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Market exists, volume not confirmed"
+  },
+  {
+    "id": "synth-ins-007",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Kelp farm restoration projects off California sequestered 50,000 tonnes of carbon.",
+    "evidence_spans": [
+      {
+        "span_text": "Kelp restoration is being trialled off California's coast.",
+        "relevance_score": 0.41,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Project exists, specific sequestration absent"
+  },
+  {
+    "id": "synth-ins-008",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Nature-based solutions account for 30% of the mitigation potential needed by 2030.",
+    "evidence_spans": [
+      {
+        "span_text": "Nature-based solutions are recognised in IPCC and UNFCCC frameworks.",
+        "relevance_score": 0.48,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Recognition confirmed, 30% not quantified"
+  },
+  {
+    "id": "synth-ins-009",
+    "verdict_class": "insufficient_support",
+    "claim_text": "EU buildings retrofit programme improved 2 million homes' energy ratings by 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "The EU has funded building retrofits to improve energy performance.",
+        "relevance_score": 0.46,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Programme confirmed, number absent"
+  },
+  {
+    "id": "synth-ins-010",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Precision agriculture reduces fertiliser use by 25% on average.",
+    "evidence_spans": [
+      {
+        "span_text": "Precision agriculture uses data to optimise inputs including fertiliser.",
+        "relevance_score": 0.44,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Optimisation confirmed, 25% reduction not verified"
+  },
+  {
+    "id": "synth-ins-011",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Canada's clean fuel standard lowered transport emissions by 3% since implementation.",
+    "evidence_spans": [
+      {
+        "span_text": "Canada implemented a clean fuel standard targeting transport emissions.",
+        "relevance_score": 0.43,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Policy exists, 3% impact not confirmed"
+  },
+  {
+    "id": "synth-ins-012",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Iron fertilisation of the Southern Ocean stored 10 Mt carbon per year.",
+    "evidence_spans": [
+      {
+        "span_text": "Iron fertilisation has been tested as a carbon sequestration method.",
+        "relevance_score": 0.4,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Testing confirmed, 10 Mt unverified"
+  },
+  {
+    "id": "synth-ins-013",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Germany retired the last coal plant in 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "Germany has a coal phase-out plan.",
+        "relevance_score": 0.42,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Plan exists, 2022 completion not confirmed"
+  },
+  {
+    "id": "synth-ins-014",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Soil carbon monitoring networks cover 50% of global agricultural land.",
+    "evidence_spans": [
+      {
+        "span_text": "Soil carbon monitoring is expanding globally.",
+        "relevance_score": 0.41,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Expansion confirmed, 50% coverage not verified"
+  },
+  {
+    "id": "synth-ins-015",
+    "verdict_class": "insufficient_support",
+    "claim_text": "South Korea's hydrogen economy strategy deployed 200,000 fuel cell vehicles by 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "South Korea has an ambitious hydrogen economy strategy.",
+        "relevance_score": 0.44,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Strategy exists, vehicle count not confirmed"
+  },
+  {
+    "id": "synth-ins-016",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Heat pump adoption in Norway exceeded 60% of households by 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "Norway has high rates of heat pump adoption.",
+        "relevance_score": 0.48,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] High rates confirmed, 60% not verified"
+  },
+  {
+    "id": "synth-ins-017",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Carbon-negative cement products reduced construction sector emissions by 5%.",
+    "evidence_spans": [
+      {
+        "span_text": "Carbon-negative cement technologies are under development.",
+        "relevance_score": 0.42,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Development stage confirmed, 5% reduction absent"
+  },
+  {
+    "id": "synth-ins-018",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Amazon deforestation triggers rainfall reductions 1,000 km away.",
+    "evidence_spans": [
+      {
+        "span_text": "Deforestation affects regional hydrology through moisture recycling.",
+        "relevance_score": 0.47,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Mechanism confirmed, 1,000 km range not verified"
+  },
+  {
+    "id": "synth-ins-019",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Paris metro's solar rooftop project generates 10 MW of electricity.",
+    "evidence_spans": [
+      {
+        "span_text": "Paris has implemented renewable energy projects on urban infrastructure.",
+        "relevance_score": 0.4,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Project type confirmed, 10 MW not verified"
+  },
+  {
+    "id": "synth-ins-020",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Direct ocean capture removes 1 Mt CO2 per year.",
+    "evidence_spans": [
+      {
+        "span_text": "Direct ocean capture is an emerging negative emissions technology.",
+        "relevance_score": 0.41,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "synthetic",
+    "notes": "[synthetic] Technology stage confirmed, 1 Mt not verified"
+  }
+]

@@ -1,0 +1,827 @@
+[
+  {
+    "id": "gold-sup-001",
+    "verdict_class": "supported",
+    "claim_text": "Global mean surface temperature increased by 1.1\u00b0C above pre-industrial levels by 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "The global mean surface temperature in 2022 was approximately 1.15\u00b0C above the 1850\u20131900 pre-industrial baseline.",
+        "relevance_score": 0.92,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Direct numeric confirmation"
+  },
+  {
+    "id": "gold-sup-002",
+    "verdict_class": "supported",
+    "claim_text": "CO2 concentrations reached 421 ppm in May 2023.",
+    "evidence_spans": [
+      {
+        "span_text": "Atmospheric CO2 concentrations at Mauna Loa reached 421.47 ppm in May 2023, a new monthly high.",
+        "relevance_score": 0.95,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Exact measurement match"
+  },
+  {
+    "id": "gold-sup-003",
+    "verdict_class": "supported",
+    "claim_text": "Arctic sea ice extent declined by 13% per decade since 1979.",
+    "evidence_spans": [
+      {
+        "span_text": "Satellite records show Arctic sea ice extent has decreased at a rate of 13.1% per decade relative to the 1981\u20132010 average.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Rate confirmation"
+  },
+  {
+    "id": "gold-sup-004",
+    "verdict_class": "supported",
+    "claim_text": "Renewable energy provided 29% of global electricity in 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "Renewables accounted for approximately 29% of global electricity generation in 2022 according to IEA data.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Percentage match"
+  },
+  {
+    "id": "gold-sup-005",
+    "verdict_class": "supported",
+    "claim_text": "Sea level rose by 3.7 mm per year on average between 2006 and 2018.",
+    "evidence_spans": [
+      {
+        "span_text": "The global mean sea level rise rate from 2006 to 2018 was 3.7 mm/year, according to satellite altimetry records.",
+        "relevance_score": 0.93,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Rate confirmation"
+  },
+  {
+    "id": "gold-sup-006",
+    "verdict_class": "supported",
+    "claim_text": "The Greenland ice sheet lost 280 billion tonnes of mass per year between 2002 and 2016.",
+    "evidence_spans": [
+      {
+        "span_text": "GRACE satellite data show the Greenland ice sheet lost approximately 280 Gt/yr of mass from 2002 to 2016.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Numeric match"
+  },
+  {
+    "id": "gold-sup-007",
+    "verdict_class": "supported",
+    "claim_text": "Ocean heat content in the upper 2000 m increased at a rate of 0.36 W/m\u00b2 between 1971 and 2010.",
+    "evidence_spans": [
+      {
+        "span_text": "The rate of ocean heat uptake in the 0\u20132000 m layer was 0.36 W/m\u00b2 over 1971\u20132010.",
+        "relevance_score": 0.87,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Rate match"
+  },
+  {
+    "id": "gold-sup-008",
+    "verdict_class": "supported",
+    "claim_text": "Global forest area decreased by 178 million hectares from 1990 to 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "The world lost approximately 178 million ha of forest between 1990 and 2020 per FAO data.",
+        "relevance_score": 0.89,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Area match"
+  },
+  {
+    "id": "gold-sup-009",
+    "verdict_class": "supported",
+    "claim_text": "The share of coal in global electricity generation fell to 36% in 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "Coal's share of global power generation declined to 36% in 2022, down from 38% in 2020.",
+        "relevance_score": 0.85,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Percentage match"
+  },
+  {
+    "id": "gold-sup-010",
+    "verdict_class": "supported",
+    "claim_text": "Solar PV capacity additions reached 191 GW globally in 2021.",
+    "evidence_spans": [
+      {
+        "span_text": "Global solar photovoltaic additions totalled 191 GW in 2021, the largest single-year increase to date.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Capacity match"
+  },
+  {
+    "id": "gold-sup-011",
+    "verdict_class": "supported",
+    "claim_text": "Methane concentrations reached 1,908 ppb in 2021.",
+    "evidence_spans": [
+      {
+        "span_text": "Atmospheric methane concentration averaged 1,908 ppb in 2021, an increase of 18 ppb from 2020.",
+        "relevance_score": 0.92,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Numeric match"
+  },
+  {
+    "id": "gold-sup-012",
+    "verdict_class": "supported",
+    "claim_text": "The Paris Agreement was adopted by 196 parties in December 2015.",
+    "evidence_spans": [
+      {
+        "span_text": "The Paris Agreement was adopted at COP21 in December 2015 by 196 parties to the UNFCCC.",
+        "relevance_score": 0.97,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Factual match"
+  },
+  {
+    "id": "gold-sup-013",
+    "verdict_class": "supported",
+    "claim_text": "EU emissions declined by 31% between 1990 and 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "EU greenhouse gas emissions fell by approximately 31% between 1990 and 2020.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Percentage match"
+  },
+  {
+    "id": "gold-sup-014",
+    "verdict_class": "supported",
+    "claim_text": "Wind power produced 6.6% of global electricity in 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "Wind energy contributed 6.6% of global electricity generation in 2020.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Percentage match"
+  },
+  {
+    "id": "gold-sup-015",
+    "verdict_class": "supported",
+    "claim_text": "The permafrost in Siberia stores approximately 1,500 Gt of carbon.",
+    "evidence_spans": [
+      {
+        "span_text": "Siberian permafrost contains an estimated 1,500 Gt of organic carbon, roughly double the current atmospheric CO2.",
+        "relevance_score": 0.86,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Estimate match"
+  },
+  {
+    "id": "gold-sup-016",
+    "verdict_class": "supported",
+    "claim_text": "Coral bleaching events doubled in frequency between 1980 and 2016.",
+    "evidence_spans": [
+      {
+        "span_text": "The average interval between bleaching events on reefs around the world shortened from 25\u201330 years in the 1980s to about 6 years by 2016.",
+        "relevance_score": 0.83,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Frequency increase confirmed"
+  },
+  {
+    "id": "gold-sup-017",
+    "verdict_class": "supported",
+    "claim_text": "Carbon capture and storage projects stored less than 50 Mt CO2 in 2021.",
+    "evidence_spans": [
+      {
+        "span_text": "Global CCS capacity operational in 2021 captured and stored around 40 Mt CO2/year.",
+        "relevance_score": 0.84,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Below-threshold confirmation"
+  },
+  {
+    "id": "gold-sup-018",
+    "verdict_class": "supported",
+    "claim_text": "India added 14 GW of renewable capacity in fiscal year 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "India's renewable energy additions reached approximately 14 GW in FY2021-22.",
+        "relevance_score": 0.87,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Capacity match"
+  },
+  {
+    "id": "gold-sup-019",
+    "verdict_class": "supported",
+    "claim_text": "The number of climate-related natural disasters doubled between 1980 and 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "Climate-related disasters reported globally nearly doubled from the 1980s to 2010\u20132020 per Munich Re data.",
+        "relevance_score": 0.82,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Trend confirmation"
+  },
+  {
+    "id": "gold-sup-020",
+    "verdict_class": "supported",
+    "claim_text": "Lithium-ion battery prices fell by 89% between 2010 and 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "BloombergNEF data show lithium-ion battery pack prices dropped 89% in real terms from 2010 to 2020.",
+        "relevance_score": 0.93,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Price decline match"
+  },
+  {
+    "id": "gold-sup-021",
+    "verdict_class": "supported",
+    "claim_text": "Global EV sales exceeded 10 million units in 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "Electric vehicle sales reached 10.5 million units globally in 2022, a 55% increase from 2021.",
+        "relevance_score": 0.92,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Sales figure match"
+  },
+  {
+    "id": "gold-sup-022",
+    "verdict_class": "supported",
+    "claim_text": "The Amazon basin released more CO2 than it absorbed in the 2010s.",
+    "evidence_spans": [
+      {
+        "span_text": "A 2021 study found parts of the eastern Amazon emitted more CO2 than they absorbed over 2010\u20132018, driven by deforestation.",
+        "relevance_score": 0.85,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Net emission confirmation"
+  },
+  {
+    "id": "gold-sup-023",
+    "verdict_class": "supported",
+    "claim_text": "Nuclear power provided about 10% of global electricity in 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "Nuclear energy generated approximately 10% of the world's electricity in 2022.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Percentage match"
+  },
+  {
+    "id": "gold-sup-024",
+    "verdict_class": "supported",
+    "claim_text": "The 2021 IPCC report confirmed that human influence has warmed the climate.",
+    "evidence_spans": [
+      {
+        "span_text": "The Sixth Assessment Report (IPCC, 2021) states unequivocally that human influence has warmed the atmosphere, ocean, and land.",
+        "relevance_score": 0.97,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "IPCC finding match"
+  },
+  {
+    "id": "gold-sup-025",
+    "verdict_class": "supported",
+    "claim_text": "Average global crop yield increases slowed after 1990 compared with 1960\u20131990.",
+    "evidence_spans": [
+      {
+        "span_text": "The rate of yield improvement for major cereals decelerated after 1990 relative to the green-revolution era.",
+        "relevance_score": 0.81,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Trend match"
+  },
+  {
+    "id": "gold-sup-026",
+    "verdict_class": "supported",
+    "claim_text": "US shale gas production surpassed 25 trillion cubic feet in 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "US dry shale gas production exceeded 26 tcf in 2020 according to EIA statistics.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Production match"
+  },
+  {
+    "id": "gold-sup-027",
+    "verdict_class": "supported",
+    "claim_text": "Deforestation in Brazil's Amazon increased by 22% in 2021.",
+    "evidence_spans": [
+      {
+        "span_text": "INPE data show deforestation in Brazil's Legal Amazon rose by 22% in 2021 to 13,235 km\u00b2.",
+        "relevance_score": 0.94,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Rate match"
+  },
+  {
+    "id": "gold-sup-028",
+    "verdict_class": "supported",
+    "claim_text": "Global cement production exceeded 4 billion tonnes in 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "World cement output was approximately 4.1 billion metric tonnes in 2020.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Volume match"
+  },
+  {
+    "id": "gold-sup-029",
+    "verdict_class": "supported",
+    "claim_text": "Average global surface temperature in 2016 was the warmest on record at the time.",
+    "evidence_spans": [
+      {
+        "span_text": "2016 was the warmest year in the modern instrumental record up to that point, surpassing 2015.",
+        "relevance_score": 0.89,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Record confirmation"
+  },
+  {
+    "id": "gold-sup-030",
+    "verdict_class": "supported",
+    "claim_text": "Hydropower supplied roughly 16% of global electricity in 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "Hydropower accounted for about 16.2% of global electricity generation in 2020.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Percentage match"
+  },
+  {
+    "id": "gold-sup-031",
+    "verdict_class": "supported",
+    "claim_text": "The global mean sea level was about 100\u2013120 mm higher in 2020 than in 1900.",
+    "evidence_spans": [
+      {
+        "span_text": "Sea level reconstructions indicate a rise of approximately 100\u2013120 mm between 1900 and 2020.",
+        "relevance_score": 0.87,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Historical rise match"
+  },
+  {
+    "id": "gold-sup-032",
+    "verdict_class": "supported",
+    "claim_text": "Atmospheric N2O concentration reached 333 ppb in 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "Nitrous oxide concentration reached 333.2 ppb in 2020, the highest in at least 800,000 years.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Measurement match"
+  },
+  {
+    "id": "gold-sup-033",
+    "verdict_class": "supported",
+    "claim_text": "China is the world's largest emitter of CO2, accounting for about 30% of global emissions.",
+    "evidence_spans": [
+      {
+        "span_text": "China accounted for approximately 30% of global CO2 emissions in 2020.",
+        "relevance_score": 0.89,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Share match"
+  },
+  {
+    "id": "gold-sup-034",
+    "verdict_class": "supported",
+    "claim_text": "The global average temperature in 2021 was about 1.11\u00b0C above pre-industrial levels.",
+    "evidence_spans": [
+      {
+        "span_text": "2021 was approximately 1.11\u00b0C warmer than the 1850\u20131900 pre-industrial baseline per WMO.",
+        "relevance_score": 0.92,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Temperature match"
+  },
+  {
+    "id": "gold-sup-035",
+    "verdict_class": "supported",
+    "claim_text": "Tropical cyclone intensity has increased globally since the 1980s.",
+    "evidence_spans": [
+      {
+        "span_text": "Multiple studies confirm that the proportion of tropical cyclones reaching category 4 or 5 increased between 1980 and 2010.",
+        "relevance_score": 0.83,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Intensity trend match"
+  },
+  {
+    "id": "gold-sup-036",
+    "verdict_class": "supported",
+    "claim_text": "More than 1 million plant and animal species are currently threatened with extinction.",
+    "evidence_spans": [
+      {
+        "span_text": "The IPBES 2019 Global Assessment estimated that around 1 million species face extinction in coming decades.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Count match"
+  },
+  {
+    "id": "gold-sup-037",
+    "verdict_class": "supported",
+    "claim_text": "Average Antarctic temperatures have risen at twice the global average rate since the 1950s.",
+    "evidence_spans": [
+      {
+        "span_text": "The Antarctic Peninsula has warmed at roughly twice the global average rate since the mid-20th century.",
+        "relevance_score": 0.85,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Rate match"
+  },
+  {
+    "id": "gold-sup-038",
+    "verdict_class": "supported",
+    "claim_text": "The global land use for agriculture is approximately 50% of all habitable land.",
+    "evidence_spans": [
+      {
+        "span_text": "Approximately half of all habitable land on Earth is used for agriculture.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Area share match"
+  },
+  {
+    "id": "gold-sup-039",
+    "verdict_class": "supported",
+    "claim_text": "Air pollution causes approximately 7 million premature deaths per year globally.",
+    "evidence_spans": [
+      {
+        "span_text": "The WHO estimates outdoor and indoor air pollution combined cause around 7 million premature deaths annually.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Count match"
+  },
+  {
+    "id": "gold-sup-040",
+    "verdict_class": "supported",
+    "claim_text": "Electric bus fleet in China exceeded 400,000 units by 2019.",
+    "evidence_spans": [
+      {
+        "span_text": "China had over 420,000 electric buses operating by the end of 2019.",
+        "relevance_score": 0.87,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Fleet size match"
+  },
+  {
+    "id": "gold-sup-041",
+    "verdict_class": "supported",
+    "claim_text": "Global average CO2 price in EU ETS was approximately \u20ac50/tonne in 2021.",
+    "evidence_spans": [
+      {
+        "span_text": "The EU Emissions Trading System carbon price averaged around \u20ac50/tCO2 in 2021.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Price match"
+  },
+  {
+    "id": "gold-sup-042",
+    "verdict_class": "supported",
+    "claim_text": "Solar energy costs fell more than 90% between 2009 and 2019.",
+    "evidence_spans": [
+      {
+        "span_text": "The levelised cost of utility-scale solar PV dropped over 90% from 2009 to 2019.",
+        "relevance_score": 0.93,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Cost decline match"
+  },
+  {
+    "id": "gold-sup-043",
+    "verdict_class": "supported",
+    "claim_text": "The Kyoto Protocol set binding emission targets for developed countries for 2008\u20132012.",
+    "evidence_spans": [
+      {
+        "span_text": "Under the Kyoto Protocol, industrialised nations committed to binding greenhouse gas reduction targets for the first commitment period 2008\u20132012.",
+        "relevance_score": 0.95,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Treaty terms match"
+  },
+  {
+    "id": "gold-sup-044",
+    "verdict_class": "supported",
+    "claim_text": "Global plastic waste generation reached 353 million tonnes in 2019.",
+    "evidence_spans": [
+      {
+        "span_text": "Global plastic waste amounted to approximately 353 Mt in 2019 per OECD data.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Volume match"
+  },
+  {
+    "id": "gold-sup-045",
+    "verdict_class": "supported",
+    "claim_text": "The Sahara Desert expanded southward by approximately 10% over the 20th century.",
+    "evidence_spans": [
+      {
+        "span_text": "Studies indicate the Sahara expanded roughly 10% during the 20th century, primarily at its southern margins.",
+        "relevance_score": 0.82,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Area expansion match"
+  },
+  {
+    "id": "gold-sup-046",
+    "verdict_class": "supported",
+    "claim_text": "Between 2000 and 2020, the world gained 0.5% more tree cover annually due to reforestation.",
+    "evidence_spans": [
+      {
+        "span_text": "Global reforestation and forest recovery contributed to a net gain in tree cover in certain regions, with canopy cover increasing by roughly 2.24 million km\u00b2 from 1982 to 2016.",
+        "relevance_score": 0.78,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Reforestation trend match"
+  },
+  {
+    "id": "gold-sup-047",
+    "verdict_class": "supported",
+    "claim_text": "US carbon emissions fell by 21% between 2005 and 2019.",
+    "evidence_spans": [
+      {
+        "span_text": "US greenhouse gas emissions declined approximately 21% from their 2005 peak to 2019.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Percentage match"
+  },
+  {
+    "id": "gold-sup-048",
+    "verdict_class": "supported",
+    "claim_text": "Germany's renewable energy share exceeded 40% of electricity consumption in 2019.",
+    "evidence_spans": [
+      {
+        "span_text": "Renewables provided more than 40% of Germany's gross electricity consumption in 2019.",
+        "relevance_score": 0.92,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Share match"
+  },
+  {
+    "id": "gold-sup-049",
+    "verdict_class": "supported",
+    "claim_text": "Global mean sea level is rising at an accelerating rate since the early 1990s.",
+    "evidence_spans": [
+      {
+        "span_text": "Satellite altimetry data show an acceleration in global mean sea level rise from about 2.1 mm/yr in 1993 to 3.6 mm/yr in 2008\u20132018.",
+        "relevance_score": 0.87,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Acceleration confirmation"
+  },
+  {
+    "id": "gold-sup-050",
+    "verdict_class": "supported",
+    "claim_text": "The ozone hole over Antarctica was the smallest on record in 2019 since the 1980s.",
+    "evidence_spans": [
+      {
+        "span_text": "NASA data showed the Antarctic ozone hole in 2019 was the smallest ever recorded since monitoring began in the early 1980s.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Record confirmation"
+  },
+  {
+    "id": "gold-sup-051",
+    "verdict_class": "supported",
+    "claim_text": "More than 2 billion people lack access to safe drinking water.",
+    "evidence_spans": [
+      {
+        "span_text": "The WHO/UNICEF Joint Monitoring Programme reported that 2.2 billion people lacked safely managed drinking water services in 2020.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Count match"
+  },
+  {
+    "id": "gold-sup-052",
+    "verdict_class": "supported",
+    "claim_text": "Wildfire burned area in California set a record in 2020 exceeding 4 million acres.",
+    "evidence_spans": [
+      {
+        "span_text": "California wildfires burned over 4.1 million acres in 2020, the largest in state history at that time.",
+        "relevance_score": 0.94,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Area record match"
+  },
+  {
+    "id": "gold-sup-053",
+    "verdict_class": "supported",
+    "claim_text": "Deep-sea mining has not yet been commercially deployed at scale as of 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "No commercial-scale deep-sea mining operations were active as of 2022; all activity remained at exploration and pilot stages.",
+        "relevance_score": 0.86,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Status match"
+  },
+  {
+    "id": "gold-sup-054",
+    "verdict_class": "supported",
+    "claim_text": "The 2015 Paris Agreement aims to limit warming to well below 2\u00b0C above pre-industrial levels.",
+    "evidence_spans": [
+      {
+        "span_text": "The Paris Agreement's long-term temperature goal is to hold warming well below 2\u00b0C and pursue efforts to limit it to 1.5\u00b0C above pre-industrial levels.",
+        "relevance_score": 0.97,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Treaty terms match"
+  },
+  {
+    "id": "gold-sup-055",
+    "verdict_class": "supported",
+    "claim_text": "Norway has the world's highest EV market share, exceeding 70% of new car sales in 2021.",
+    "evidence_spans": [
+      {
+        "span_text": "Battery electric vehicles accounted for approximately 72% of new passenger car registrations in Norway in 2021.",
+        "relevance_score": 0.93,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "supported",
+    "source": "gold",
+    "notes": "Market share match"
+  }
+]

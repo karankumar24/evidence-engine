@@ -1,0 +1,1102 @@
+[
+  {
+    "id": "gold-nr-001",
+    "verdict_class": "needs_review",
+    "claim_text": "Arctic sea ice extent reached a record low in September 2023.",
+    "evidence_spans": [
+      {
+        "span_text": "September 2023 saw Arctic sea ice at historically low levels, matching the 2012 record minimum.",
+        "relevance_score": 0.81,
+        "rank": 1
+      },
+      {
+        "span_text": "Arctic sea ice in September 2023 exceeded the 2012 minimum, setting a new all-time record.",
+        "relevance_score": 0.79,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Two spans directly contradict each other on record status"
+  },
+  {
+    "id": "gold-nr-002",
+    "verdict_class": "needs_review",
+    "claim_text": "Geoengineering through stratospheric aerosol injection is ready for deployment at scale.",
+    "evidence_spans": [
+      {
+        "span_text": "Stratospheric aerosol injection could rapidly cool the planet and is technically feasible.",
+        "relevance_score": 0.76,
+        "rank": 1
+      },
+      {
+        "span_text": "SAI governance frameworks are absent, risks are poorly understood, and premature deployment could cause regional droughts.",
+        "relevance_score": 0.78,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Technical feasibility vs governance readiness tension"
+  },
+  {
+    "id": "gold-nr-003",
+    "verdict_class": "needs_review",
+    "claim_text": "Organic farming can match conventional farming yields under optimal conditions.",
+    "evidence_spans": [
+      {
+        "span_text": "Studies in Europe and North America show organic yields within 20% of conventional under best practices.",
+        "relevance_score": 0.74,
+        "rank": 1
+      },
+      {
+        "span_text": "Meta-analyses find organic yields are consistently 19\u201325% lower than conventional, particularly for cereals.",
+        "relevance_score": 0.76,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Different studies reach different yield conclusions"
+  },
+  {
+    "id": "gold-nr-004",
+    "verdict_class": "needs_review",
+    "claim_text": "The AMOC has already crossed a tipping point and cannot recover.",
+    "evidence_spans": [
+      {
+        "span_text": "Recent studies show AMOC is at its weakest in over a millennium and may be approaching a tipping point.",
+        "relevance_score": 0.8,
+        "rank": 1
+      },
+      {
+        "span_text": "Other analyses argue current AMOC slowdown is within natural variability and no tipping point has been crossed.",
+        "relevance_score": 0.78,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Scientific disagreement on tipping point status"
+  },
+  {
+    "id": "gold-nr-005",
+    "verdict_class": "needs_review",
+    "claim_text": "Nuclear power is cheaper than offshore wind for new builds in the UK.",
+    "evidence_spans": [
+      {
+        "span_text": "Hinkley Point C's strike price of \u00a392.50/MWh (2012 prices) is lower than recent offshore wind contract prices.",
+        "relevance_score": 0.72,
+        "rank": 1
+      },
+      {
+        "span_text": "UK offshore wind contracts in 2022 cleared at \u00a337.35/MWh (2012 prices), well below the Hinkley strike price.",
+        "relevance_score": 0.75,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Conflicting price evidence depending on year and context"
+  },
+  {
+    "id": "gold-nr-006",
+    "verdict_class": "needs_review",
+    "claim_text": "Biochar application improves crop yields consistently across all soil types.",
+    "evidence_spans": [
+      {
+        "span_text": "Multiple trials show biochar increases yields in acidic, sandy soils by improving water retention.",
+        "relevance_score": 0.73,
+        "rank": 1
+      },
+      {
+        "span_text": "Other trials find no yield benefit or negative effects in alkaline soils and temperate climates.",
+        "relevance_score": 0.74,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Soil-type dependency creates conflicting evidence"
+  },
+  {
+    "id": "gold-nr-007",
+    "verdict_class": "needs_review",
+    "claim_text": "Small modular reactors will be cost-competitive with solar by 2035.",
+    "evidence_spans": [
+      {
+        "span_text": "Industry projections suggest SMR costs could fall to $60\u201380/MWh by 2035 as production scales.",
+        "relevance_score": 0.7,
+        "rank": 1
+      },
+      {
+        "span_text": "Independent analysts note SMRs face significant first-of-a-kind cost risks and may not achieve projected economies.",
+        "relevance_score": 0.72,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Industry projections vs independent skepticism"
+  },
+  {
+    "id": "gold-nr-008",
+    "verdict_class": "needs_review",
+    "claim_text": "The social cost of carbon is approximately $51 per tonne.",
+    "evidence_spans": [
+      {
+        "span_text": "The US EPA uses $51/tonne as the official social cost of carbon for regulatory analysis.",
+        "relevance_score": 0.77,
+        "rank": 1
+      },
+      {
+        "span_text": "Academic research suggests the true social cost may be $100\u2013200/tonne or higher when accounting for tail risks.",
+        "relevance_score": 0.75,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Official value vs academic estimates diverge significantly"
+  },
+  {
+    "id": "gold-nr-009",
+    "verdict_class": "needs_review",
+    "claim_text": "Rewilding large predators in Europe could significantly reduce herbivore overgrazing.",
+    "evidence_spans": [
+      {
+        "span_text": "Wolf reintroduction in Yellowstone produced measurable trophic cascades, reducing elk overgrazing.",
+        "relevance_score": 0.73,
+        "rank": 1
+      },
+      {
+        "span_text": "European context differs; human land use patterns mean predator reintroduction effects on grazing are uncertain.",
+        "relevance_score": 0.71,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "US evidence vs European context ambiguity"
+  },
+  {
+    "id": "gold-nr-010",
+    "verdict_class": "needs_review",
+    "claim_text": "Carbon labelling on food products reduces consumer emissions by 10%.",
+    "evidence_spans": [
+      {
+        "span_text": "Pilot studies of carbon labelling show that informed consumers shift purchases toward lower-carbon products.",
+        "relevance_score": 0.69,
+        "rank": 1
+      },
+      {
+        "span_text": "Controlled experiments find carbon labels have negligible effect on purchase decisions in most contexts.",
+        "relevance_score": 0.71,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Pilot vs controlled experiment results conflict"
+  },
+  {
+    "id": "gold-nr-011",
+    "verdict_class": "needs_review",
+    "claim_text": "Solar geoengineering can halt glacial melt without side effects.",
+    "evidence_spans": [
+      {
+        "span_text": "Models show stratospheric aerosol injection can significantly reduce Arctic warming and slow ice loss.",
+        "relevance_score": 0.74,
+        "rank": 1
+      },
+      {
+        "span_text": "The same models project disruption to monsoon patterns and precipitation distribution if SAI is deployed.",
+        "relevance_score": 0.76,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Benefit and side effect evidence both strong"
+  },
+  {
+    "id": "gold-nr-012",
+    "verdict_class": "needs_review",
+    "claim_text": "Biomass burning for electricity is carbon-neutral over a 20-year horizon.",
+    "evidence_spans": [
+      {
+        "span_text": "IPCC lifecycle assessments show managed biomass with full regrowth is broadly carbon-neutral over long time horizons.",
+        "relevance_score": 0.72,
+        "rank": 1
+      },
+      {
+        "span_text": "Critics argue that burning forests today creates a carbon debt that takes 40\u2013100 years to repay, not 20.",
+        "relevance_score": 0.74,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "20-year vs 40\u2013100 year payback dispute"
+  },
+  {
+    "id": "gold-nr-013",
+    "verdict_class": "needs_review",
+    "claim_text": "The 1.5\u00b0C warming limit is still achievable with current national pledges.",
+    "evidence_spans": [
+      {
+        "span_text": "The Climate Action Tracker rates some nations' pledges as consistent with 1.5\u00b0C if fully implemented.",
+        "relevance_score": 0.73,
+        "rank": 1
+      },
+      {
+        "span_text": "Aggregated NDC analysis by the UNEP emissions gap report shows current pledges lead to 2.5\u00b0C warming.",
+        "relevance_score": 0.75,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Different aggregation methods lead to contradictory assessments"
+  },
+  {
+    "id": "gold-nr-014",
+    "verdict_class": "needs_review",
+    "claim_text": "Vertical farming reduces water use by 90% compared to conventional agriculture.",
+    "evidence_spans": [
+      {
+        "span_text": "Indoor vertical farms use recirculating water systems that dramatically reduce water consumption per kg of produce.",
+        "relevance_score": 0.73,
+        "rank": 1
+      },
+      {
+        "span_text": "Studies find water savings depend heavily on crop type; for staple grains, vertical farming is not proven viable.",
+        "relevance_score": 0.7,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Water saving for some crops but viability disputed for others"
+  },
+  {
+    "id": "gold-nr-015",
+    "verdict_class": "needs_review",
+    "claim_text": "Hydrogen is the most promising fuel for decarbonising long-haul shipping.",
+    "evidence_spans": [
+      {
+        "span_text": "Ammonia and green hydrogen are considered leading fuel candidates for deep-sea shipping decarbonisation.",
+        "relevance_score": 0.75,
+        "rank": 1
+      },
+      {
+        "span_text": "Methanol and LNG are also strong contenders with existing infrastructure advantages that hydrogen lacks.",
+        "relevance_score": 0.73,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Multiple fuel candidates compete; 'most promising' is contested"
+  },
+  {
+    "id": "gold-nr-016",
+    "verdict_class": "needs_review",
+    "claim_text": "Carbon taxes are more effective than cap-and-trade at reducing emissions.",
+    "evidence_spans": [
+      {
+        "span_text": "Academic literature finds carbon taxes provide cost certainty and clear price signals that drive abatement.",
+        "relevance_score": 0.72,
+        "rank": 1
+      },
+      {
+        "span_text": "Other studies show cap-and-trade achieves guaranteed emission caps that carbon taxes cannot, making them preferable.",
+        "relevance_score": 0.73,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Academic literature split between instruments"
+  },
+  {
+    "id": "gold-nr-017",
+    "verdict_class": "needs_review",
+    "claim_text": "Seaweed cultivation can be scaled to sequester gigatonnes of carbon per year.",
+    "evidence_spans": [
+      {
+        "span_text": "Feasibility studies estimate seaweed cultivation could theoretically sequester 1 Gt CO2 per year at scale.",
+        "relevance_score": 0.69,
+        "rank": 1
+      },
+      {
+        "span_text": "Marine biologists warn that large-scale seaweed farms would disrupt ecosystems and most carbon is re-released on decomposition.",
+        "relevance_score": 0.71,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Theoretical potential vs practical ecosystem concerns"
+  },
+  {
+    "id": "gold-nr-018",
+    "verdict_class": "needs_review",
+    "claim_text": "Air conditioning demand will triple by 2050, primarily in developing countries.",
+    "evidence_spans": [
+      {
+        "span_text": "IEA projects a tripling of global air conditioner units from 2016 to 2050, concentrated in developing countries.",
+        "relevance_score": 0.77,
+        "rank": 1
+      },
+      {
+        "span_text": "Some forecasters argue efficiency improvements and building standards will limit growth to a doubling rather than tripling.",
+        "relevance_score": 0.73,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "IEA triple vs analyst double forecast"
+  },
+  {
+    "id": "gold-nr-019",
+    "verdict_class": "needs_review",
+    "claim_text": "Urban tree canopy reduces urban heat island effect more than reflective roofing.",
+    "evidence_spans": [
+      {
+        "span_text": "Studies in Mediterranean cities show tree canopy cools streets by 2\u20138\u00b0C through shading and evapotranspiration.",
+        "relevance_score": 0.74,
+        "rank": 1
+      },
+      {
+        "span_text": "Research in arid climates finds reflective roofing ('cool roofs') achieves greater city-wide cooling than canopy due to lower water availability.",
+        "relevance_score": 0.72,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Climate-dependent: trees beat roofs in humid, roofs beat trees in arid"
+  },
+  {
+    "id": "gold-nr-020",
+    "verdict_class": "needs_review",
+    "claim_text": "Plastic pyrolysis is a viable circular economy solution for end-of-life plastics.",
+    "evidence_spans": [
+      {
+        "span_text": "Pyrolysis technology converts mixed plastic waste into fuel and chemical feedstocks, diverting waste from landfill.",
+        "relevance_score": 0.72,
+        "rank": 1
+      },
+      {
+        "span_text": "Life cycle analyses show pyrolysis often has higher net emissions than mechanical recycling and generates hazardous byproducts.",
+        "relevance_score": 0.74,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Practical viability vs environmental concern"
+  },
+  {
+    "id": "gold-nr-021",
+    "verdict_class": "needs_review",
+    "claim_text": "Net-zero pledges from major corporations are credible commitments to real emissions reductions.",
+    "evidence_spans": [
+      {
+        "span_text": "Major corporations across all sectors have committed to science-based targets with verified 1.5\u00b0C pathways.",
+        "relevance_score": 0.7,
+        "rank": 1
+      },
+      {
+        "span_text": "Analysis by Oxford and others shows 93% of corporate net-zero pledges lack near-term interim milestones or credible transition plans.",
+        "relevance_score": 0.73,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Pledge volume vs credibility research"
+  },
+  {
+    "id": "gold-nr-022",
+    "verdict_class": "needs_review",
+    "claim_text": "Replacing beef with insect protein would eliminate 20% of global food system emissions.",
+    "evidence_spans": [
+      {
+        "span_text": "Insect protein production emits 50\u2013100 times less GHG per kilogram than beef production.",
+        "relevance_score": 0.73,
+        "rank": 1
+      },
+      {
+        "span_text": "The share of global emissions from beef substitutable by insects is well under 10% given current consumption patterns.",
+        "relevance_score": 0.7,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Per-kg efficiency vs total share displacement"
+  },
+  {
+    "id": "gold-nr-023",
+    "verdict_class": "needs_review",
+    "claim_text": "Electric vehicles save money over their lifetime compared to petrol cars in all markets.",
+    "evidence_spans": [
+      {
+        "span_text": "Total cost of ownership analyses for the US and Western Europe consistently show EVs are cheaper over 5+ years.",
+        "relevance_score": 0.74,
+        "rank": 1
+      },
+      {
+        "span_text": "In markets with high electricity prices (e.g., Germany, 2022) and low petrol prices, ICE cars remain cheaper over the same period.",
+        "relevance_score": 0.73,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "'All markets' claim contradicted by market-specific evidence"
+  },
+  {
+    "id": "gold-nr-024",
+    "verdict_class": "needs_review",
+    "claim_text": "Global warming will make hurricanes more frequent by 2100.",
+    "evidence_spans": [
+      {
+        "span_text": "IPCC AR6 projects that global warming will increase the intensity and associated rainfall of tropical cyclones.",
+        "relevance_score": 0.78,
+        "rank": 1
+      },
+      {
+        "span_text": "IPCC AR6 also notes that total global tropical cyclone frequency is projected to decrease or remain unchanged under warming.",
+        "relevance_score": 0.79,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "IPCC itself shows intensity up but frequency down"
+  },
+  {
+    "id": "gold-nr-025",
+    "verdict_class": "needs_review",
+    "claim_text": "The Amazon is approaching a tipping point that would convert it to savanna.",
+    "evidence_spans": [
+      {
+        "span_text": "A 2021 Nature study found eastern Amazon portions have shifted from carbon sinks to sources, indicating tipping point proximity.",
+        "relevance_score": 0.76,
+        "rank": 1
+      },
+      {
+        "span_text": "Other scientists argue these findings are specific to deforested areas and the intact Amazon remains a stable biome.",
+        "relevance_score": 0.75,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Tipping point proximity vs stability in intact areas"
+  },
+  {
+    "id": "gold-nr-026",
+    "verdict_class": "needs_review",
+    "claim_text": "High-altitude wind turbines are more efficient than conventional wind turbines.",
+    "evidence_spans": [
+      {
+        "span_text": "Airborne wind energy systems can access stronger, more consistent winds at high altitude, increasing capacity factors.",
+        "relevance_score": 0.68,
+        "rank": 1
+      },
+      {
+        "span_text": "No commercial-scale high-altitude wind turbine has achieved reliable 24/7 operation; technology readiness remains low.",
+        "relevance_score": 0.7,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Theoretical efficiency vs commercial readiness gap"
+  },
+  {
+    "id": "gold-nr-027",
+    "verdict_class": "needs_review",
+    "claim_text": "Desalination can solve water scarcity in arid regions without significant environmental cost.",
+    "evidence_spans": [
+      {
+        "span_text": "Desalination provides reliable freshwater supply in water-scarce regions like the Arabian Peninsula and Israel.",
+        "relevance_score": 0.73,
+        "rank": 1
+      },
+      {
+        "span_text": "Desalination produces brine waste that damages marine ecosystems and requires large energy inputs that often come from fossil fuels.",
+        "relevance_score": 0.74,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Supply reliability vs environmental cost"
+  },
+  {
+    "id": "gold-nr-028",
+    "verdict_class": "needs_review",
+    "claim_text": "Carbon offsets from avoided deforestation reliably represent real emissions reductions.",
+    "evidence_spans": [
+      {
+        "span_text": "REDD+ and voluntary forest offset programmes have generated billions of credits claimed to prevent deforestation.",
+        "relevance_score": 0.73,
+        "rank": 1
+      },
+      {
+        "span_text": "Investigative analyses of major REDD+ projects found that 90%+ of credits represented no actual emissions reduction.",
+        "relevance_score": 0.76,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Claimed offsets vs audit findings conflict sharply"
+  },
+  {
+    "id": "gold-nr-029",
+    "verdict_class": "needs_review",
+    "claim_text": "Green steel will reach cost parity with conventional steel by 2030.",
+    "evidence_spans": [
+      {
+        "span_text": "Swedish green steel project HYBRIT achieved commercial delivery in 2021 ahead of schedule, suggesting 2030 parity is plausible.",
+        "relevance_score": 0.71,
+        "rank": 1
+      },
+      {
+        "span_text": "Mainstream steel industry analysts project green hydrogen premium will keep green steel 20\u201330% more expensive than conventional through 2035.",
+        "relevance_score": 0.72,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Optimistic vs mainstream cost projection"
+  },
+  {
+    "id": "gold-nr-030",
+    "verdict_class": "needs_review",
+    "claim_text": "Algae biofuels are ready for commercial-scale deployment as a jet fuel replacement.",
+    "evidence_spans": [
+      {
+        "span_text": "Several airlines have conducted test flights using algae-based sustainable aviation fuel (SAF).",
+        "relevance_score": 0.71,
+        "rank": 1
+      },
+      {
+        "span_text": "Techno-economic analyses show algae SAF costs $5\u201310/litre, five times conventional jet fuel price, with no pathway to cost parity before 2040.",
+        "relevance_score": 0.73,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Test success vs commercial cost barrier"
+  },
+  {
+    "id": "gold-nr-031",
+    "verdict_class": "needs_review",
+    "claim_text": "Reducing meat consumption is more impactful for personal carbon footprint than switching to an EV.",
+    "evidence_spans": [
+      {
+        "span_text": "Lifecycle analyses show switching from omnivore to vegan diet saves ~1 tonne CO2e/yr, while an EV switch saves 1.5\u20133 tonnes/yr.",
+        "relevance_score": 0.74,
+        "rank": 1
+      },
+      {
+        "span_text": "Other analyses find diet change outpaces EV impact in countries with carbon-intensive grids where EV benefit is lower.",
+        "relevance_score": 0.72,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Result depends on grid carbon intensity \u2014 conflicting across contexts"
+  },
+  {
+    "id": "gold-nr-032",
+    "verdict_class": "needs_review",
+    "claim_text": "Tidal stream energy can provide 20% of the UK's electricity by 2050.",
+    "evidence_spans": [
+      {
+        "span_text": "The UK's tidal stream resource is estimated to be sufficient to supply up to 20% of current demand.",
+        "relevance_score": 0.7,
+        "rank": 1
+      },
+      {
+        "span_text": "Technology deployment rates and costs mean practical contribution by 2050 is more likely to be 3\u20135% according to grid modellers.",
+        "relevance_score": 0.71,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Resource potential vs deployment reality"
+  },
+  {
+    "id": "gold-nr-033",
+    "verdict_class": "needs_review",
+    "claim_text": "AI energy consumption is a dominant driver of global electricity demand growth.",
+    "evidence_spans": [
+      {
+        "span_text": "Data centres and AI workloads are growing rapidly and IEA projects they could account for 2\u20134% of global electricity by 2030.",
+        "relevance_score": 0.72,
+        "rank": 1
+      },
+      {
+        "span_text": "Other analysts note that AI efficiency improvements may offset growth, and 2\u20134% is significant but not dominant compared to industrial and transport growth.",
+        "relevance_score": 0.7,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Significant vs dominant framing dispute"
+  },
+  {
+    "id": "gold-nr-034",
+    "verdict_class": "needs_review",
+    "claim_text": "The Great Barrier Reef will be entirely bleached dead by 2030.",
+    "evidence_spans": [
+      {
+        "span_text": "Mass bleaching events in 2016, 2017, 2020, 2022, and 2024 have caused unprecedented mortality on the Great Barrier Reef.",
+        "relevance_score": 0.75,
+        "rank": 1
+      },
+      {
+        "span_text": "Scientific assessments note that significant portions of the GBR retain live coral and some areas show signs of partial recovery.",
+        "relevance_score": 0.73,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Severe damage confirmed but 'entirely dead by 2030' overstates consensus"
+  },
+  {
+    "id": "gold-nr-035",
+    "verdict_class": "needs_review",
+    "claim_text": "Deep-sea nodule mining has negligible environmental impact on marine ecosystems.",
+    "evidence_spans": [
+      {
+        "span_text": "Proponents argue nodule mining occurs in relatively barren abyssal plains far from sensitive reef ecosystems.",
+        "relevance_score": 0.68,
+        "rank": 1
+      },
+      {
+        "span_text": "Marine biologists found that sediment plumes from mining can disrupt filter feeders and slow-growing fauna over hundreds of kilometres.",
+        "relevance_score": 0.71,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Location argument vs plume impact evidence"
+  },
+  {
+    "id": "gold-nr-036",
+    "verdict_class": "needs_review",
+    "claim_text": "Photovoltaic panels are more environmentally sustainable than concentrating solar power.",
+    "evidence_spans": [
+      {
+        "span_text": "Crystalline silicon PV has a short energy payback period of 1\u20134 years and declining material requirements.",
+        "relevance_score": 0.7,
+        "rank": 1
+      },
+      {
+        "span_text": "CSP with thermal storage has an energy payback of 3\u20136 years but provides dispatchable generation without batteries.",
+        "relevance_score": 0.69,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Different metrics give different technology advantages"
+  },
+  {
+    "id": "gold-nr-037",
+    "verdict_class": "needs_review",
+    "claim_text": "Precision fermentation of proteins will cost less than conventional meat by 2030.",
+    "evidence_spans": [
+      {
+        "span_text": "Precision fermentation companies project costs below $10/kg for mycoprotein by 2025\u20132028.",
+        "relevance_score": 0.7,
+        "rank": 1
+      },
+      {
+        "span_text": "Academic food systems researchers are sceptical, noting industrial fermentation costs rarely decline as fast as early projections.",
+        "relevance_score": 0.71,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Industry projection vs academic scepticism"
+  },
+  {
+    "id": "gold-nr-038",
+    "verdict_class": "needs_review",
+    "claim_text": "Reducing flight frequency is the most effective individual climate action.",
+    "evidence_spans": [
+      {
+        "span_text": "Avoiding one transatlantic return flight saves approximately 1.5\u20133 tonnes CO2e, similar to switching to a vegan diet for a year.",
+        "relevance_score": 0.73,
+        "rank": 1
+      },
+      {
+        "span_text": "Most analyses show having one fewer child has by far the largest individual impact (58 tCO2e/yr), dwarfing flight or diet choices.",
+        "relevance_score": 0.72,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Flight vs childbearing as most impactful action"
+  },
+  {
+    "id": "gold-nr-039",
+    "verdict_class": "needs_review",
+    "claim_text": "Carbon accounting in the land sector is reliable enough to be included in NDCs.",
+    "evidence_spans": [
+      {
+        "span_text": "The IPCC has established methodologies for LULUCF accounting used by most countries in their NDCs.",
+        "relevance_score": 0.74,
+        "rank": 1
+      },
+      {
+        "span_text": "Researchers find land sector carbon accounting has high uncertainty (\u00b150%) and is subject to accounting rule manipulation.",
+        "relevance_score": 0.73,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Methodology exists vs accuracy/manipulation concerns"
+  },
+  {
+    "id": "gold-nr-040",
+    "verdict_class": "needs_review",
+    "claim_text": "Rising temperatures will make northern Canada and Siberia major agricultural zones.",
+    "evidence_spans": [
+      {
+        "span_text": "Climate projections show warming opening new arable areas in high-latitude regions currently too cold for crops.",
+        "relevance_score": 0.73,
+        "rank": 1
+      },
+      {
+        "span_text": "Soil scientists note that exposed boreal soils are nutrient-poor and acidic, making them poorly suited for agriculture without massive inputs.",
+        "relevance_score": 0.71,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Temperature opens areas vs soil quality limits viability"
+  },
+  {
+    "id": "gold-nr-041",
+    "verdict_class": "needs_review",
+    "claim_text": "Carbon capture retrofits on power plants achieve 90% emission reduction.",
+    "evidence_spans": [
+      {
+        "span_text": "Post-combustion CCS capture rates of 85\u201390% are technically achievable as demonstrated at Boundary Dam in Canada.",
+        "relevance_score": 0.76,
+        "rank": 1
+      },
+      {
+        "span_text": "Boundary Dam's actual capture rate fell well short of 90% in commercial operation due to reliability issues.",
+        "relevance_score": 0.74,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Design spec vs operational performance diverge"
+  },
+  {
+    "id": "gold-nr-042",
+    "verdict_class": "needs_review",
+    "claim_text": "Green ammonia is competitive with grey ammonia for fertiliser production.",
+    "evidence_spans": [
+      {
+        "span_text": "With low-cost renewable electricity, green ammonia production costs are approaching grey ammonia in some markets.",
+        "relevance_score": 0.71,
+        "rank": 1
+      },
+      {
+        "span_text": "At global average energy costs, green ammonia remains 2\u20133\u00d7 more expensive than grey ammonia from natural gas.",
+        "relevance_score": 0.72,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Context-dependent \u2014 competitive only with very cheap renewables"
+  },
+  {
+    "id": "gold-nr-043",
+    "verdict_class": "needs_review",
+    "claim_text": "Satellite monitoring has made deforestation fully transparent and undetectable.",
+    "evidence_spans": [
+      {
+        "span_text": "Open-access platforms like Global Forest Watch provide near-real-time deforestation alerts using Landsat and Sentinel data.",
+        "relevance_score": 0.72,
+        "rank": 1
+      },
+      {
+        "span_text": "Cloud cover, illegal logging under forest canopy, and monitoring gaps mean substantial deforestation goes undetected even with satellite systems.",
+        "relevance_score": 0.73,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "High capability vs acknowledged detection gaps"
+  },
+  {
+    "id": "gold-nr-044",
+    "verdict_class": "needs_review",
+    "claim_text": "Doughnut economics provides a workable policy framework for all governments.",
+    "evidence_spans": [
+      {
+        "span_text": "Amsterdam has formally adopted the doughnut economics framework to guide city planning and policy.",
+        "relevance_score": 0.69,
+        "rank": 1
+      },
+      {
+        "span_text": "Critics argue doughnut economics lacks quantitative operational targets and is difficult to implement at national scale.",
+        "relevance_score": 0.71,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "City adoption vs national operationalisation difficulty"
+  },
+  {
+    "id": "gold-nr-045",
+    "verdict_class": "needs_review",
+    "claim_text": "Loss and damage finance agreed at COP27 was sufficient to address climate impacts in vulnerable nations.",
+    "evidence_spans": [
+      {
+        "span_text": "COP27 established a new loss and damage fund, described as a breakthrough for climate-vulnerable nations.",
+        "relevance_score": 0.74,
+        "rank": 1
+      },
+      {
+        "span_text": "The fund's initial capitalisation was criticised as entirely inadequate; estimates suggest needs of $400B+/yr vs pledges in the billions.",
+        "relevance_score": 0.75,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Diplomatic success vs finance adequacy diverge"
+  },
+  {
+    "id": "gold-nr-046",
+    "verdict_class": "needs_review",
+    "claim_text": "Hydrogen-powered trains are ready to replace all diesel rail lines globally.",
+    "evidence_spans": [
+      {
+        "span_text": "Hydrogen trains are operating commercially on regional routes in Germany, Austria, and China.",
+        "relevance_score": 0.73,
+        "rank": 1
+      },
+      {
+        "span_text": "High cost, limited refuelling infrastructure, and weight constraints mean hydrogen trains are only viable for specific short non-electrifiable lines.",
+        "relevance_score": 0.74,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Commercial operation in niche vs global replacement claim"
+  },
+  {
+    "id": "gold-nr-047",
+    "verdict_class": "needs_review",
+    "claim_text": "The Paris Agreement's ratchet mechanism will ensure emissions are on a 1.5\u00b0C path by 2030.",
+    "evidence_spans": [
+      {
+        "span_text": "The Paris Agreement's ratchet mechanism requires countries to submit increasingly ambitious NDCs every 5 years.",
+        "relevance_score": 0.75,
+        "rank": 1
+      },
+      {
+        "span_text": "The UNEP Emissions Gap report 2022 showed current NDCs are far from sufficient for 1.5\u00b0C and the ratchet has not yet closed the gap.",
+        "relevance_score": 0.76,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Mechanism design vs effectiveness evidence conflict"
+  },
+  {
+    "id": "gold-nr-048",
+    "verdict_class": "needs_review",
+    "claim_text": "Indoor air quality is generally better than outdoor air quality in most cities.",
+    "evidence_spans": [
+      {
+        "span_text": "In high outdoor pollution cities, well-ventilated and filtered indoor spaces can provide cleaner air than the outdoor environment.",
+        "relevance_score": 0.7,
+        "rank": 1
+      },
+      {
+        "span_text": "EPA studies show indoor air is often 2\u20135\u00d7 more polluted than outdoor air due to off-gassing, combustion appliances, and volatile compounds.",
+        "relevance_score": 0.72,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Context-dependent \u2014 contradictory for different settings"
+  },
+  {
+    "id": "gold-nr-049",
+    "verdict_class": "needs_review",
+    "claim_text": "Long-duration energy storage is the critical missing piece for 100% renewable grid operation.",
+    "evidence_spans": [
+      {
+        "span_text": "Grid modelling studies show that seasonal storage and long-duration storage dramatically reduce costs of 100% renewable systems.",
+        "relevance_score": 0.73,
+        "rank": 1
+      },
+      {
+        "span_text": "Other grid studies find that demand flexibility, interconnection, and overbuilding can substitute for long-duration storage at lower cost.",
+        "relevance_score": 0.71,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "'Critical' framing disputed by alternative grid studies"
+  },
+  {
+    "id": "gold-nr-050",
+    "verdict_class": "needs_review",
+    "claim_text": "Sustainable aviation fuel can be scaled to replace all fossil jet fuel by 2050.",
+    "evidence_spans": [
+      {
+        "span_text": "ICAO and IEA net-zero scenarios include SAF scaling to meet the majority of aviation fuel demand by 2050.",
+        "relevance_score": 0.74,
+        "rank": 1
+      },
+      {
+        "span_text": "Feedstock constraints and land competition mean most independent analyses project SAF covering 30\u201350% of demand by 2050, not 100%.",
+        "relevance_score": 0.73,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Scenario pathway vs independent constraint analysis"
+  },
+  {
+    "id": "gold-nr-051",
+    "verdict_class": "needs_review",
+    "claim_text": "Enhanced rock weathering could sequester multiple gigatonnes of CO2 annually by 2050.",
+    "evidence_spans": [
+      {
+        "span_text": "Large-scale deployment of olivine and basalt spreading on agricultural soils could theoretically remove 2\u20134 Gt CO2/yr.",
+        "relevance_score": 0.7,
+        "rank": 1
+      },
+      {
+        "span_text": "Practical constraints including mining, grinding, and monitoring uncertainties mean verified sequestration remains in the Mt range.",
+        "relevance_score": 0.71,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Theoretical Gt potential vs practical Mt limitation"
+  },
+  {
+    "id": "gold-nr-052",
+    "verdict_class": "needs_review",
+    "claim_text": "Loss of biodiversity directly reduces agricultural productivity in all regions.",
+    "evidence_spans": [
+      {
+        "span_text": "Pollinator diversity loss has been linked to reduced crop yields in studies across North America and Europe.",
+        "relevance_score": 0.74,
+        "rank": 1
+      },
+      {
+        "span_text": "Highly mechanised monocultures with managed pollinators show limited correlation between wild biodiversity and productivity.",
+        "relevance_score": 0.72,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "'All regions' claim contradicted by evidence from intensive agriculture"
+  },
+  {
+    "id": "gold-nr-053",
+    "verdict_class": "needs_review",
+    "claim_text": "The EU Taxonomy for sustainable finance reliably identifies genuinely green investments.",
+    "evidence_spans": [
+      {
+        "span_text": "The EU Taxonomy sets science-based criteria for sustainable economic activities, providing investor clarity.",
+        "relevance_score": 0.72,
+        "rank": 1
+      },
+      {
+        "span_text": "Critics note the inclusion of nuclear and gas as 'transitional' activities in the Taxonomy is scientifically contested.",
+        "relevance_score": 0.73,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Framework value vs contested nuclear/gas inclusion"
+  },
+  {
+    "id": "gold-nr-054",
+    "verdict_class": "needs_review",
+    "claim_text": "Permafrost thaw will add 150\u2013200 Gt of carbon to the atmosphere by 2100.",
+    "evidence_spans": [
+      {
+        "span_text": "IPCC AR6 estimates permafrost degradation could release 50\u2013400 Gt CO2e by 2100 under various scenarios.",
+        "relevance_score": 0.74,
+        "rank": 1
+      },
+      {
+        "span_text": "Observational data from tundra sites show carbon release is accelerating but current projections span a factor of 8\u00d7 due to model uncertainty.",
+        "relevance_score": 0.72,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Specific figure within IPCC range but range itself is very wide"
+  },
+  {
+    "id": "gold-nr-055",
+    "verdict_class": "needs_review",
+    "claim_text": "Rewilding rewets drained peatlands enough to restore their full carbon sink function.",
+    "evidence_spans": [
+      {
+        "span_text": "Rewetting drained peatlands rapidly reduces CO2 and N2O emissions and begins building peat after 5\u201310 years.",
+        "relevance_score": 0.73,
+        "rank": 1
+      },
+      {
+        "span_text": "Fully restored peat carbon sink function requires decades to centuries; rewetting alone does not restore the original carbon sink status.",
+        "relevance_score": 0.74,
+        "rank": 2
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "gold",
+    "notes": "Short-term emissions cut vs long-term sink restoration"
+  }
+]

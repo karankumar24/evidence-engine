@@ -1,0 +1,302 @@
+[
+  {
+    "id": "synth-con-001",
+    "verdict_class": "contradicted",
+    "claim_text": "Coal produces more than 50% of global electricity in 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "Coal's share of global electricity was approximately 36% in 2022.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Numeric contradiction"
+  },
+  {
+    "id": "synth-con-002",
+    "verdict_class": "contradicted",
+    "claim_text": "The IPCC was founded in 2000.",
+    "evidence_spans": [
+      {
+        "span_text": "The IPCC was established in 1988.",
+        "relevance_score": 0.93,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Date contradiction"
+  },
+  {
+    "id": "synth-con-003",
+    "verdict_class": "contradicted",
+    "claim_text": "Electric vehicles have zero emissions over their lifetime.",
+    "evidence_spans": [
+      {
+        "span_text": "EVs produce emissions during manufacturing and may use grid electricity from fossil fuels.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Lifecycle contradiction"
+  },
+  {
+    "id": "synth-con-004",
+    "verdict_class": "contradicted",
+    "claim_text": "Offshore wind is cheaper than onshore wind globally.",
+    "evidence_spans": [
+      {
+        "span_text": "Onshore wind remains cheaper than offshore wind on average globally.",
+        "relevance_score": 0.89,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Cost ordering contradiction"
+  },
+  {
+    "id": "synth-con-005",
+    "verdict_class": "contradicted",
+    "claim_text": "Germany generates over 80% of its electricity from renewables.",
+    "evidence_spans": [
+      {
+        "span_text": "Germany's renewable share was approximately 46% in 2022.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Numeric contradiction"
+  },
+  {
+    "id": "synth-con-006",
+    "verdict_class": "contradicted",
+    "claim_text": "The world passed peak coal consumption before 2015.",
+    "evidence_spans": [
+      {
+        "span_text": "Global coal consumption continued to grow after 2015, peaking later or not yet.",
+        "relevance_score": 0.87,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Date contradiction"
+  },
+  {
+    "id": "synth-con-007",
+    "verdict_class": "contradicted",
+    "claim_text": "All countries submitted updated NDCs to the Paris Agreement before COP26.",
+    "evidence_spans": [
+      {
+        "span_text": "Only about 151 of 197 parties had submitted updated NDCs before COP26.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Count contradiction"
+  },
+  {
+    "id": "synth-con-008",
+    "verdict_class": "contradicted",
+    "claim_text": "The Amazon generates its own rainfall independently of global climate change.",
+    "evidence_spans": [
+      {
+        "span_text": "Amazon rainfall is affected by both regional deforestation and global climate change.",
+        "relevance_score": 0.84,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Independence claim contradicted"
+  },
+  {
+    "id": "synth-con-009",
+    "verdict_class": "contradicted",
+    "claim_text": "Recycling plastic resolves the plastic pollution problem.",
+    "evidence_spans": [
+      {
+        "span_text": "Plastic recycling rates are below 10% globally; pollution continues to grow.",
+        "relevance_score": 0.85,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Overclaiming resolution"
+  },
+  {
+    "id": "synth-con-010",
+    "verdict_class": "contradicted",
+    "claim_text": "Solar energy is the largest source of new electricity globally in 2019.",
+    "evidence_spans": [
+      {
+        "span_text": "Wind was a larger source of new electricity in some years; solar overtook only around 2022.",
+        "relevance_score": 0.83,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Year and ranking off"
+  },
+  {
+    "id": "synth-con-011",
+    "verdict_class": "contradicted",
+    "claim_text": "Fossil fuel companies have reduced absolute emissions every year since 2015.",
+    "evidence_spans": [
+      {
+        "span_text": "Absolute fossil fuel emissions increased in most post-2015 years aside from 2020.",
+        "relevance_score": 0.87,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Reduction claim contradicted"
+  },
+  {
+    "id": "synth-con-012",
+    "verdict_class": "contradicted",
+    "claim_text": "The EU completed its energy transition by 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "EU's energy transition is ongoing with 2050 carbon neutrality target.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Completion claim contradicted"
+  },
+  {
+    "id": "synth-con-013",
+    "verdict_class": "contradicted",
+    "claim_text": "Nuclear power is the dominant electricity source in France, providing 90%.",
+    "evidence_spans": [
+      {
+        "span_text": "Nuclear provides approximately 70\u201375% of French electricity, not 90%.",
+        "relevance_score": 0.89,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Numeric contradiction"
+  },
+  {
+    "id": "synth-con-014",
+    "verdict_class": "contradicted",
+    "claim_text": "Brazil is the world's largest importer of oil.",
+    "evidence_spans": [
+      {
+        "span_text": "The US and China are the world's largest oil importers, not Brazil.",
+        "relevance_score": 0.88,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Rank contradiction"
+  },
+  {
+    "id": "synth-con-015",
+    "verdict_class": "contradicted",
+    "claim_text": "Carbon taxes have been implemented in over 100 countries.",
+    "evidence_spans": [
+      {
+        "span_text": "Approximately 27 countries had carbon taxes as of 2022.",
+        "relevance_score": 0.9,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Count contradiction"
+  },
+  {
+    "id": "synth-con-016",
+    "verdict_class": "contradicted",
+    "claim_text": "Global energy demand fell every year since 2010 due to efficiency gains.",
+    "evidence_spans": [
+      {
+        "span_text": "Global energy demand grew in most years since 2010.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Direction contradiction"
+  },
+  {
+    "id": "synth-con-017",
+    "verdict_class": "contradicted",
+    "claim_text": "Methane is a weaker greenhouse gas than CO2 on a 20-year timescale.",
+    "evidence_spans": [
+      {
+        "span_text": "Methane is approximately 80\u00d7 more potent than CO2 over 20 years.",
+        "relevance_score": 0.92,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Potency contradiction"
+  },
+  {
+    "id": "synth-con-018",
+    "verdict_class": "contradicted",
+    "claim_text": "Antarctica is warming faster than any other continent.",
+    "evidence_spans": [
+      {
+        "span_text": "The Arctic is warming 3\u20134\u00d7 faster than the global average; Antarctic warming is more variable.",
+        "relevance_score": 0.87,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Fastest warming contradiction"
+  },
+  {
+    "id": "synth-con-019",
+    "verdict_class": "contradicted",
+    "claim_text": "Natural gas emits no CO2 when burned.",
+    "evidence_spans": [
+      {
+        "span_text": "Natural gas combustion releases CO2, though less per unit energy than coal or oil.",
+        "relevance_score": 0.91,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Zero emission claim false"
+  },
+  {
+    "id": "synth-con-020",
+    "verdict_class": "contradicted",
+    "claim_text": "The world has already reached net-zero emissions.",
+    "evidence_spans": [
+      {
+        "span_text": "Global emissions remain far above net-zero as of 2023.",
+        "relevance_score": 0.95,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "contradicted",
+    "source": "synthetic",
+    "notes": "[synthetic] Net-zero status contradiction"
+  }
+]

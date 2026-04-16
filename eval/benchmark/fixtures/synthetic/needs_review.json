@@ -1,0 +1,302 @@
+[
+  {
+    "id": "synth-nr-001",
+    "verdict_class": "needs_review",
+    "claim_text": "Carbon capture is cost-effective for industrial decarbonisation.",
+    "evidence_spans": [
+      {
+        "span_text": "CCS is technically viable for some industries at scale.",
+        "relevance_score": 0.7,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Feasibility confirmed"
+  },
+  {
+    "id": "synth-nr-002",
+    "verdict_class": "needs_review",
+    "claim_text": "Renewables are reliable enough for baseload power.",
+    "evidence_spans": [
+      {
+        "span_text": "Solar and wind with storage can provide baseload in some grids.",
+        "relevance_score": 0.68,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Contextual reliability"
+  },
+  {
+    "id": "synth-nr-003",
+    "verdict_class": "needs_review",
+    "claim_text": "Soil carbon sequestration offsets are credible.",
+    "evidence_spans": [
+      {
+        "span_text": "Soil carbon methodologies are under development and certification.",
+        "relevance_score": 0.65,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Methodology evolving"
+  },
+  {
+    "id": "synth-nr-004",
+    "verdict_class": "needs_review",
+    "claim_text": "Precision fermentation will be cost-competitive with animal protein by 2030.",
+    "evidence_spans": [
+      {
+        "span_text": "Costs have fallen; some analysts project parity, others are sceptical.",
+        "relevance_score": 0.67,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Competing projections"
+  },
+  {
+    "id": "synth-nr-005",
+    "verdict_class": "needs_review",
+    "claim_text": "Green bonds direct capital to genuine environmental projects.",
+    "evidence_spans": [
+      {
+        "span_text": "Green bond standards vary; some certified bonds fund questionable projects.",
+        "relevance_score": 0.69,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Standard quality contested"
+  },
+  {
+    "id": "synth-nr-006",
+    "verdict_class": "needs_review",
+    "claim_text": "Deep ocean currents will slow significantly by 2050.",
+    "evidence_spans": [
+      {
+        "span_text": "Models disagree on the pace of ocean circulation changes.",
+        "relevance_score": 0.66,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Model uncertainty"
+  },
+  {
+    "id": "synth-nr-007",
+    "verdict_class": "needs_review",
+    "claim_text": "EV battery recycling solves the critical mineral scarcity problem.",
+    "evidence_spans": [
+      {
+        "span_text": "Battery recycling is growing but capacity is insufficient for projected demand.",
+        "relevance_score": 0.68,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Scale gap"
+  },
+  {
+    "id": "synth-nr-008",
+    "verdict_class": "needs_review",
+    "claim_text": "Agroforestry increases both biodiversity and yields.",
+    "evidence_spans": [
+      {
+        "span_text": "Evidence on yield effects of agroforestry is mixed by region and crop.",
+        "relevance_score": 0.67,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Mixed evidence"
+  },
+  {
+    "id": "synth-nr-009",
+    "verdict_class": "needs_review",
+    "claim_text": "Hydrogen leakage from pipelines is negligible.",
+    "evidence_spans": [
+      {
+        "span_text": "Studies show variable leakage rates; some find measurable atmospheric impact.",
+        "relevance_score": 0.65,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Leakage estimates vary"
+  },
+  {
+    "id": "synth-nr-010",
+    "verdict_class": "needs_review",
+    "claim_text": "Carbon-neutral shipping is achievable before 2050.",
+    "evidence_spans": [
+      {
+        "span_text": "IMO targets aim for 50% reduction by 2050; full neutrality is debated.",
+        "relevance_score": 0.69,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Target vs feasibility"
+  },
+  {
+    "id": "synth-nr-011",
+    "verdict_class": "needs_review",
+    "claim_text": "Methane removal from the atmosphere is technically feasible.",
+    "evidence_spans": [
+      {
+        "span_text": "Some atmospheric methane removal approaches are under research but unproven at scale.",
+        "relevance_score": 0.64,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Research vs deployment gap"
+  },
+  {
+    "id": "synth-nr-012",
+    "verdict_class": "needs_review",
+    "claim_text": "Sustainable aviation fuel will dominate by 2040.",
+    "evidence_spans": [
+      {
+        "span_text": "SAF growth is fast but feedstock and cost constraints are debated.",
+        "relevance_score": 0.67,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Growth vs constraint"
+  },
+  {
+    "id": "synth-nr-013",
+    "verdict_class": "needs_review",
+    "claim_text": "Energy storage can fully address renewable intermittency.",
+    "evidence_spans": [
+      {
+        "span_text": "Storage addresses short-term intermittency; seasonal storage remains costly.",
+        "relevance_score": 0.68,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Timescale dependency"
+  },
+  {
+    "id": "synth-nr-014",
+    "verdict_class": "needs_review",
+    "claim_text": "Blue hydrogen is a viable bridge fuel in a net-zero transition.",
+    "evidence_spans": [
+      {
+        "span_text": "CCS efficiency for blue hydrogen production is disputed.",
+        "relevance_score": 0.66,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] CCS efficiency gap"
+  },
+  {
+    "id": "synth-nr-015",
+    "verdict_class": "needs_review",
+    "claim_text": "Climate models overestimate warming in tropical regions.",
+    "evidence_spans": [
+      {
+        "span_text": "Some models show higher tropical sensitivity; bias estimates vary.",
+        "relevance_score": 0.65,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Model bias contested"
+  },
+  {
+    "id": "synth-nr-016",
+    "verdict_class": "needs_review",
+    "claim_text": "Nature-based solutions can deliver 30% of mitigation needed by 2030.",
+    "evidence_spans": [
+      {
+        "span_text": "Some analyses support 30%; others note permanence and monitoring challenges.",
+        "relevance_score": 0.68,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Support vs caveats"
+  },
+  {
+    "id": "synth-nr-017",
+    "verdict_class": "needs_review",
+    "claim_text": "Nuclear new builds will be cheaper than solar by 2035.",
+    "evidence_spans": [
+      {
+        "span_text": "Industry claims vs independent cost trajectories disagree.",
+        "relevance_score": 0.66,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Competing forecasts"
+  },
+  {
+    "id": "synth-nr-018",
+    "verdict_class": "needs_review",
+    "claim_text": "Water scarcity will affect half the world by 2030.",
+    "evidence_spans": [
+      {
+        "span_text": "Projections on water stress vary significantly by methodology.",
+        "relevance_score": 0.67,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Methodology sensitivity"
+  },
+  {
+    "id": "synth-nr-019",
+    "verdict_class": "needs_review",
+    "claim_text": "Urban agriculture can meaningfully reduce food system emissions.",
+    "evidence_spans": [
+      {
+        "span_text": "Urban ag reduces transport; land use and energy use can offset gains.",
+        "relevance_score": 0.65,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Net benefit uncertain"
+  },
+  {
+    "id": "synth-nr-020",
+    "verdict_class": "needs_review",
+    "claim_text": "Long-haul aviation can be fully decarbonised with current technology.",
+    "evidence_spans": [
+      {
+        "span_text": "Electric planes viable only for short haul; SAF and hydrogen for long haul are not ready.",
+        "relevance_score": 0.67,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "needs_review",
+    "source": "synthetic",
+    "notes": "[synthetic] Technology readiness gap"
+  }
+]

@@ -1,0 +1,827 @@
+[
+  {
+    "id": "gold-ins-001",
+    "verdict_class": "insufficient_support",
+    "claim_text": "The Amazon rainforest absorbed 2.5 billion tonnes of CO2 in 2021.",
+    "evidence_spans": [
+      {
+        "span_text": "Tropical forests play a critical role in the global carbon cycle and are subject to ongoing monitoring.",
+        "relevance_score": 0.45,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Evidence mentions topic but provides no specific figure"
+  },
+  {
+    "id": "gold-ins-002",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Solar panel efficiency improved by 5 percentage points between 2015 and 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "Solar PV technology has continued to advance, with record laboratory efficiencies reported regularly.",
+        "relevance_score": 0.4,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "General improvement acknowledged, specific figure missing"
+  },
+  {
+    "id": "gold-ins-003",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Carbon border adjustment mechanisms were implemented by more than 10 countries in 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "Several jurisdictions have explored carbon border adjustment mechanisms to level the competitive playing field for domestic industries.",
+        "relevance_score": 0.5,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Exploration mentioned, implementation count missing"
+  },
+  {
+    "id": "gold-ins-004",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Methane leakage from US oil and gas operations averages 3.7% of total production.",
+    "evidence_spans": [
+      {
+        "span_text": "Methane leakage from fossil fuel operations is a significant contributor to near-term warming.",
+        "relevance_score": 0.42,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "General relevance only, no US leakage rate"
+  },
+  {
+    "id": "gold-ins-005",
+    "verdict_class": "insufficient_support",
+    "claim_text": "The price of offshore wind dropped by 70% in the UK between 2015 and 2021.",
+    "evidence_spans": [
+      {
+        "span_text": "Offshore wind auction prices have fallen substantially in the UK in recent years.",
+        "relevance_score": 0.55,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "General price fall confirmed but magnitude not specified"
+  },
+  {
+    "id": "gold-ins-006",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Direct air capture technology costs $250 per tonne of CO2 removed in 2021.",
+    "evidence_spans": [
+      {
+        "span_text": "Direct air capture is an emerging carbon removal technology with high costs that researchers aim to reduce significantly.",
+        "relevance_score": 0.47,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Existence confirmed, specific cost not provided"
+  },
+  {
+    "id": "gold-ins-007",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Indonesia's peatland fires released 1.75 Gt CO2 in 2015.",
+    "evidence_spans": [
+      {
+        "span_text": "Indonesia experienced severe peatland fires in 2015 that produced significant greenhouse gas emissions.",
+        "relevance_score": 0.52,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Year and location confirmed, exact figure missing"
+  },
+  {
+    "id": "gold-ins-008",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Japan reduced its energy intensity by 30% between 2000 and 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "Japan has one of the world's most energy-efficient economies and has pursued energy conservation policies for decades.",
+        "relevance_score": 0.43,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Efficiency acknowledged but 30% figure not confirmed"
+  },
+  {
+    "id": "gold-ins-009",
+    "verdict_class": "insufficient_support",
+    "claim_text": "The number of people displaced by climate-related disasters exceeded 20 million in 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "Climate-related disasters increasingly displace large numbers of people globally.",
+        "relevance_score": 0.49,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Trend confirmed but specific 2020 count absent"
+  },
+  {
+    "id": "gold-ins-010",
+    "verdict_class": "insufficient_support",
+    "claim_text": "The levelised cost of battery storage fell below $100/MWh in the US by 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "Battery storage costs have been falling rapidly and are increasingly cost-competitive with peaker plants.",
+        "relevance_score": 0.53,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Cost decline confirmed but threshold figure not given"
+  },
+  {
+    "id": "gold-ins-011",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Global shipping accounts for 2.89% of total greenhouse gas emissions.",
+    "evidence_spans": [
+      {
+        "span_text": "International shipping is a significant source of greenhouse gas emissions and is regulated by the IMO.",
+        "relevance_score": 0.48,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Sector confirmed, precise % not provided"
+  },
+  {
+    "id": "gold-ins-012",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Wetland restoration can sequester up to 5 tonnes of carbon per hectare per year.",
+    "evidence_spans": [
+      {
+        "span_text": "Wetland restoration is recognized as an important nature-based solution for climate mitigation and adaptation.",
+        "relevance_score": 0.44,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Value recognized but sequestration rate not quantified"
+  },
+  {
+    "id": "gold-ins-013",
+    "verdict_class": "insufficient_support",
+    "claim_text": "South Africa derives 85% of its electricity from coal.",
+    "evidence_spans": [
+      {
+        "span_text": "South Africa has a coal-dependent electricity grid and is among the most carbon-intensive power sectors in the world.",
+        "relevance_score": 0.54,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Dependence confirmed but 85% not verified"
+  },
+  {
+    "id": "gold-ins-014",
+    "verdict_class": "insufficient_support",
+    "claim_text": "The EU carbon price is projected to reach \u20ac100 per tonne by 2030.",
+    "evidence_spans": [
+      {
+        "span_text": "EU ETS carbon prices have risen significantly in recent years and analysts project further increases.",
+        "relevance_score": 0.51,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Rising trend confirmed but \u20ac100/t projection absent"
+  },
+  {
+    "id": "gold-ins-015",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Reforestation in China added 25 million hectares of new forest between 2010 and 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "China has implemented major afforestation programmes and is one of the world's largest tree-planting nations.",
+        "relevance_score": 0.5,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Programme existence confirmed, area figure missing"
+  },
+  {
+    "id": "gold-ins-016",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Aviation contributes 12% of transport sector CO2 emissions globally.",
+    "evidence_spans": [
+      {
+        "span_text": "Aviation is a significant source of transport emissions and is subject to growing regulatory scrutiny.",
+        "relevance_score": 0.46,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Aviation as transport emitter confirmed, 12% not given"
+  },
+  {
+    "id": "gold-ins-017",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Switzerland has the highest per-capita electric vehicle adoption rate in mainland Europe.",
+    "evidence_spans": [
+      {
+        "span_text": "Electric vehicle adoption varies widely across European nations, influenced by incentives and charging infrastructure.",
+        "relevance_score": 0.4,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "EV variation confirmed, Switzerland ranking not addressed"
+  },
+  {
+    "id": "gold-ins-018",
+    "verdict_class": "insufficient_support",
+    "claim_text": "The Maldives will be completely submerged under water by 2050.",
+    "evidence_spans": [
+      {
+        "span_text": "Low-lying island nations like the Maldives face serious risks from sea level rise.",
+        "relevance_score": 0.53,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Risk acknowledged, complete submersion by 2050 not supported"
+  },
+  {
+    "id": "gold-ins-019",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Global freshwater use has tripled since 1960.",
+    "evidence_spans": [
+      {
+        "span_text": "Freshwater demand has increased substantially over the 20th century driven by population growth and agriculture.",
+        "relevance_score": 0.48,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Increase trend confirmed but tripling factor absent"
+  },
+  {
+    "id": "gold-ins-020",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Organic farming reduces greenhouse gas emissions by 20% compared to conventional agriculture.",
+    "evidence_spans": [
+      {
+        "span_text": "Organic farming is promoted as more sustainable, with claimed benefits for soil health and biodiversity.",
+        "relevance_score": 0.42,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Promotion confirmed but 20% GHG reduction not quantified"
+  },
+  {
+    "id": "gold-ins-021",
+    "verdict_class": "insufficient_support",
+    "claim_text": "The carbon content of tropical forests is approximately 250 tonnes per hectare.",
+    "evidence_spans": [
+      {
+        "span_text": "Tropical forests are among the most carbon-dense ecosystems on Earth.",
+        "relevance_score": 0.47,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Carbon-dense confirmed, specific figure missing"
+  },
+  {
+    "id": "gold-ins-022",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Recycling rates for plastics in Europe reached 50% in 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "Europe has among the world's highest plastics recycling rates, though significant amounts are still landfilled or incinerated.",
+        "relevance_score": 0.5,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Relatively high rate acknowledged but 50% not confirmed"
+  },
+  {
+    "id": "gold-ins-023",
+    "verdict_class": "insufficient_support",
+    "claim_text": "The number of operational coal plants worldwide peaked in 2019.",
+    "evidence_spans": [
+      {
+        "span_text": "New coal plant construction has slowed as renewable energy becomes more competitive.",
+        "relevance_score": 0.44,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Slowdown confirmed but peak year not specified"
+  },
+  {
+    "id": "gold-ins-024",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Kelp forests can absorb 173 million tonnes of carbon per year globally.",
+    "evidence_spans": [
+      {
+        "span_text": "Kelp forests and seaweed provide ecosystem services including some carbon sequestration.",
+        "relevance_score": 0.41,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Role acknowledged, specific figure not verified"
+  },
+  {
+    "id": "gold-ins-025",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Sweden's economy grew by 15% while reducing emissions 25% between 2000 and 2015.",
+    "evidence_spans": [
+      {
+        "span_text": "Sweden is frequently cited as an example of decoupling economic growth from greenhouse gas emissions.",
+        "relevance_score": 0.53,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Decoupling acknowledged, specific figures not given"
+  },
+  {
+    "id": "gold-ins-026",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Wind power could theoretically supply 200 times current global electricity demand.",
+    "evidence_spans": [
+      {
+        "span_text": "Wind energy has a very large theoretical potential that far exceeds current global energy needs.",
+        "relevance_score": 0.46,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Large potential acknowledged but 200\u00d7 factor unconfirmed"
+  },
+  {
+    "id": "gold-ins-027",
+    "verdict_class": "insufficient_support",
+    "claim_text": "The Congo Basin rainforest stores more carbon than the Amazon.",
+    "evidence_spans": [
+      {
+        "span_text": "The Congo Basin is the world's second-largest tropical rainforest and an important carbon sink.",
+        "relevance_score": 0.48,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Second-largest confirmed but Congo > Amazon claim unresolved"
+  },
+  {
+    "id": "gold-ins-028",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Transitioning to plant-based diets globally would reduce food system emissions by 50%.",
+    "evidence_spans": [
+      {
+        "span_text": "Dietary shifts toward plant-based foods are identified as a significant lever for reducing food system emissions.",
+        "relevance_score": 0.5,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Lever acknowledged, 50% reduction not quantified"
+  },
+  {
+    "id": "gold-ins-029",
+    "verdict_class": "insufficient_support",
+    "claim_text": "The global fleet of coal-fired power plants has an average remaining operational lifetime of 40 years.",
+    "evidence_spans": [
+      {
+        "span_text": "Much of the world's coal fleet is relatively young, particularly in Asia, creating a significant locked-in emissions risk.",
+        "relevance_score": 0.52,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Age concern confirmed but 40-year average not verified"
+  },
+  {
+    "id": "gold-ins-030",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Increasing forest cover in drylands would sequester 1 trillion tonnes of CO2.",
+    "evidence_spans": [
+      {
+        "span_text": "Restoring degraded drylands with trees has been proposed as a scalable carbon sink strategy.",
+        "relevance_score": 0.45,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Strategy acknowledged but 1 trillion tonne estimate not sourced"
+  },
+  {
+    "id": "gold-ins-031",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Half of all greenhouse gas emissions from the UK come from heating buildings.",
+    "evidence_spans": [
+      {
+        "span_text": "Building heating is a major source of carbon emissions in the UK and a target for decarbonisation.",
+        "relevance_score": 0.49,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Major source confirmed, 50% share not quantified"
+  },
+  {
+    "id": "gold-ins-032",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Soil erosion degrades over 10 million hectares of agricultural land per year.",
+    "evidence_spans": [
+      {
+        "span_text": "Soil degradation is a global challenge threatening food security and ecosystem services.",
+        "relevance_score": 0.44,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Problem confirmed, 10 Mha/yr figure not provided"
+  },
+  {
+    "id": "gold-ins-033",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Nuclear power avoids 2.5 billion tonnes of CO2 emissions per year globally.",
+    "evidence_spans": [
+      {
+        "span_text": "Nuclear power is a low-carbon energy source that contributes to avoiding greenhouse gas emissions.",
+        "relevance_score": 0.47,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Low-carbon confirmed, 2.5 Gt figure unverified"
+  },
+  {
+    "id": "gold-ins-034",
+    "verdict_class": "insufficient_support",
+    "claim_text": "In 2022, more capital flowed to clean energy than to fossil fuel exploration globally.",
+    "evidence_spans": [
+      {
+        "span_text": "Clean energy investment has grown substantially and is attracting increasing private and public capital.",
+        "relevance_score": 0.51,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Growth confirmed but capital comparison not made explicitly"
+  },
+  {
+    "id": "gold-ins-035",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Species extinction rates are currently 1,000 times higher than natural background rates.",
+    "evidence_spans": [
+      {
+        "span_text": "Biodiversity is declining at an unprecedented rate, raising concerns about a sixth mass extinction.",
+        "relevance_score": 0.5,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Unprecedented rate confirmed, 1,000\u00d7 multiplier not quantified"
+  },
+  {
+    "id": "gold-ins-036",
+    "verdict_class": "insufficient_support",
+    "claim_text": "The Mekong River basin will lose 40% of its water flow by 2060 due to upstream dam construction.",
+    "evidence_spans": [
+      {
+        "span_text": "Upstream dam construction in the Mekong basin is transforming the river's hydrology and ecology.",
+        "relevance_score": 0.48,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Transformation confirmed, 40% flow loss projection absent"
+  },
+  {
+    "id": "gold-ins-037",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Crop losses from climate change cost the global economy $5 trillion per year.",
+    "evidence_spans": [
+      {
+        "span_text": "Climate change poses significant risks to global food security and agricultural productivity.",
+        "relevance_score": 0.44,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Risk confirmed, $5 trillion cost not sourced"
+  },
+  {
+    "id": "gold-ins-038",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Carbon offsetting schemes have offset more than 1 Gt CO2 since 2010.",
+    "evidence_spans": [
+      {
+        "span_text": "Voluntary carbon markets have grown rapidly and include a wide range of project types.",
+        "relevance_score": 0.46,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Market growth confirmed, 1 Gt cumulative offset not confirmed"
+  },
+  {
+    "id": "gold-ins-039",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Deep geothermal energy could supply 100% of Europe's heating needs.",
+    "evidence_spans": [
+      {
+        "span_text": "Deep geothermal energy is an emerging source of renewable heat with significant untapped potential in Europe.",
+        "relevance_score": 0.42,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Potential acknowledged, 100% claim unverified"
+  },
+  {
+    "id": "gold-ins-040",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Household food waste in the US amounts to $218 billion per year.",
+    "evidence_spans": [
+      {
+        "span_text": "Food waste is a major sustainability challenge in the US with significant economic and environmental costs.",
+        "relevance_score": 0.45,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Economic challenge acknowledged, $218B figure not confirmed"
+  },
+  {
+    "id": "gold-ins-041",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Planting 1 trillion trees globally would offset 20 years of human CO2 emissions.",
+    "evidence_spans": [
+      {
+        "span_text": "Large-scale tree planting has been proposed as a nature-based climate solution with significant but debated carbon sequestration potential.",
+        "relevance_score": 0.5,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Potential recognized, 20-year offset claim contested"
+  },
+  {
+    "id": "gold-ins-042",
+    "verdict_class": "insufficient_support",
+    "claim_text": "The global cement industry will halve its emissions by 2035.",
+    "evidence_spans": [
+      {
+        "span_text": "The cement industry has committed to reducing its carbon footprint and is exploring CCS and alternative chemistries.",
+        "relevance_score": 0.48,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Commitment acknowledged, halving by 2035 not confirmed"
+  },
+  {
+    "id": "gold-ins-043",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Floating solar PV installations produce 10% more electricity than land-based systems due to cooling effects.",
+    "evidence_spans": [
+      {
+        "span_text": "Floating solar PV is a growing segment with potential co-benefits for water bodies and land use.",
+        "relevance_score": 0.43,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Technology exists, 10% efficiency gain not confirmed"
+  },
+  {
+    "id": "gold-ins-044",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Green building standards reduced energy consumption in US commercial buildings by 20% from 2010 to 2020.",
+    "evidence_spans": [
+      {
+        "span_text": "Green building certification schemes like LEED have become increasingly prevalent in the US commercial sector.",
+        "relevance_score": 0.47,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Growth confirmed, 20% consumption reduction not quantified"
+  },
+  {
+    "id": "gold-ins-045",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Hydrogen fuel cells achieve 60% efficiency in transport applications.",
+    "evidence_spans": [
+      {
+        "span_text": "Hydrogen fuel cells are being explored for heavy transport decarbonisation alongside battery-electric solutions.",
+        "relevance_score": 0.45,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Technology acknowledged, 60% efficiency not confirmed"
+  },
+  {
+    "id": "gold-ins-046",
+    "verdict_class": "insufficient_support",
+    "claim_text": "The global average life expectancy increased by 5 years between 2000 and 2015 partly due to cleaner air.",
+    "evidence_spans": [
+      {
+        "span_text": "Improvements in global health and reductions in air pollution have contributed to rising life expectancy.",
+        "relevance_score": 0.44,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Contribution acknowledged, 5-year figure not confirmed"
+  },
+  {
+    "id": "gold-ins-047",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Seagrass meadows sequester carbon at rates comparable to tropical forests per unit area.",
+    "evidence_spans": [
+      {
+        "span_text": "Seagrass is recognized as a blue carbon ecosystem with significant carbon sequestration capacity.",
+        "relevance_score": 0.48,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Blue carbon role confirmed, comparability to forests not quantified"
+  },
+  {
+    "id": "gold-ins-048",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Africa holds the largest untapped geothermal energy potential in the world.",
+    "evidence_spans": [
+      {
+        "span_text": "The East African Rift Valley has significant geothermal resources that remain largely underdeveloped.",
+        "relevance_score": 0.5,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "East African potential confirmed, 'world's largest' claim not verified"
+  },
+  {
+    "id": "gold-ins-049",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Electric arc furnace steel production emits 75% less CO2 than blast furnace routes.",
+    "evidence_spans": [
+      {
+        "span_text": "Electric arc furnaces using scrap steel are a lower-carbon route compared to primary steelmaking.",
+        "relevance_score": 0.48,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Lower-carbon confirmed, 75% reduction factor not verified"
+  },
+  {
+    "id": "gold-ins-050",
+    "verdict_class": "insufficient_support",
+    "claim_text": "The global insurance industry paid out $120 billion in climate-related claims in 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "Climate-related insured losses have been increasing, placing growing pressure on the global insurance sector.",
+        "relevance_score": 0.46,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Growing losses confirmed, $120B figure for 2022 not verified"
+  },
+  {
+    "id": "gold-ins-051",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Reforestation of degraded pastures in Brazil could sequester 1 Gt CO2 per year.",
+    "evidence_spans": [
+      {
+        "span_text": "Brazil has large areas of degraded pasture land with potential for carbon sequestration through restoration.",
+        "relevance_score": 0.47,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Potential acknowledged, 1 Gt/yr figure not confirmed"
+  },
+  {
+    "id": "gold-ins-052",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Over 100 countries have adopted plastic bag bans or levies as of 2022.",
+    "evidence_spans": [
+      {
+        "span_text": "Many countries have implemented policies to reduce single-use plastic consumption.",
+        "relevance_score": 0.48,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Policy trend confirmed, 100+ country count not verified"
+  },
+  {
+    "id": "gold-ins-053",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Air-source heat pumps in the UK have an average coefficient of performance of 3.5.",
+    "evidence_spans": [
+      {
+        "span_text": "Heat pumps are being promoted in the UK as a low-carbon heating alternative to gas boilers.",
+        "relevance_score": 0.43,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Promotion confirmed, COP of 3.5 not verified"
+  },
+  {
+    "id": "gold-ins-054",
+    "verdict_class": "insufficient_support",
+    "claim_text": "The global voluntary carbon market reached $1 billion in value for the first time in 2021.",
+    "evidence_spans": [
+      {
+        "span_text": "Voluntary carbon markets expanded rapidly in 2021 as corporate net-zero commitments drove demand.",
+        "relevance_score": 0.53,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Rapid expansion confirmed, $1B milestone not specifically confirmed"
+  },
+  {
+    "id": "gold-ins-055",
+    "verdict_class": "insufficient_support",
+    "claim_text": "Microplastics have been detected in more than 80% of human blood samples tested.",
+    "evidence_spans": [
+      {
+        "span_text": "Microplastic contamination has been found in various human tissues, raising concerns about health impacts.",
+        "relevance_score": 0.5,
+        "rank": 1
+      }
+    ],
+    "gold_verdict": "insufficient_support",
+    "source": "gold",
+    "notes": "Detection confirmed, 80% blood sample figure not verified"
+  }
+]
