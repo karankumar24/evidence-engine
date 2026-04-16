@@ -57,12 +57,14 @@ async def load_dashboard_context(
     Returns dict with keys: packet, run, claims (sorted by severity), distribution,
     source_docs. Returns None if packet or run not found.
     """
-    # Load packet with source documents
-    packet = await db.get(
-        DocumentPacket,
-        packet_id,
-        options=[selectinload(DocumentPacket.source_documents)],
+    # Load packet with source documents via select+options (db.get() with options
+    # does not reliably populate relationships in async context)
+    packet_result = await db.execute(
+        select(DocumentPacket)
+        .where(DocumentPacket.id == packet_id)
+        .options(selectinload(DocumentPacket.source_documents))
     )
+    packet = packet_result.scalar_one_or_none()
     if packet is None:
         return None
 
