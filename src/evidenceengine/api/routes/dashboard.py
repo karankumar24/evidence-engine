@@ -47,6 +47,11 @@ async def dashboard_view(
             "claims": context["claims"],
             "distribution": context["distribution"],
             "source_docs": context["source_docs"],
+            "active_filters": {
+                "verdict_filter": None,
+                "confidence": None,
+                "source_doc_id": None,
+            },
         },
     )
 
@@ -107,9 +112,15 @@ async def queue_partial(
         request=request,
         name="partials/queue_list.html",
         context={
+            "packet": context["packet"],
+            "run": context["run"],
             "claims": claims,
-            "packet_id": packet_id,
-            "run_id": run_id,
+            "source_docs": context["source_docs"],
+            "active_filters": {
+                "verdict_filter": verdict_filter,
+                "confidence": confidence,
+                "source_doc_id": source_doc_id,
+            },
         },
     )
 

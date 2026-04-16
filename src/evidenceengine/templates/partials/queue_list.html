@@ -1,11 +1,90 @@
-<div id="queue-list">
-{% for claim in claims %}
-<div class="queue-item" data-claim-id="{{ claim.id }}">
-  <p>{{ claim.claim_text }}</p>
-  {% for verdict in claim.verdicts %}
-  <span class="verdict-type">{{ verdict.verdict_type }}</span>
-  <span class="confidence">{{ verdict.confidence_score }}</span>
-  {% endfor %}
+<!-- Filter bar -->
+<div id="queue-filters" class="p-3 border-b border-slate-200 bg-white space-y-2">
+  <select name="verdict_filter"
+          class="w-full text-xs border border-slate-300 rounded px-2 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400"
+          hx-get="/dashboard/{{ packet.id }}/{{ run.id }}/queue"
+          hx-target="#queue-list"
+          hx-swap="innerHTML"
+          hx-trigger="change"
+          hx-include="[name='verdict_filter'],[name='confidence'],[name='source_doc_id']">
+    <option value="" {% if not active_filters.verdict_filter %}selected{% endif %}>All verdicts</option>
+    <option value="contradicted" {% if active_filters.verdict_filter == 'contradicted' %}selected{% endif %}>Contradicted</option>
+    <option value="needs_review" {% if active_filters.verdict_filter == 'needs_review' %}selected{% endif %}>Needs Review</option>
+    <option value="insufficient_support" {% if active_filters.verdict_filter == 'insufficient_support' %}selected{% endif %}>Insufficient Support</option>
+    <option value="supported" {% if active_filters.verdict_filter == 'supported' %}selected{% endif %}>Supported</option>
+  </select>
+
+  <select name="confidence"
+          class="w-full text-xs border border-slate-300 rounded px-2 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400"
+          hx-get="/dashboard/{{ packet.id }}/{{ run.id }}/queue"
+          hx-target="#queue-list"
+          hx-swap="innerHTML"
+          hx-trigger="change"
+          hx-include="[name='verdict_filter'],[name='confidence'],[name='source_doc_id']">
+    <option value="" {% if not active_filters.confidence %}selected{% endif %}>All confidence</option>
+    <option value="high" {% if active_filters.confidence == 'high' %}selected{% endif %}>High (&ge;80%)</option>
+    <option value="medium" {% if active_filters.confidence == 'medium' %}selected{% endif %}>Medium (50–80%)</option>
+    <option value="low" {% if active_filters.confidence == 'low' %}selected{% endif %}>Low (&lt;50%)</option>
+  </select>
+
+  {% if source_docs %}
+    <select name="source_doc_id"
+            class="w-full text-xs border border-slate-300 rounded px-2 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-slate-400"
+            hx-get="/dashboard/{{ packet.id }}/{{ run.id }}/queue"
+            hx-target="#queue-list"
+            hx-swap="innerHTML"
+            hx-trigger="change"
+            hx-include="[name='verdict_filter'],[name='confidence'],[name='source_doc_id']">
+      <option value="" {% if not active_filters.source_doc_id %}selected{% endif %}>All sources</option>
+      {% for doc in source_docs %}
+        <option value="{{ doc.id }}" {% if active_filters.source_doc_id == doc.id | string %}selected{% endif %}>{{ doc.filename }}</option>
+      {% endfor %}
+    </select>
+  {% else %}
+    <input type="hidden" name="source_doc_id" value="">
+  {% endif %}
 </div>
-{% endfor %}
+
+<!-- Claim queue -->
+<div id="queue-list">
+  {% for claim in claims %}
+    {% set verdict = claim.verdicts[0] if claim.verdicts else None %}
+    {% set decision = claim.review_decisions[0] if claim.review_decisions else None %}
+    {% set badge_classes = {
+      "contradicted": "bg-red-100 text-red-700",
+      "needs_review": "bg-amber-100 text-amber-700",
+      "insufficient_support": "bg-orange-100 text-orange-700",
+      "supported": "bg-green-100 text-green-700"
+    } %}
+    <div id="queue-row-{{ claim.id }}"
+         class="claim-row p-3 border-b border-slate-200 cursor-pointer hover:bg-slate-100"
+         hx-get="/dashboard/{{ packet.id }}/{{ run.id }}/claims/{{ claim.id }}"
+         hx-target="#detail-panel"
+         hx-swap="innerHTML"
+         hx-push-url="false">
+      <div class="flex items-start gap-2">
+        {% if verdict %}
+          <span class="text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0 {{ badge_classes.get(verdict.verdict_type, 'bg-slate-100 text-slate-600') }}">
+            {{ verdict.verdict_type | replace('_', ' ') | title }}
+          </span>
+        {% endif %}
+        <p class="text-sm text-slate-700 line-clamp-2 flex-1">{{ claim.claim_text }}</p>
+      </div>
+      <div class="flex items-center justify-between mt-1.5 text-xs text-slate-400">
+        {% if verdict %}
+          <span>{{ (verdict.confidence_score * 100) | round(0) | int }}% confidence</span>
+        {% endif %}
+        {% set status_classes = {
+          "approve": "text-green-600",
+          "reject": "text-red-600",
+          "mark_insufficient": "text-amber-600"
+        } %}
+        <span id="queue-row-{{ claim.id }}-status" class="font-medium {{ status_classes.get(decision.action, '') if decision else '' }}">
+          {{ decision.action | replace('_', ' ') | title if decision else 'Unreviewed' }}
+        </span>
+      </div>
+    </div>
+  {% else %}
+    <div class="p-6 text-center text-slate-400 text-sm">No claims match the current filters.</div>
+  {% endfor %}
 </div>

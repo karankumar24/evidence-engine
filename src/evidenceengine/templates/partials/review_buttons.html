@@ -1,3 +1,27 @@
-<div id="review-buttons-{{ claim_id }}">
-  <span class="review-action">{{ action }}</span>
+{% set btn_active = {
+  "approve": "bg-green-600 text-white border-green-600",
+  "reject": "bg-red-600 text-white border-red-600",
+  "mark_insufficient": "bg-amber-500 text-white border-amber-500"
+} %}
+{% set btn_inactive = "bg-white border border-slate-300 text-slate-600 hover:bg-slate-50" %}
+
+<!-- Primary content: button state in detail panel -->
+<div class="flex gap-2 mt-4" id="review-buttons-{{ claim_id }}">
+  {% for btn_action, btn_label in [("approve", "Approve"), ("reject", "Reject"), ("mark_insufficient", "Mark Insufficient")] %}
+    <button class="btn-{{ btn_action }} flex-1 py-2 px-3 rounded text-sm font-medium transition-colors border
+                   {% if action == btn_action %}{{ btn_active[btn_action] }}{% else %}{{ btn_inactive }}{% endif %}"
+            hx-post="/api/runs/{{ run_id }}/claims/{{ claim_id }}/review"
+            hx-vals='{"action": "{{ btn_action }}"}'
+            hx-target="#review-buttons-{{ claim_id }}"
+            hx-swap="outerHTML">
+      {{ btn_label }}
+    </button>
+  {% endfor %}
 </div>
+
+<!-- OOB update: sync queue row status badge -->
+<span id="queue-row-{{ claim_id }}-status"
+      hx-swap-oob="outerHTML:#queue-row-{{ claim_id }}-status"
+      class="font-medium {% if action == 'approve' %}text-green-600{% elif action == 'reject' %}text-red-600{% elif action == 'mark_insufficient' %}text-amber-600{% endif %}">
+  {{ action | replace('_', ' ') | title if action else 'Unreviewed' }}
+</span>

@@ -1,11 +1,164 @@
-<div id="detail-panel">
-  <h2>{{ claim.claim_text }}</h2>
-  <div class="context-snippet">{{ context_snippet }}</div>
-  {% for verdict in claim.verdicts %}
-  <div class="verdict">
-    <span class="verdict-type">{{ verdict.verdict_type }}</span>
-    <span class="confidence">{{ verdict.confidence_score }}</span>
-    <p class="reasoning">{{ verdict.reasoning }}</p>
+{% set verdict = claim.verdicts[0] if claim.verdicts else None %}
+{% set decision = claim.review_decisions[0] if claim.review_decisions else None %}
+
+<div class="max-w-3xl mx-auto space-y-4">
+
+  <!-- Claim header -->
+  <div class="flex items-start gap-3">
+    {% if verdict %}
+      {% set badge_classes = {
+        "contradicted": "bg-red-100 text-red-700",
+        "needs_review": "bg-amber-100 text-amber-700",
+        "insufficient_support": "bg-orange-100 text-orange-700",
+        "supported": "bg-green-100 text-green-700"
+      } %}
+      <span class="text-sm px-2 py-1 rounded font-medium flex-shrink-0 {{ badge_classes.get(verdict.verdict_type, 'bg-slate-100 text-slate-600') }}">
+        {{ verdict.verdict_type | replace('_', ' ') | title }}
+      </span>
+    {% endif %}
+    <h2 class="text-base font-semibold text-slate-900 leading-snug">{{ claim.claim_text }}</h2>
   </div>
-  {% endfor %}
+
+  <!-- Section 1: Claim in Context -->
+  <div x-data="{open: true}" class="border border-slate-200 rounded-lg overflow-hidden">
+    <button @click="open = !open"
+            class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 text-sm font-medium text-slate-700 text-left">
+      <span>Claim in Context</span>
+      <span x-text="open ? '▲' : '▼'" class="text-xs text-slate-400"></span>
+    </button>
+    <div x-show="open" class="px-4 py-3">
+      <div class="prose prose-sm max-w-none text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
+        {{ context_snippet | replace(claim.claim_text, '<mark class="bg-yellow-100 rounded px-0.5">' + claim.claim_text + '</mark>') | safe }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: Evidence Spans -->
+  {% if verdict and verdict.verdict_evidence %}
+    <div x-data="{open: true}" class="border border-slate-200 rounded-lg overflow-hidden">
+      <button @click="open = !open"
+              class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 text-sm font-medium text-slate-700 text-left">
+        <span>Evidence Spans ({{ verdict.verdict_evidence | length }})</span>
+        <span x-text="open ? '▲' : '▼'" class="text-xs text-slate-400"></span>
+      </button>
+      <div x-show="open" class="px-4 py-3 space-y-2">
+        <!-- Web-fallback banner (DASH-07) -->
+        {% set has_web_fallback = verdict.verdict_evidence | selectattr("evidence_span.retrieval_method", "eq", "web_fallback") | list %}
+        {% if has_web_fallback %}
+          <div class="mb-3 p-3 bg-amber-50 border border-amber-300 text-amber-900 rounded text-sm">
+            Warning: Some evidence comes from web search fallback, not the uploaded packet.
+          </div>
+        {% endif %}
+
+        {% for ve in verdict.verdict_evidence %}
+          {% set span = ve.evidence_span %}
+          <div class="border border-slate-200 rounded p-3">
+            {% if span.retrieval_method == "web_fallback" %}
+              <span class="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-medium">Web fallback</span>
+            {% else %}
+              <span class="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-medium">Packet</span>
+            {% endif %}
+            <p class="text-sm text-slate-700 mt-1">{{ span.span_text }}</p>
+            {% if span.page_number %}
+              <p class="text-xs text-slate-400 mt-0.5">p.{{ span.page_number }}{% if span.section_header %} — {{ span.section_header }}{% endif %}</p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Section 3: Verdict & Confidence -->
+  {% if verdict %}
+    <div x-data="{open: true}" class="border border-slate-200 rounded-lg overflow-hidden">
+      <button @click="open = !open"
+              class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 text-sm font-medium text-slate-700 text-left">
+        <span>Verdict &amp; Confidence</span>
+        <span x-text="open ? '▲' : '▼'" class="text-xs text-slate-400"></span>
+      </button>
+      <div x-show="open" class="px-4 py-3 space-y-3">
+        <div class="flex items-center gap-3">
+          {% set badge_classes = {
+            "contradicted": "bg-red-100 text-red-700",
+            "needs_review": "bg-amber-100 text-amber-700",
+            "insufficient_support": "bg-orange-100 text-orange-700",
+            "supported": "bg-green-100 text-green-700"
+          } %}
+          <span class="text-sm px-2 py-1 rounded font-medium {{ badge_classes.get(verdict.verdict_type, 'bg-slate-100 text-slate-600') }}">
+            {{ verdict.verdict_type | replace('_', ' ') | title }}
+          </span>
+          {% set conf_pct = (verdict.confidence_score * 100) | round(0) | int %}
+          <span class="text-sm font-semibold
+            {% if verdict.confidence_score >= 0.8 %}text-green-700
+            {% elif verdict.confidence_score >= 0.5 %}text-amber-700
+            {% else %}text-red-700{% endif %}">
+            {{ conf_pct }}% confidence
+          </span>
+        </div>
+        <p class="text-sm text-slate-600">{{ verdict.reasoning }}</p>
+        <p class="text-xs text-slate-400">Model: {{ verdict.model_name }}</p>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Section 4: Provenance Chain -->
+  <div x-data="{open: false}" class="border border-slate-200 rounded-lg overflow-hidden">
+    <button @click="open = !open"
+            class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 text-sm font-medium text-slate-700 text-left">
+      <span>Provenance Chain</span>
+      <span x-text="open ? '▲' : '▼'" class="text-xs text-slate-400"></span>
+    </button>
+    <div x-show="open" class="px-4 py-3 space-y-3">
+      <!-- Extract step -->
+      <div class="border border-slate-100 rounded p-3 bg-slate-50">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">1 — Extract</p>
+        <p class="text-sm text-slate-700">{{ claim.claim_text }}</p>
+        <p class="text-xs text-slate-400 mt-1">
+          Offsets: {{ claim.char_start }}–{{ claim.char_end }}
+        </p>
+      </div>
+
+      <!-- Retrieve step -->
+      {% if verdict and verdict.verdict_evidence %}
+        <div class="border border-slate-100 rounded p-3 bg-slate-50">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">2 — Retrieve</p>
+          <p class="text-sm text-slate-700">{{ verdict.verdict_evidence | length }} evidence span{{ 's' if verdict.verdict_evidence | length != 1 else '' }} retrieved</p>
+          {% set methods = verdict.verdict_evidence | map(attribute='evidence_span.retrieval_method') | unique | list %}
+          <p class="text-xs text-slate-400 mt-1">Methods: {{ methods | join(', ') }}</p>
+        </div>
+      {% endif %}
+
+      <!-- Classify step -->
+      {% if verdict %}
+        <div class="border border-slate-100 rounded p-3 bg-slate-50">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">3 — Classify</p>
+          <p class="text-sm text-slate-700">{{ verdict.verdict_type | replace('_', ' ') | title }} — {{ (verdict.confidence_score * 100) | round(0) | int }}%</p>
+          <p class="text-xs text-slate-400 mt-1">Model: {{ verdict.model_name }}</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Review action buttons -->
+  {% set action = decision.action if decision else None %}
+  {% set claim_id = claim.id %}
+  {% set btn_active = {
+    "approve": "bg-green-600 text-white border-green-600",
+    "reject": "bg-red-600 text-white border-red-600",
+    "mark_insufficient": "bg-amber-500 text-white border-amber-500"
+  } %}
+  {% set btn_inactive = "bg-white border border-slate-300 text-slate-600 hover:bg-slate-50" %}
+  <div class="flex gap-2 mt-4" id="review-buttons-{{ claim.id }}">
+    {% for btn_action, btn_label in [("approve", "Approve"), ("reject", "Reject"), ("mark_insufficient", "Mark Insufficient")] %}
+      <button class="btn-{{ btn_action }} flex-1 py-2 px-3 rounded text-sm font-medium transition-colors border
+                     {% if action == btn_action %}{{ btn_active[btn_action] }}{% else %}{{ btn_inactive }}{% endif %}"
+              hx-post="/api/runs/{{ run_id }}/claims/{{ claim_id }}/review"
+              hx-vals='{"action": "{{ btn_action }}"}'
+              hx-target="#review-buttons-{{ claim_id }}"
+              hx-swap="outerHTML">
+        {{ btn_label }}
+      </button>
+    {% endfor %}
+  </div>
+
 </div>

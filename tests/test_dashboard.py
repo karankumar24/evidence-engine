@@ -414,11 +414,12 @@ async def test_review_overwrite(db_session: AsyncSession, client: AsyncClient):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(reason="templates not yet created — checked after Plan 02")
 @pytest.mark.asyncio
 async def test_source_badge_rendering(db_session: AsyncSession, client: AsyncClient):
     """claim with retrieval_method='web_fallback' span returns HTML containing 'Web fallback'."""
     from evidenceengine.models.evidence import EvidenceSpan
+    from evidenceengine.models.verdict import Verdict, VerdictEvidence
+    from sqlalchemy import select as sa_select
 
     packet, report_doc = await make_packet(db_session)
     run = await make_run(db_session, packet.id)
@@ -432,8 +433,19 @@ async def test_source_badge_rendering(db_session: AsyncSession, client: AsyncCli
         run_version_id=run.id,
         span_text="Web fallback evidence.",
         retrieval_method="web_fallback",
+        char_start=0,
+        char_end=22,
     )
     db_session.add(span)
+    await db_session.flush()
+
+    # Link the span to the verdict via VerdictEvidence junction table
+    result = await db_session.execute(
+        sa_select(Verdict).where(Verdict.claim_id == claim.id)
+    )
+    verdict = result.scalar_one()
+    ve = VerdictEvidence(verdict_id=verdict.id, evidence_span_id=span.id)
+    db_session.add(ve)
     await db_session.flush()
 
     response = await client.get(f"/dashboard/{packet.id}/{run.id}/claims/{claim.id}")
