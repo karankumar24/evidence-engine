@@ -40,5 +40,5 @@ class ReviewDecision(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Relationships
-    claim: Mapped["Claim"] = relationship("Claim")
+    claim: Mapped["Claim"] = relationship("Claim", back_populates="review_decisions")
     verdict: Mapped["Verdict"] = relationship("Verdict", back_populates="review_decisions")
