@@ -1,0 +1,11 @@
+<div id="detail-panel">
+  <h2>{{ claim.claim_text }}</h2>
+  <div class="context-snippet">{{ context_snippet }}</div>
+  {% for verdict in claim.verdicts %}
+  <div class="verdict">
+    <span class="verdict-type">{{ verdict.verdict_type }}</span>
+    <span class="confidence">{{ verdict.confidence_score }}</span>
+    <p class="reasoning">{{ verdict.reasoning }}</p>
+  </div>
+  {% endfor %}
+</div>

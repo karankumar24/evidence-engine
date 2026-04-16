@@ -1,0 +1,11 @@
+<div id="queue-list">
+{% for claim in claims %}
+<div class="queue-item" data-claim-id="{{ claim.id }}">
+  <p>{{ claim.claim_text }}</p>
+  {% for verdict in claim.verdicts %}
+  <span class="verdict-type">{{ verdict.verdict_type }}</span>
+  <span class="confidence">{{ verdict.confidence_score }}</span>
+  {% endfor %}
+</div>
+{% endfor %}
+</div>

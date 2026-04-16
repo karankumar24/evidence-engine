@@ -84,6 +84,14 @@ def create_app() -> FastAPI:
     # Register global exception handlers (Phase 5+)
     register_exception_handlers(app)
 
+    # Mount static files for dashboard CSS/JS assets
+    from fastapi.staticfiles import StaticFiles
+    from pathlib import Path
+
+    STATIC_DIR = Path(__file__).parent.parent / "static"
+    STATIC_DIR.mkdir(exist_ok=True)
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
     # Include routers
     from evidenceengine.api.routes.packets import router as packets_router
     from evidenceengine.api.routes.extraction import router as extraction_router
@@ -91,6 +99,7 @@ def create_app() -> FastAPI:
     from evidenceengine.api.routes.classification import router as classification_router
     from evidenceengine.api.routes.pipeline import router as pipeline_router
     from evidenceengine.api.routes.runs import router as runs_router
+    from evidenceengine.api.routes.dashboard import router as dashboard_router
 
     app.include_router(packets_router)
     app.include_router(extraction_router)
@@ -98,6 +107,7 @@ def create_app() -> FastAPI:
     app.include_router(classification_router)
     app.include_router(pipeline_router)
     app.include_router(runs_router)
+    app.include_router(dashboard_router)
 
     @app.on_event("startup")
     async def startup_event() -> None:
