@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}EvidenceEngine{% endblock %}</title>
-  <link rel="stylesheet" href="/static/css/fonts.css">
-  <link rel="stylesheet" href="/static/css/app.css">
-  <script src="https://unpkg.com/htmx.org@2/dist/htmx.min.js"></script>
-  <script defer src="https://unpkg.com/alpinejs@3/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="/static/css/fonts.css?v=0.1.0">
+  <link rel="stylesheet" href="/static/css/app.css?v=0.1.0">
+  <script src="/static/vendor/htmx.min.js"></script>
+  <script defer src="/static/vendor/alpine.min.js"></script>
 </head>
 <body class="h-full flex flex-col bg-paper-50 text-ink-800 font-sans antialiased"
       x-data="{ ...reviewKeyboard(), helpOpen: false }"

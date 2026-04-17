@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: evidenceengine
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      POSTGRES_DB: evidenceengine
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evidenceengine"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://evidenceengine:${DB_PASSWORD}@db:5432/evidenceengine
+      UPLOAD_DIR: /app/uploads
+      INDEX_DIR: /app/indexes
+      DEBUG: "false"
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://127.0.0.1:8000}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY is required}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads:/app/uploads
+      - indexes:/app/indexes
+
+volumes:
+  pgdata:
+  uploads:
+  indexes:

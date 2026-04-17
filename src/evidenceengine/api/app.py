@@ -1,7 +1,10 @@
 """FastAPI application factory."""
 
+import logging
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import AsyncIterator
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -9,16 +12,47 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response as StarletteResponse
+from starlette.types import ASGIApp
 
 from evidenceengine.core.config import settings
 from evidenceengine.schemas.common import APIError
 
+logger = logging.getLogger(__name__)
+
 _TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 _error_templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
 
+APP_VERSION = "0.1.0"
+
+
+# ── Security headers middleware ───────────────────────────────────────────────
+
+_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' https://cdn.jsdelivr.net; "
+    "style-src 'self' 'unsafe-inline'; "
+    "font-src 'self'; "
+    "img-src 'self' data:; "
+    "connect-src 'self'; "
+    "frame-ancestors 'none'"
+)
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next: ASGIApp) -> StarletteResponse:  # type: ignore[override]
+        response: StarletteResponse = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = _CSP
+        return response
+
+
+# ── Exception handlers ────────────────────────────────────────────────────────
 
 def _wants_html(request: Request) -> bool:
-    """True when the client asked for HTML and the path is not a JSON API route."""
     if request.url.path.startswith("/api/"):
         return False
     accept = request.headers.get("accept", "")
@@ -26,17 +60,6 @@ def _wants_html(request: Request) -> bool:
 
 
 def register_exception_handlers(app: FastAPI) -> None:
-    """Register global exception handlers that emit a consistent error envelope.
-
-    All error responses from Phase 5+ routes use:
-        {"error": {"code": "...", "message": "...", "detail": ...}}
-
-    Existing packets.py / extraction.py routes that raise HTTPException with a
-    dict ``detail`` will surface as HTTP_{status_code} with the dict as the
-    message string — acceptable for Phase 5. A full packets.py migration to
-    APIError is out of scope here.
-    """
-
     @app.exception_handler(StarletteHTTPException)
     async def http_handler(request: Request, exc: StarletteHTTPException) -> Response:
         if _wants_html(request) and exc.status_code in (404, 500):
@@ -82,35 +105,55 @@ def register_exception_handlers(app: FastAPI) -> None:
         )
 
 
+# ── Lifespan ──────────────────────────────────────────────────────────────────
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    from evidenceengine.core.logging_config import configure_logging
+    configure_logging(debug=settings.debug)
+    os.makedirs(settings.upload_dir, exist_ok=True)
+    if settings.sentry_dsn:
+        try:
+            import sentry_sdk
+            from sentry_sdk.integrations.fastapi import FastApiIntegration
+            sentry_sdk.init(dsn=settings.sentry_dsn, integrations=[FastApiIntegration()])
+            logger.info("Sentry initialized")
+        except ImportError:
+            logger.warning("sentry-sdk not installed; SENTRY_DSN ignored")
+    yield
+
+
+# ── Application factory ───────────────────────────────────────────────────────
+
 def create_app() -> FastAPI:
-    """Create and configure the FastAPI application."""
     app = FastAPI(
         title="EvidenceEngine",
-        version="0.1.0",
+        version=APP_VERSION,
         description="Provenance-aware document verification system",
+        lifespan=lifespan,
     )
 
-    # CORS — allow all origins for dev
+    # CORS — env-configured allow-list; credentials only when origins are explicit
+    allow_credentials = "*" not in settings.cors_origins
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
+        allow_origins=settings.cors_origins,
+        allow_credentials=allow_credentials,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
 
-    # Register global exception handlers (Phase 5+)
+    # Security headers on every response
+    app.add_middleware(SecurityHeadersMiddleware)
+
     register_exception_handlers(app)
 
-    # Mount static files for dashboard CSS/JS assets
     from fastapi.staticfiles import StaticFiles
-    from pathlib import Path
 
     STATIC_DIR = Path(__file__).parent.parent / "static"
     STATIC_DIR.mkdir(exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    # Include routers
     from evidenceengine.api.routes.packets import router as packets_router
     from evidenceengine.api.routes.extraction import router as extraction_router
     from evidenceengine.api.routes.retrieval import router as retrieval_router
@@ -129,14 +172,24 @@ def create_app() -> FastAPI:
     app.include_router(dashboard_router)
     app.include_router(design_system_router)
 
-    @app.on_event("startup")
-    async def startup_event() -> None:
-        """Create upload directory on startup."""
-        os.makedirs(settings.upload_dir, exist_ok=True)
+    # ── Health endpoints ──────────────────────────────────────────────────────
 
     @app.get("/health", tags=["health"])
     async def health_check() -> dict:
         return {"status": "ok"}
+
+    @app.get("/healthz", tags=["health"])
+    async def healthz() -> dict:
+        from sqlalchemy import text
+        from evidenceengine.core.database import async_session_factory
+        from fastapi import HTTPException as FastHTTPException
+        try:
+            async with async_session_factory() as session:
+                await session.execute(text("SELECT 1"))
+            return {"status": "ok", "db": "reachable"}
+        except Exception as exc:
+            logger.error("Health check DB ping failed: %s", exc)
+            raise FastHTTPException(status_code=503, detail="Database unavailable")
 
     return app
 

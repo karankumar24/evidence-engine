@@ -1,5 +1,6 @@
 """Application configuration via Pydantic Settings."""
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,6 +20,15 @@ class Settings(BaseSettings):
     classification_model: str = "gpt-4o-mini"
     verdict_needs_review_threshold: float = 0.7
     verdict_prompt_version: str = "v1"
+    cors_origins: list[str] = ["http://127.0.0.1:8000", "http://localhost:8000"]
+    sentry_dsn: str = ""
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: object) -> list[str]:
+        if isinstance(v, str):
+            return [o.strip() for o in v.split(",") if o.strip()]
+        return v  # type: ignore[return-value]
 
 
 settings = Settings()
