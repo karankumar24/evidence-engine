@@ -1,0 +1,47 @@
+{#
+  _button.html — Button macro with editorial variants.
+
+  Usage:
+    {% import "components/_button.html" as btn %}
+    {% call btn.button(variant="primary") %}Approve{% endcall %}
+    {% call btn.button(variant="destructive", size="sm",
+                       **{"hx-post": "/foo", "hx-target": "#bar"}) %}Reject{% endcall %}
+
+  Variants: primary / secondary / ghost / destructive.
+  Sizes:    sm / md / lg.
+  All HTMX / Alpine attributes pass through via **kwargs (xmlattr filter).
+#}
+
+{% macro _variant_classes(variant) -%}
+  {%- if variant == "primary" -%}
+    bg-accent-700 text-paper-50 border border-accent-700 hover:bg-accent-800
+  {%- elif variant == "secondary" -%}
+    bg-paper-50 text-ink-800 border border-ink-200 hover:bg-paper-100
+  {%- elif variant == "ghost" -%}
+    bg-transparent text-ink-700 border border-transparent hover:bg-ink-50
+  {%- elif variant == "destructive" -%}
+    bg-verdict-contradicted text-paper-50 border border-verdict-contradicted hover:opacity-90
+  {%- else -%}
+    bg-paper-50 text-ink-800 border border-ink-200 hover:bg-paper-100
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro _size_classes(size) -%}
+  {%- if size == "sm" -%}text-xs px-2.5 py-1.5
+  {%- elif size == "lg" -%}text-base px-5 py-2.5
+  {%- else -%}text-sm px-4 py-2
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro button(variant="primary", size="md", type="button") %}
+  <button type="{{ type }}"
+          data-component="button"
+          data-variant="{{ variant }}"
+          class="inline-flex items-center justify-center gap-1.5 rounded-sm font-medium
+                 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-300
+                 disabled:opacity-50 disabled:cursor-not-allowed
+                 {{ _variant_classes(variant) }} {{ _size_classes(size) }}"
+          {{ kwargs | xmlattr }}>
+    {{ caller() }}
+  </button>
+{% endmacro %}

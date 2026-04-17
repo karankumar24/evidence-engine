@@ -1,0 +1,50 @@
+{#
+  _evidence_span.html — Editorial evidence-callout block.
+
+  Usage:
+    {% import "components/_evidence_span.html" as ev %}
+    {{ ev.evidence_span(span, method) }}
+
+  Where `span` has attributes (or dict keys):
+    span_text, page_number, section_header
+
+  Renders the span text as a serif pull-quote with a method badge
+  (packet / web_fallback) and page/section metadata in muted ink.
+  Does NOT import the badge macro — caller composes as needed.
+#}
+
+{% macro _attr(obj, name, default="") -%}
+  {%- if obj is mapping -%}{{ obj.get(name, default) }}
+  {%- else -%}{{ obj[name] if obj[name] is defined else (obj|attr(name) or default) }}
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro evidence_span(span, method) %}
+  {%- set span_text = span.span_text if span.span_text is defined else span["span_text"] -%}
+  {%- set page_number = span.page_number if span.page_number is defined else span.get("page_number") if span is mapping else None -%}
+  {%- set section_header = span.section_header if span.section_header is defined else span.get("section_header") if span is mapping else None -%}
+  {%- set method_tone = "bg-verdict-insufficient/15 text-verdict-insufficient" if method == "web_fallback" else "bg-accent-100 text-accent-700" -%}
+  {%- set method_label = "Web fallback" if method == "web_fallback" else "Packet" -%}
+  <figure data-component="evidence-span"
+          data-method="{{ method }}"
+          class="relative border-l-2 border-accent-300 bg-paper-50 pl-4 pr-3 py-3 rounded-r-sm">
+    <div class="flex items-center justify-between mb-2">
+      <span data-evidence-method
+            class="inline-flex items-center rounded-sm font-medium uppercase tracking-wider
+                   text-[10px] px-1.5 py-0.5 {{ method_tone }}">
+        {{ method_label }}
+      </span>
+      {% if page_number or section_header %}
+        <figcaption data-evidence-meta class="text-xs font-mono text-ink-400">
+          {% if page_number %}p.{{ page_number }}{% endif %}
+          {% if page_number and section_header %} — {% endif %}
+          {% if section_header %}{{ section_header }}{% endif %}
+        </figcaption>
+      {% endif %}
+    </div>
+    <blockquote data-evidence-text
+                class="font-serif text-base leading-relaxed text-ink-800 italic">
+      &ldquo;{{ span_text }}&rdquo;
+    </blockquote>
+  </figure>
+{% endmacro %}

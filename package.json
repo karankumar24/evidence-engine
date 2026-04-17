@@ -1,0 +1,13 @@
+{
+  "name": "evidenceengine-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Frontend build tooling for the EvidenceEngine reviewer dashboard (Tailwind v4).",
+  "scripts": {
+    "build:css": "tailwindcss -i ./frontend/css/input.css -o ./src/evidenceengine/static/css/app.css --minify",
+    "watch:css": "tailwindcss -i ./frontend/css/input.css -o ./src/evidenceengine/static/css/app.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.0.0"
+  }
+}

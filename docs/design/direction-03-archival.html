@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>EvidenceEngine — Archival</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f1e8d3;
+    --paper-2: #e7dcc0;
+    --paper-3: #ded0ae;
+    --ink: #2a2418;
+    --ink-2: #5a4e36;
+    --rule: #c6b48c;
+    --sepia: #8a5a2b;
+    --sepia-dark: #6b3f14;
+    --verdant: #4a6b3a;
+    --crimson: #8b2a28;
+    --ochre: #a67321;
+    --slate: #4e5560;
+  }
+  html, body { background: var(--paper); color: var(--ink); font-family: 'Crimson Pro', Garamond, serif; }
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(138,90,43,0.05), transparent 60%),
+      radial-gradient(circle at 80% 70%, rgba(138,90,43,0.06), transparent 55%);
+  }
+  .font-display { font-family: 'Cormorant Garamond', Garamond, serif; }
+  .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .rule { border-color: var(--rule); }
+  .bg-paper-2 { background: var(--paper-2); }
+  .bg-paper-3 { background: var(--paper-3); }
+  .ink-2 { color: var(--ink-2); }
+  .sepia { color: var(--sepia-dark); }
+  .small-caps { font-variant-caps: all-small-caps; letter-spacing: .12em; }
+  .double-rule { border-top: 1px solid var(--rule); box-shadow: 0 2px 0 -1px var(--rule); }
+  .ornament::before, .ornament::after { content: "✦"; margin: 0 .5em; color: var(--sepia); font-size: .8em; vertical-align: .15em; }
+  .stamp {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px;
+    border: 1.5px solid currentColor;
+    border-radius: 2px;
+    font-family: 'Cormorant Garamond', serif;
+    font-variant-caps: all-small-caps; letter-spacing: .15em; font-size: 11px;
+    font-weight: 600;
+    transform: rotate(-0.5deg);
+  }
+  .folio { font-variant-numeric: oldstyle-nums; }
+  *:focus-visible { outline: 2px solid var(--sepia-dark); outline-offset: 2px; border-radius: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  .queue-row { position: relative; }
+  .queue-row:hover { background: var(--paper-2); }
+  .queue-row.selected { background: var(--paper-3); box-shadow: inset 4px 0 0 var(--sepia-dark); }
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+  .initial { float: left; font-family:'Cormorant Garamond',serif; font-size:3.25rem; line-height:.9; margin:.15rem .5rem 0 0; color: var(--sepia-dark); font-weight:600; }
+  .web-banner { background: #f5e3bc; border: 1px solid var(--ochre); color: #5a3c10; }
+</style>
+</head>
+<body class="h-screen overflow-hidden relative">
+
+<!-- TOP BAR -->
+<header class="border-b-2 rule bg-paper-2 px-6 py-3 flex items-center gap-6 relative z-10">
+  <div class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-full flex items-center justify-center" style="border:1.5px solid var(--sepia-dark); color:var(--sepia-dark)">
+      <span class="font-display text-lg font-semibold">E</span>
+    </div>
+    <div>
+      <div class="text-[10px] small-caps ink-2">Evidentiary Record &nbsp;·&nbsp; Fonds XLII</div>
+      <h1 class="font-display text-[22px] leading-tight italic">National Pledges — a Review of Cited Evidence</h1>
+    </div>
+  </div>
+  <div class="hidden md:block ornament text-[color:var(--sepia)] italic font-display"></div>
+  <dl class="grid grid-cols-4 gap-6 text-[12px] font-display">
+    <div><dt class="small-caps ink-2">Accession</dt><dd class="font-mono folio">run_7c3f1a</dd></div>
+    <div><dt class="small-caps ink-2">Archivist</dt><dd>S. Okafor</dd></div>
+    <div><dt class="small-caps ink-2">Opened</dt><dd class="folio">xvi apr mmxxvi</dd></div>
+    <div><dt class="small-caps ink-2">Folios Reviewed</dt><dd class="folio">42 of 68</dd></div>
+  </dl>
+  <div class="ml-auto flex items-center gap-3">
+    <div>
+      <div class="text-[10px] small-caps ink-2 text-right mb-1">Catalogue of Findings</div>
+      <div class="flex items-stretch h-[18px] w-64 border-2 rule text-[10px] font-display">
+        <div style="width:55%; background:var(--verdant); color:#f1e8d3" class="flex items-center justify-center small-caps">37 supported</div>
+        <div style="width:18%; background:var(--crimson); color:#f1e8d3" class="flex items-center justify-center small-caps">12</div>
+        <div style="width:16%; background:var(--ochre); color:#2a2418" class="flex items-center justify-center small-caps">11</div>
+        <div style="width:11%; background:var(--slate); color:#f1e8d3" class="flex items-center justify-center small-caps">8</div>
+      </div>
+    </div>
+    <button class="font-display italic text-[14px] underline underline-offset-4 sepia">Bind Report</button>
+  </div>
+</header>
+
+<div class="flex h-[calc(100vh-68px)] relative z-10">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="w-[350px] border-r-2 rule flex flex-col bg-paper-2">
+    <div class="px-5 py-4 border-b rule">
+      <div class="text-[10px] small-caps ink-2 mb-2 text-center ornament">Finding Aid</div>
+      <div class="flex flex-wrap gap-1.5 justify-center">
+        <button class="text-[11px] font-display italic px-2 py-0.5 border rule" style="background:var(--sepia-dark); color:var(--paper)">All · 68</button>
+        <button class="text-[11px] font-display italic px-2 py-0.5 border rule">Supported · 37</button>
+        <button class="text-[11px] font-display italic px-2 py-0.5 border rule">Contradicted · 12</button>
+        <button class="text-[11px] font-display italic px-2 py-0.5 border rule">Insufficient · 11</button>
+        <button class="text-[11px] font-display italic px-2 py-0.5 border rule">To Review · 8</button>
+      </div>
+      <div class="mt-3 flex items-center gap-3 text-[11px] font-display italic ink-2 justify-center">
+        <label>by confidence <select class="bg-transparent border-b rule italic"><option>any</option><option>A · ≥ 85</option><option>B · 70–84</option><option>C · &lt; 70</option></select></label>
+        <label>by source <select class="bg-transparent border-b rule italic"><option>all fonds</option><option>IPCC AR6 WG1</option></select></label>
+      </div>
+    </div>
+
+    <div class="flex-1 overflow-y-auto">
+      <!-- row 1 selected -->
+      <article class="queue-row selected border-b rule px-5 py-4">
+        <div class="flex items-baseline gap-2 mb-1">
+          <span class="stamp" style="color:var(--verdant)">Supported</span>
+          <span class="font-mono text-[10px] ink-2 folio">fol. 017</span>
+          <span class="ml-auto font-display italic text-[13px] folio">lxxxvii%</span>
+        </div>
+        <p class="font-display text-[14.5px] leading-snug italic">"Global anthropogenic CO₂ emissions reached 36.8 GtCO₂ in 2022, representing a 1.5% increase over pre-pandemic levels."</p>
+        <div class="mt-1.5 text-[10px] small-caps ink-2 flex items-center gap-2"><span>ipcc ar6 wg1</span><span>·</span><span>p. 4-12</span><span class="ml-auto sepia">— in hand —</span></div>
+      </article>
+      <!-- row 2 -->
+      <article class="queue-row border-b rule px-5 py-4">
+        <div class="flex items-baseline gap-2 mb-1">
+          <span class="stamp" style="color:var(--crimson)">Contradicted</span>
+          <span class="font-mono text-[10px] ink-2 folio">fol. 018</span>
+          <span class="ml-auto font-display italic text-[13px] folio">xcii%</span>
+        </div>
+        <p class="font-display text-[14.5px] leading-snug italic">"Current national pledges put the world on track for 1.8°C warming by 2100 under full implementation."</p>
+        <div class="mt-1.5 text-[10px] small-caps ink-2 flex items-center gap-2"><span>unep gap rep. 2023</span><span>·</span><span>p. xvii</span><span class="ml-auto" style="color:var(--verdant)">✓ approved</span></div>
+      </article>
+      <!-- row 3 -->
+      <article class="queue-row border-b rule px-5 py-4">
+        <div class="flex items-baseline gap-2 mb-1">
+          <span class="stamp" style="color:var(--ochre)">Insufficient</span>
+          <span class="font-mono text-[10px] ink-2 folio">fol. 019</span>
+          <span class="ml-auto font-display italic text-[13px] folio">liv%</span>
+        </div>
+        <p class="font-display text-[14.5px] leading-snug italic">"Methane from agricultural sources declined 3.2% in OECD countries between 2019 and 2022."</p>
+        <div class="mt-1.5 text-[10px] small-caps ink-2 flex items-center gap-2"><span>fao 2023</span><span>·</span><span>tab. 4.1</span><span class="ml-auto">— unopened —</span></div>
+      </article>
+      <!-- row 4 -->
+      <article class="queue-row border-b rule px-5 py-4">
+        <div class="flex items-baseline gap-2 mb-1">
+          <span class="stamp" style="color:var(--slate)">To&nbsp;Review</span>
+          <span class="font-mono text-[10px] ink-2 folio">fol. 020</span>
+          <span class="ml-auto font-display italic text-[13px] folio">xli%</span>
+        </div>
+        <p class="font-display text-[14.5px] leading-snug italic">"Renewable capacity additions in 2023 exceeded 510 GW globally, a 50% year-on-year increase."</p>
+        <div class="mt-1.5 text-[10px] small-caps ink-2 flex items-center gap-2"><span>iea renewables 2023</span><span>·</span><span>fig. 1.2</span><span class="ml-auto sepia">⚑ flagged</span></div>
+      </article>
+      <!-- row 5 -->
+      <article class="queue-row border-b rule px-5 py-4">
+        <div class="flex items-baseline gap-2 mb-1">
+          <span class="stamp" style="color:var(--verdant)">Supported</span>
+          <span class="font-mono text-[10px] ink-2 folio">fol. 021</span>
+          <span class="ml-auto font-display italic text-[13px] folio">lxxxi%</span>
+        </div>
+        <p class="font-display text-[14.5px] leading-snug italic">"Ocean heat content in the upper 2,000 m set a new record in 2022, exceeding the prior year by 10 ZJ."</p>
+        <div class="mt-1.5 text-[10px] small-caps ink-2 flex items-center gap-2"><span>noaa 2023</span><span>·</span><span>fig. 3</span><span class="ml-auto" style="color:var(--verdant)">✓ approved</span></div>
+      </article>
+      <!-- row 6 -->
+      <article class="queue-row px-5 py-4">
+        <div class="flex items-baseline gap-2 mb-1">
+          <span class="stamp" style="color:var(--crimson)">Contradicted</span>
+          <span class="font-mono text-[10px] ink-2 folio">fol. 022</span>
+          <span class="ml-auto font-display italic text-[13px] folio">lxxvi%</span>
+        </div>
+        <p class="font-display text-[14.5px] leading-snug italic">"Coal-fired generation in China peaked in 2021 and has since declined year-on-year."</p>
+        <div class="mt-1.5 text-[10px] small-caps ink-2 flex items-center gap-2"><span>iea coal 2023</span><span>·</span><span>p. 22</span><span class="ml-auto">— unopened —</span></div>
+      </article>
+    </div>
+  </aside>
+
+  <!-- RIGHT DETAIL -->
+  <main class="flex-1 overflow-y-auto">
+    <div class="max-w-[760px] mx-auto px-10 py-8">
+
+      <!-- web fallback notice (archival variant shows it) -->
+      <div class="web-banner px-4 py-2 mb-5 flex items-center gap-3 text-[12px] font-display italic">
+        <span class="stamp" style="color:var(--sepia-dark)">Web Fallback</span>
+        <span>One supporting span retrieved from a cached web source rather than the sealed packet. Consider re-ingestion before binding this folio.</span>
+      </div>
+
+      <div class="text-center ornament text-[11px] small-caps ink-2 mb-2">Folio XVII &nbsp;·&nbsp; Section II — Emissions Trajectory</div>
+      <h1 class="font-display text-[32px] italic leading-[1.15] text-center mb-3">Upon the Quantum of Carbon Dioxide in the Year 2022</h1>
+      <div class="text-center text-[12px] font-display italic ink-2 mb-6">extracted 09:14:03 UTC · authority: IPCC AR6 WG1</div>
+
+      <hr class="double-rule mb-6" />
+
+      <!-- pull quote with drop cap -->
+      <blockquote class="font-display text-[20px] leading-[1.55] italic mb-8 px-2">
+        <span class="initial">G</span>lobal anthropogenic CO₂ emissions reached <span class="sepia font-semibold not-italic">36.8 GtCO₂</span> in 2022, representing a <span class="sepia font-semibold not-italic">1.5%</span> increase over pre-pandemic levels.
+      </blockquote>
+
+      <hr class="double-rule mb-6" />
+
+      <!-- Verdict panel -->
+      <section class="bg-paper-2 border rule p-5 mb-6 grid grid-cols-4 gap-5 text-center">
+        <div>
+          <div class="small-caps text-[10px] ink-2 mb-1">Verdict</div>
+          <div class="stamp mx-auto" style="color:var(--verdant)">Supported</div>
+        </div>
+        <div>
+          <div class="small-caps text-[10px] ink-2 mb-1">Confidence</div>
+          <div class="flex items-center justify-center gap-2 mb-1"><span class="font-display italic text-xl">Grade A</span><span class="font-mono text-[12px] folio">·87·</span></div>
+          <div class="h-[3px] w-full rule border"><div class="h-full" style="background:var(--sepia-dark); width:87%"></div></div>
+        </div>
+        <div>
+          <div class="small-caps text-[10px] ink-2 mb-1">Authority</div>
+          <div class="font-display italic">IPCC AR6 WG1 (2021)</div>
+        </div>
+        <div>
+          <div class="small-caps text-[10px] ink-2 mb-1">Spans</div>
+          <div class="font-display italic folio">iii supporting · 0 contradicting</div>
+        </div>
+      </section>
+
+      <!-- Sections -->
+      <details open class="py-4 border-b rule">
+        <summary class="flex items-baseline gap-3">
+          <span class="small-caps text-[10px] sepia">Part i.</span>
+          <h2 class="font-display italic text-[22px]">The Claim in Context</h2>
+          <span class="ml-auto text-[11px] font-display italic ink-2">report, p. xiv, ¶ iii</span>
+        </summary>
+        <div class="mt-3 font-serif text-[15px] leading-[1.7] ink-2">
+          …emissions growth has resumed following the pandemic-era decline. <mark class="px-0.5" style="background:#ecd79a; color:var(--ink)">Global anthropogenic CO₂ emissions reached 36.8 GtCO₂ in 2022, representing a 1.5% increase over pre-pandemic levels.</mark> Energy-sector output drove the majority of this rebound, with industrial process emissions recovering more slowly; the authors attribute the divergence to continued supply-chain lag in heavy industry…
+        </div>
+      </details>
+
+      <details open class="py-4 border-b rule">
+        <summary class="flex items-baseline gap-3">
+          <span class="small-caps text-[10px] sepia">Part ii.</span>
+          <h2 class="font-display italic text-[22px]">Corroborating Spans</h2>
+          <span class="ml-auto text-[11px] font-display italic ink-2">three in number</span>
+        </summary>
+        <div class="mt-3 space-y-4">
+          <figure class="border-l-[3px] pl-4" style="border-color:var(--verdant)">
+            <figcaption class="text-[10px] small-caps ink-2 mb-1">Span i · ipcc ar6 wg1 · §4.2.1 · p. 4-12 · <span class="font-mono folio">cos. 0·94</span></figcaption>
+            <blockquote class="font-display italic text-[15.5px] leading-[1.55]">"Fossil CO₂ emissions in 2022 are estimated at 36.6 ± 1.8 GtCO₂, approximately 1.5% above 2019 levels and consistent with a resumption of the pre-pandemic growth trajectory."</blockquote>
+          </figure>
+          <figure class="border-l-[3px] pl-4" style="border-color:var(--verdant)">
+            <figcaption class="text-[10px] small-caps ink-2 mb-1">Span ii · global carbon budget 2023 · fig. iii · <span class="font-mono folio">cos. 0·88</span></figcaption>
+            <blockquote class="font-display italic text-[15.5px] leading-[1.55]">"Total anthropogenic CO₂ emissions, including land-use change, are assessed at 40.9 GtCO₂; the fossil-and-industry subtotal is 36.8 GtCO₂."</blockquote>
+          </figure>
+          <figure class="border-l-[3px] pl-4" style="border-color:var(--ochre)">
+            <figcaption class="text-[10px] small-caps ink-2 mb-1">Span iii · iea co₂ emissions 2023 · p. vi · <span class="font-mono folio">cos. 0·81</span> · <span style="color:var(--sepia-dark)">web fallback</span></figcaption>
+            <blockquote class="font-display italic text-[15.5px] leading-[1.55]">"Energy-related CO₂ rose 0.9% in 2022 to 36.8 Gt, recovering above 2019 levels for the first time since the pandemic."</blockquote>
+          </figure>
+        </div>
+      </details>
+
+      <details class="py-4 border-b rule">
+        <summary class="flex items-baseline gap-3">
+          <span class="small-caps text-[10px] sepia">Part iii.</span>
+          <h2 class="font-display italic text-[22px]">Verdict &amp; Confidence</h2>
+          <span class="ml-auto text-[11px] font-display italic ink-2">Grade A · ·87·</span>
+        </summary>
+        <div class="mt-3 font-serif text-[15px] leading-[1.7] ink-2">
+          Three independent authorities corroborate the 36.8 GtCO₂ figure within ±0.3 Gt. The phrase "pre-pandemic" is understood to denote the year 2019; the asserted 1.5% increase accords with AR6 WG1 within rounding. One caveat is entered: the IEA span reports only energy-related CO₂, whose aggregate in 2022 coincides with the fossil-and-industry subtotal.
+        </div>
+      </details>
+
+      <details class="py-4">
+        <summary class="flex items-baseline gap-3">
+          <span class="small-caps text-[10px] sepia">Part iv.</span>
+          <h2 class="font-display italic text-[22px]">Chain of Provenance</h2>
+          <span class="ml-auto text-[11px] font-display italic ink-2">four hands</span>
+        </summary>
+        <ol class="mt-3 space-y-2 font-mono text-[12px] folio">
+          <li class="flex gap-3"><span class="sepia">i.</span><span>pdf :: ar6_wg1_full.pdf &rarr; p. 4-12, offset 2184</span></li>
+          <li class="flex gap-3"><span class="sepia">ii.</span><span>paragraph hash &rarr; 9f2a...c31e</span></li>
+          <li class="flex gap-3"><span class="sepia">iii.</span><span>embed :: bge-large-en-v1.5, vec #71188</span></li>
+          <li class="flex gap-3"><span class="sepia">iv.</span><span>match &rarr; claim C-017, cos. 0.94, 09:14:06 UTC</span></li>
+        </ol>
+      </details>
+
+      <hr class="double-rule my-6" />
+
+      <div class="flex items-center gap-3">
+        <button class="font-display italic text-[15px] px-5 py-2 border-2 rule" style="color:var(--verdant); border-color:var(--verdant)">Approve &amp; Seal</button>
+        <button class="font-display italic text-[15px] px-5 py-2 border-2 rule" style="color:var(--crimson); border-color:var(--crimson)">Reject</button>
+        <button class="font-display italic text-[15px] px-5 py-2 border-2 rule" style="color:var(--ochre); border-color:var(--ochre)">Mark Insufficient</button>
+        <div class="ml-auto text-[11px] font-display italic ink-2 ornament">an honest record is its own keeper</div>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

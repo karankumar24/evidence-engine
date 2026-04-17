@@ -1,0 +1,36 @@
+{#
+  _collapsible.html — Reusable Alpine-driven collapsible section.
+
+  Usage:
+    {% import "components/_collapsible.html" as coll %}
+    {% call coll.collapsible("Evidence Spans", default_open=True, id="evidence") %}
+      <p>Body content.</p>
+    {% endcall %}
+
+  Extracts the repeated `x-data="{open: true}"` section pattern from
+  claim_detail.html. Each collapsible has its own Alpine scope.
+  Alpine hooks use data-attributes (data-collapsible-toggle / -body).
+#}
+
+{% macro collapsible(title, default_open=True, id=None) %}
+  <section data-component="collapsible"
+           {% if id %}id="{{ id }}"{% endif %}
+           x-data="{open: {{ 'true' if default_open else 'false' }}}"
+           class="border border-ink-100 rounded-md overflow-hidden bg-paper-50">
+    <button type="button"
+            data-collapsible-toggle
+            @click="open = !open"
+            :aria-expanded="open ? 'true' : 'false'"
+            class="w-full flex items-center justify-between px-4 py-3 bg-paper-100
+                   hover:bg-paper-200 text-sm font-medium text-ink-800 text-left
+                   font-serif">
+      <span>{{ title }}</span>
+      <span data-collapsible-chevron
+            x-text="open ? '\u25B4' : '\u25BE'"
+            class="text-xs text-ink-400"></span>
+    </button>
+    <div data-collapsible-body x-show="open" class="px-4 py-3">
+      {{ caller() }}
+    </div>
+  </section>
+{% endmacro %}

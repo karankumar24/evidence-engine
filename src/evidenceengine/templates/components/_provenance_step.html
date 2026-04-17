@@ -1,0 +1,35 @@
+{#
+  _provenance_step.html — Vertical-timeline step for the Provenance Chain.
+
+  Usage:
+    {% import "components/_provenance_step.html" as prov %}
+    {% call prov.provenance_step(1, "Extract", "Pulled from Section 2.1") %}
+      <p class="text-sm">Optional extra body content.</p>
+    {% endcall %}
+
+  The timeline dot + connector live to the left; the caller body renders
+  inside the step card. `body` is a required one-line summary above the
+  caller content.
+#}
+
+{% macro provenance_step(step_num, title, body) %}
+  <li data-component="provenance-step"
+      data-step="{{ step_num }}"
+      class="relative pl-8 pb-4 last:pb-0">
+    <span data-provenance-dot
+          class="absolute left-0 top-1 flex h-5 w-5 items-center justify-center rounded-full
+                 bg-accent-700 text-paper-50 text-[10px] font-mono font-semibold">
+      {{ step_num }}
+    </span>
+    <span data-provenance-connector
+          aria-hidden="true"
+          class="absolute left-[9px] top-6 bottom-0 w-px bg-ink-100"></span>
+    <div class="rounded-sm border border-ink-100 bg-paper-50 px-3 py-2">
+      <p data-provenance-title
+         class="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-1">{{ title }}</p>
+      <p data-provenance-body
+         class="text-sm text-ink-800">{{ body }}</p>
+      {{ caller() }}
+    </div>
+  </li>
+{% endmacro %}

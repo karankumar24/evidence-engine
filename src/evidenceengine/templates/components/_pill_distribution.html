@@ -1,0 +1,62 @@
+{#
+  _pill_distribution.html — Horizontal stacked mini-bar of verdict distribution.
+
+  Usage:
+    {% import "components/_pill_distribution.html" as dist %}
+    {{ dist.verdict_distribution(distribution) }}
+
+  Expects `distribution` shaped like:
+    {
+      "contradicted":         {"count": N, "pct": P},
+      "needs_review":         {"count": N, "pct": P},
+      "insufficient_support": {"count": N, "pct": P},
+      "supported":            {"count": N, "pct": P}
+    }
+
+  Replaces the inline pill row in dashboard.html. Proportional widths driven
+  by `pct`, with counts in muted ink below the bar.
+#}
+
+{% macro verdict_distribution(distribution) %}
+  {%- set order = ["contradicted", "needs_review", "insufficient_support", "supported"] -%}
+  {%- set token = {
+    "contradicted": "verdict-contradicted",
+    "needs_review": "verdict-review",
+    "insufficient_support": "verdict-insufficient",
+    "supported": "verdict-supported"
+  } -%}
+  {%- set labels = {
+    "contradicted": "Contradicted",
+    "needs_review": "Needs Review",
+    "insufficient_support": "Insufficient",
+    "supported": "Supported"
+  } -%}
+  {%- set total = namespace(n=0) -%}
+  {%- for k in order -%}{%- set total.n = total.n + distribution[k].count -%}{%- endfor -%}
+  <div data-component="verdict-distribution"
+       data-total="{{ total.n }}"
+       class="flex flex-col gap-1.5 min-w-[280px]">
+    <div data-distribution-bar
+         class="flex h-2 w-full overflow-hidden rounded-sm bg-ink-100">
+      {% for k in order %}
+        {% if distribution[k].count > 0 %}
+          <div data-segment="{{ k }}"
+               class="h-full bg-{{ token[k] }}"
+               style="width: {{ distribution[k].pct }}%"
+               title="{{ labels[k] }}: {{ distribution[k].count }} ({{ distribution[k].pct }}%)"></div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    <div data-distribution-legend class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-500">
+      {% for k in order %}
+        {% if distribution[k].count > 0 %}
+          <span class="inline-flex items-center gap-1">
+            <span class="h-1.5 w-1.5 rounded-sm bg-{{ token[k] }}"></span>
+            <span class="font-medium text-ink-700">{{ labels[k] }}</span>
+            <span class="font-mono text-ink-400">{{ distribution[k].count }} ({{ distribution[k].pct }}%)</span>
+          </span>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+{% endmacro %}

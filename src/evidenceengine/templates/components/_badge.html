@@ -1,0 +1,73 @@
+{#
+  _badge.html — Editorial badge macros.
+
+  Usage:
+    {% import "components/_badge.html" as badge %}
+    {{ badge.verdict_badge("supported") }}
+    {{ badge.verdict_badge("contradicted", size="sm") }}
+    {{ badge.status_badge("completed") }}
+    {{ badge.method_badge("packet") }}
+    {{ badge.method_badge("web_fallback") }}
+
+  All badges use token-based Tailwind classes (bg-verdict-*, bg-accent-*,
+  bg-ink-*) — no hardcoded hex. Sizes: xs / sm / md.
+#}
+
+{% macro _size_classes(size) -%}
+  {%- if size == "xs" -%}text-[10px] px-1.5 py-0.5
+  {%- elif size == "sm" -%}text-xs px-2 py-0.5
+  {%- else -%}text-sm px-2.5 py-1
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro verdict_badge(verdict_type, size="md") %}
+  {%- set labels = {
+    "supported": "Supported",
+    "contradicted": "Contradicted",
+    "insufficient_support": "Insufficient Support",
+    "needs_review": "Needs Review"
+  } -%}
+  {%- set token = {
+    "supported": "supported",
+    "contradicted": "contradicted",
+    "insufficient_support": "insufficient",
+    "needs_review": "review"
+  } -%}
+  {%- set t = token.get(verdict_type, "review") -%}
+  <span data-component="verdict-badge"
+        data-verdict="{{ verdict_type }}"
+        class="inline-flex items-center rounded-sm font-medium tracking-wide uppercase
+               bg-verdict-{{ t }}/10 text-verdict-{{ t }} {{ _size_classes(size) }}">
+    {{ labels.get(verdict_type, verdict_type | replace('_', ' ') | title) }}
+  </span>
+{% endmacro %}
+
+{% macro status_badge(status, size="sm") %}
+  {%- set tone = {
+    "completed": "bg-verdict-supported/10 text-verdict-supported",
+    "failed": "bg-verdict-contradicted/10 text-verdict-contradicted",
+    "classification_complete": "bg-verdict-review/10 text-verdict-review",
+    "running": "bg-verdict-insufficient/10 text-verdict-insufficient",
+    "pending": "bg-ink-100 text-ink-600"
+  } -%}
+  <span data-component="status-badge"
+        data-status="{{ status }}"
+        class="inline-flex items-center rounded-sm font-medium uppercase tracking-wide
+               {{ tone.get(status, 'bg-ink-100 text-ink-600') }} {{ _size_classes(size) }}">
+    {{ status | replace('_', ' ') }}
+  </span>
+{% endmacro %}
+
+{% macro method_badge(method, size="xs") %}
+  {%- set meta = {
+    "packet": {"label": "Packet", "tone": "bg-accent-100 text-accent-700"},
+    "web_fallback": {"label": "Web fallback", "tone": "bg-verdict-insufficient/15 text-verdict-insufficient"}
+  } -%}
+  {%- set m = meta.get(method, {"label": method, "tone": "bg-ink-100 text-ink-600"}) -%}
+  <span data-component="method-badge"
+        data-method="{{ method }}"
+        class="inline-flex items-center rounded-sm font-medium uppercase tracking-wider
+               {{ m.tone }} {{ _size_classes(size) }}">
+    {{ m.label }}
+  </span>
+{% endmacro %}

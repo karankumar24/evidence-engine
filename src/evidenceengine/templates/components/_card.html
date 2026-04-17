@@ -1,0 +1,56 @@
+{#
+  _card.html — Editorial card macro with optional collapsible behavior.
+
+  Usage:
+    {% import "components/_card.html" as card %}
+    {% call card.card(title="Claim in Context") %}
+      <p>Static card body.</p>
+    {% endcall %}
+    {% call card.card(title="Evidence Spans", collapsible=True, default_open=True) %}
+      <p>Collapsible card body.</p>
+    {% endcall %}
+
+  When collapsible=True, renders an Alpine.js `x-data="{open: bool}"` wrapper
+  with a chevron toggle — replaces the inline pattern used in claim_detail.html.
+  Alpine targets use data-attribute hooks (data-card-toggle, data-card-body).
+#}
+
+{% macro card(title=None, collapsible=False, default_open=True) %}
+  {% if collapsible %}
+    <section data-component="card"
+             data-collapsible="true"
+             x-data="{open: {{ 'true' if default_open else 'false' }}}"
+             class="border border-ink-100 rounded-md overflow-hidden bg-paper-50">
+      {% if title %}
+        <button type="button"
+                data-card-toggle
+                @click="open = !open"
+                :aria-expanded="open ? 'true' : 'false'"
+                class="w-full flex items-center justify-between px-4 py-3 bg-paper-100
+                       hover:bg-paper-200 text-sm font-medium text-ink-800 text-left
+                       font-serif">
+          <span>{{ title }}</span>
+          <span data-card-chevron
+                x-text="open ? '\u25B4' : '\u25BE'"
+                class="text-xs text-ink-400"></span>
+        </button>
+      {% endif %}
+      <div data-card-body x-show="open" class="px-4 py-3">
+        {{ caller() }}
+      </div>
+    </section>
+  {% else %}
+    <section data-component="card"
+             data-collapsible="false"
+             class="border border-ink-100 rounded-md overflow-hidden bg-paper-50">
+      {% if title %}
+        <header class="px-4 py-3 bg-paper-100 text-sm font-medium text-ink-800 font-serif">
+          {{ title }}
+        </header>
+      {% endif %}
+      <div data-card-body class="px-4 py-3">
+        {{ caller() }}
+      </div>
+    </section>
+  {% endif %}
+{% endmacro %}

@@ -1,0 +1,43 @@
+{#
+  _topbar.html — Dashboard topbar block.
+
+  Usage:
+    {% import "components/_topbar.html" as tb %}
+    {{ tb.topbar(packet, run, distribution) }}
+
+  Extracts the topbar from dashboard.html. Internally imports
+  _pill_distribution and _badge for composition.
+
+  Expects:
+    packet        — object with .report_filename
+    run           — object with .id, .status, .completed_at (optional)
+    distribution  — dict passed to verdict_distribution()
+#}
+
+{% import "components/_pill_distribution.html" as _dist %}
+{% import "components/_badge.html" as _badge %}
+
+{% macro topbar(packet, run, distribution) %}
+  <div data-component="topbar" class="contents">
+    <span data-topbar-title
+          class="font-serif font-semibold text-ink-900 text-sm truncate max-w-xs">
+      {{ packet.report_filename }}
+    </span>
+
+    <span data-topbar-run-id class="text-ink-400 text-xs font-mono">
+      Run: {{ run.id | string | truncate(8, True, '') }}
+    </span>
+
+    {% if run.completed_at %}
+      <span data-topbar-run-date class="text-ink-400 text-xs font-mono">
+        {{ run.completed_at.strftime('%Y-%m-%d %H:%M') }} UTC
+      </span>
+    {% endif %}
+
+    {{ _badge.status_badge(run.status, size="xs") }}
+
+    <div class="flex-1"></div>
+
+    {{ _dist.verdict_distribution(distribution) }}
+  </div>
+{% endmacro %}
