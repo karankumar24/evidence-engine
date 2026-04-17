@@ -12,12 +12,14 @@
   <script defer src="https://unpkg.com/alpinejs@3/dist/cdn.min.js"></script>
 </head>
 <body class="h-full flex flex-col bg-paper-50 text-ink-800 font-sans antialiased"
-      x-data="reviewKeyboard()"
+      x-data="{ ...reviewKeyboard(), helpOpen: false }"
       @keydown.window.a.prevent="approve()"
       @keydown.window.r.prevent="reject()"
       @keydown.window.f.prevent="flag()"
       @keydown.window.j.prevent="nextClaim()"
-      @keydown.window.k.prevent="prevClaim()">
+      @keydown.window.k.prevent="prevClaim()"
+      @keydown.window.shift.slash.prevent="helpOpen = true"
+      @keydown.window.escape="helpOpen = false">
 
   <!-- Top bar -->
   <header class="h-14 flex-shrink-0 border-b border-ink-200 bg-paper-50 z-10 flex items-center px-6 gap-6">
@@ -41,6 +43,9 @@
       {% endblock %}
     </main>
   </div>
+
+  {% include "partials/_keyboard_help.html" %}
+  {% include "partials/_htmx_toast.html" %}
 
   {% block scripts %}{% endblock %}
 </body>

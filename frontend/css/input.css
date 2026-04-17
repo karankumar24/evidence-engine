@@ -167,6 +167,17 @@
   /* .ee-callout     — pull-quote / evidence callout (serif, ink rule)      */
 }
 
+/* Alpine x-cloak — hide elements until Alpine initialises (prevents flash). */
+[x-cloak] { display: none !important; }
+
+/* Reviewed queue rows — de-emphasise once the reviewer has acted on them. */
+.claim-row[data-reviewed="true"] {
+  opacity: 0.55;
+}
+.claim-row[data-reviewed="true"]:hover {
+  opacity: 1;
+}
+
 /* A11y — respect user motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -65,6 +65,7 @@
     } %}
     <div id="queue-row-{{ claim.id }}"
          class="claim-row px-4 py-3.5 border-b border-ink-100 cursor-pointer hover:bg-paper-100 transition-colors"
+         {% if decision %}data-reviewed="true"{% endif %}
          hx-get="/dashboard/{{ packet.id }}/{{ run.id }}/claims/{{ claim.id }}"
          hx-target="#detail-panel"
          hx-swap="innerHTML"

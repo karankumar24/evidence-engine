@@ -39,5 +39,13 @@
     <div class="flex-1"></div>
 
     {{ _dist.verdict_distribution(distribution) }}
+
+    <button type="button"
+            @click="helpOpen = true"
+            data-topbar-help
+            aria-label="Show keyboard shortcuts"
+            class="ml-2 text-xs font-mono text-ink-400 hover:text-ink-700 border border-ink-200 rounded-sm px-2 py-1 transition-colors">
+      ?
+    </button>
   </div>
 {% endmacro %}

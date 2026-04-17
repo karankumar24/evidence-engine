@@ -14,6 +14,43 @@ document.addEventListener('htmx:beforeRequest', (e) => {
     row.classList.remove('hover:bg-paper-100');
 });
 
+/* Show a dismissable toast when HTMX gets a non-2xx response or network error. */
+function _showToast(message) {
+    const host = document.getElementById('htmx-toast');
+    if (!host) return;
+    const el = document.createElement('div');
+    el.setAttribute('role', 'alert');
+    el.className = 'mb-2 px-4 py-3 bg-verdict-contradicted text-paper-50 border border-verdict-contradicted rounded-sm text-sm font-sans shadow-md flex items-start gap-3';
+    el.innerHTML = `<span class="flex-1">${message}</span>
+                    <button type="button" aria-label="Dismiss" class="text-paper-50/80 hover:text-paper-50 text-base leading-none">×</button>`;
+    el.querySelector('button').addEventListener('click', () => el.remove());
+    host.appendChild(el);
+    setTimeout(() => el.remove(), 6000);
+}
+
+document.addEventListener('htmx:responseError', (e) => {
+    const status = e.detail && e.detail.xhr ? e.detail.xhr.status : '?';
+    _showToast(`Request failed (HTTP ${status}). Please retry.`);
+});
+
+document.addEventListener('htmx:sendError', () => {
+    _showToast('Network error. Check your connection and retry.');
+});
+
+/* Mark queue rows that have been reviewed so CSS can dim them. */
+document.addEventListener('htmx:afterSwap', () => {
+    document.querySelectorAll('.claim-row').forEach(row => {
+        const status = row.querySelector('[id$="-status"]');
+        if (!status) return;
+        const label = status.textContent.trim().toLowerCase();
+        if (label && label !== 'unreviewed') {
+            row.setAttribute('data-reviewed', 'true');
+        } else {
+            row.removeAttribute('data-reviewed');
+        }
+    });
+});
+
 document.addEventListener('alpine:init', () => {
     Alpine.data('reviewKeyboard', () => ({
         get activeClaim() {
