@@ -13,15 +13,22 @@
   {% import "components/_empty_state.html" as empty %}
 
   <!-- Header -->
-  <header class="h-14 border-b border-ink-200 bg-paper-50 flex items-center px-8">
+  <header class="h-14 border-b border-ink-200 bg-paper-50 flex items-center px-8 gap-4">
     <span class="font-serif font-semibold text-ink-900 text-base">EvidenceEngine</span>
-    <span class="ml-3 text-ink-400 text-xs font-mono">/ pipeline runs</span>
+    <span class="text-ink-400 text-xs font-mono">/ pipeline runs</span>
+    <div class="flex-1"></div>
+    <a href="/upload"
+       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-medium
+              bg-accent-700 text-paper-50 border border-accent-700
+              hover:bg-accent-800 transition-colors">
+      New Run →
+    </a>
   </header>
 
   <main class="max-w-4xl mx-auto px-8 py-10">
     <div class="mb-8">
       <h1 class="font-serif text-3xl font-semibold text-ink-900 leading-tight">Pipeline Runs</h1>
-      <p class="mt-1 text-ink-500 text-sm">Select a completed run to open the reviewer dashboard.</p>
+      <p class="mt-1 text-ink-500 text-sm">Select a completed run to open the reviewer dashboard, or upload a new document to verify.</p>
     </div>
 
     {% if runs %}
@@ -49,10 +56,20 @@
       <div class="mt-4">
         {{ empty.empty_state(
           "No pipeline runs yet",
-          "Upload a document packet and run the pipeline to create a reviewable run.",
-          cta_label="Upload a packet",
-          cta_href="/packets/upload"
+          "Upload a document and the AI pipeline will extract claims, retrieve evidence, and classify each verdict.",
+          cta_label="Upload a document →",
+          cta_href="/upload"
         ) }}
+        {% if debug %}
+          <div class="mt-4 text-center">
+            <form method="post" action="/demo/seed" class="inline">
+              <button type="submit"
+                      class="text-sm text-ink-500 hover:text-ink-800 transition-colors underline underline-offset-4">
+                Or load a sample demo run
+              </button>
+            </form>
+          </div>
+        {% endif %}
       </div>
     {% endif %}
   </main>

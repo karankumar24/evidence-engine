@@ -1,0 +1,21 @@
+{% if run.status == "failed" %}
+  <div id="status-poll" class="px-4 py-3 rounded-sm bg-red-50 border border-red-200 text-red-800 text-sm">
+    <p class="font-medium mb-1">Pipeline failed</p>
+    <p class="text-xs font-mono">{{ run.error_summary or "Unknown error" }}</p>
+    <a href="/dashboard" class="mt-3 inline-block text-xs text-red-700 underline">← Back to dashboard</a>
+  </div>
+{% elif run.status == "completed" %}
+  {# HX-Redirect header set by server; this is a fallback in case JS is slow #}
+  <div id="status-poll" class="text-sm text-accent-700">
+    Complete — redirecting…
+  </div>
+{% else %}
+  <div id="status-poll"
+       hx-get="/runs/{{ run.id }}/status/poll"
+       hx-trigger="every 2s"
+       hx-target="this"
+       hx-swap="outerHTML"
+       class="text-xs font-mono text-ink-400">
+    Status: {{ run.status }}
+  </div>
+{% endif %}

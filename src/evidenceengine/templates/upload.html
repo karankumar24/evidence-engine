@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EvidenceEngine — New Verification Run</title>
+  <link rel="stylesheet" href="/static/css/fonts.css?v=0.1.0">
+  <link rel="stylesheet" href="/static/css/app.css?v=0.1.0">
+  <script src="/static/vendor/htmx.min.js"></script>
+  <script defer src="/static/vendor/alpine.min.js"></script>
+</head>
+<body class="bg-paper-50 text-ink-800 font-sans antialiased min-h-full">
+
+  <!-- Header -->
+  <header class="h-14 border-b border-ink-200 bg-paper-50 flex items-center px-8">
+    <a href="/dashboard" class="font-serif font-semibold text-ink-900 text-base hover:text-accent-700 transition-colors">EvidenceEngine</a>
+    <span class="ml-3 text-ink-400 text-xs font-mono">/ new run</span>
+  </header>
+
+  <main class="max-w-2xl mx-auto px-8 py-12"
+        x-data="{ loading: false, showSources: false }">
+
+    <div class="mb-8">
+      <h1 class="font-serif text-3xl font-semibold text-ink-900 leading-tight">Verify a Document</h1>
+      <p class="mt-2 text-ink-500 text-sm leading-relaxed">
+        Upload a report and the AI pipeline will extract claims, retrieve evidence,
+        and classify each verdict. You'll review the results in the dashboard.
+      </p>
+    </div>
+
+    {% if error %}
+      <div class="mb-6 px-4 py-3 rounded-sm bg-red-50 border border-red-200 text-red-800 text-sm font-sans">
+        {{ error }}
+      </div>
+    {% endif %}
+
+    <form method="post"
+          action="/upload"
+          enctype="multipart/form-data"
+          @submit="loading = true"
+          class="space-y-6">
+
+      <!-- Report upload -->
+      <div>
+        <label for="report" class="block text-sm font-medium text-ink-800 mb-2">
+          Report document <span class="text-red-500">*</span>
+        </label>
+        <p class="text-xs text-ink-500 mb-3">
+          The document whose claims will be verified. PDF or DOCX, up to {{ max_mb }}MB.
+        </p>
+        <div class="border-2 border-dashed border-ink-200 rounded-sm p-6 text-center
+                    hover:border-accent-400 transition-colors bg-white"
+             @dragover.prevent
+             @drop.prevent="$refs.reportInput.files = $event.dataTransfer.files; $refs.reportLabel.textContent = $event.dataTransfer.files[0]?.name || 'Drop a file here'">
+          <input type="file"
+                 id="report"
+                 name="report"
+                 accept=".pdf,.docx,.doc"
+                 required
+                 class="sr-only"
+                 x-ref="reportInput"
+                 @change="$refs.reportLabel.textContent = $event.target.files[0]?.name || 'Choose a file'">
+          <label for="report" class="cursor-pointer">
+            <svg class="mx-auto mb-3 w-8 h-8 text-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span class="text-sm font-medium text-accent-700 hover:text-accent-800" x-ref="reportLabel">
+              Choose a file or drag and drop
+            </span>
+            <p class="mt-1 text-xs text-ink-400">PDF or DOCX</p>
+          </label>
+        </div>
+      </div>
+
+      <!-- Optional sources toggle -->
+      <div>
+        <button type="button"
+                @click="showSources = !showSources"
+                class="text-sm text-ink-500 hover:text-ink-800 transition-colors flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 transition-transform" :class="showSources ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+          <span x-text="showSources ? 'Hide source documents' : 'Add source documents (optional)'"></span>
+        </button>
+
+        <div x-show="showSources" x-transition class="mt-4">
+          <label for="sources" class="block text-sm font-medium text-ink-800 mb-2">
+            Source documents
+          </label>
+          <p class="text-xs text-ink-500 mb-3">
+            Reference documents the pipeline will use as evidence for claim verification.
+            Multiple files allowed.
+          </p>
+          <input type="file"
+                 id="sources"
+                 name="sources"
+                 accept=".pdf,.docx,.doc"
+                 multiple
+                 class="block w-full text-sm text-ink-600
+                        file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border file:border-ink-200
+                        file:text-sm file:font-medium file:bg-paper-50 file:text-ink-700
+                        hover:file:bg-paper-100 file:transition-colors file:cursor-pointer">
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <div class="flex items-center gap-4 pt-2">
+        <button type="submit"
+                :disabled="loading"
+                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm text-sm font-medium
+                       bg-accent-700 text-paper-50 border border-accent-700
+                       hover:bg-accent-800 transition-colors
+                       disabled:opacity-50 disabled:cursor-not-allowed
+                       focus:outline-none focus:ring-2 focus:ring-accent-300">
+          <span x-show="!loading">Run Verification →</span>
+          <span x-show="loading" class="flex items-center gap-2">
+            <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+            Uploading…
+          </span>
+        </button>
+        <a href="/dashboard" class="text-sm text-ink-500 hover:text-ink-800 transition-colors">← Back to dashboard</a>
+      </div>
+    </form>
+
+    <!-- How it works -->
+    <div class="mt-16 pt-8 border-t border-ink-100">
+      <h2 class="text-xs font-medium text-ink-400 uppercase tracking-widest mb-5">How it works</h2>
+      <div class="grid grid-cols-3 gap-6">
+        <div>
+          <div class="text-lg font-mono text-accent-600 mb-1">01</div>
+          <div class="text-sm font-medium text-ink-800 mb-1">Extract</div>
+          <p class="text-xs text-ink-500 leading-relaxed">AI reads your document and extracts every factual claim.</p>
+        </div>
+        <div>
+          <div class="text-lg font-mono text-accent-600 mb-1">02</div>
+          <div class="text-sm font-medium text-ink-800 mb-1">Retrieve</div>
+          <p class="text-xs text-ink-500 leading-relaxed">Evidence spans are retrieved from source documents via BM25 + cross-encoder reranking.</p>
+        </div>
+        <div>
+          <div class="text-lg font-mono text-accent-600 mb-1">03</div>
+          <div class="text-sm font-medium text-ink-800 mb-1">Review</div>
+          <p class="text-xs text-ink-500 leading-relaxed">You approve, reject, or flag each AI verdict in the reviewer dashboard.</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+</body>
+</html>

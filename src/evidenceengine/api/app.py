@@ -9,7 +9,7 @@ from typing import AsyncIterator
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -162,6 +162,7 @@ def create_app() -> FastAPI:
     from evidenceengine.api.routes.runs import router as runs_router
     from evidenceengine.api.routes.dashboard import router as dashboard_router
     from evidenceengine.api.routes.design_system import router as design_system_router
+    from evidenceengine.api.routes.submit import router as submit_router
 
     app.include_router(packets_router)
     app.include_router(extraction_router)
@@ -171,6 +172,11 @@ def create_app() -> FastAPI:
     app.include_router(runs_router)
     app.include_router(dashboard_router)
     app.include_router(design_system_router)
+    app.include_router(submit_router)
+
+    @app.get("/", include_in_schema=False)
+    async def root() -> RedirectResponse:
+        return RedirectResponse("/dashboard", status_code=302)
 
     # ── Health endpoints ──────────────────────────────────────────────────────
 

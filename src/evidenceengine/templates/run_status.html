@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EvidenceEngine — Verifying…</title>
+  <link rel="stylesheet" href="/static/css/fonts.css?v=0.1.0">
+  <link rel="stylesheet" href="/static/css/app.css?v=0.1.0">
+  <script src="/static/vendor/htmx.min.js"></script>
+</head>
+<body class="bg-paper-50 text-ink-800 font-sans antialiased min-h-full">
+
+  <!-- Header -->
+  <header class="h-14 border-b border-ink-200 bg-paper-50 flex items-center px-8">
+    <a href="/dashboard" class="font-serif font-semibold text-ink-900 text-base hover:text-accent-700 transition-colors">EvidenceEngine</a>
+    <span class="ml-3 text-ink-400 text-xs font-mono">/ verification in progress</span>
+  </header>
+
+  <main class="max-w-lg mx-auto px-8 py-16 text-center">
+
+    <!-- Spinner -->
+    <div class="flex justify-center mb-8">
+      <svg class="animate-spin w-10 h-10 text-accent-600" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
+        <path class="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+      </svg>
+    </div>
+
+    <h1 class="font-serif text-2xl font-semibold text-ink-900 mb-2">Verifying your document</h1>
+    <p class="text-ink-500 text-sm mb-10">
+      The AI pipeline is running. This page will automatically redirect when complete.
+    </p>
+
+    <!-- Pipeline steps -->
+    <div class="text-left space-y-3 mb-10">
+
+      {% set stages = ["queued", "extracting", "retrieving", "classifying", "completed"] %}
+      {% set step_labels = {
+        "queued": "Queued",
+        "extracting": "Extracting claims",
+        "retrieving": "Retrieving evidence",
+        "classifying": "Classifying verdicts",
+        "completed": "Complete"
+      } %}
+      {% set stage_order = {"queued": 0, "extracting": 1, "retrieving": 2, "classifying": 3, "completed": 4, "failed": 4} %}
+      {% set current_order = stage_order.get(run.status, 0) %}
+
+      {% for stage_key in ["extracting", "retrieving", "classifying"] %}
+        {% set order = stage_order[stage_key] %}
+        {% if current_order > order %}
+          {# completed step #}
+          <div class="flex items-center gap-3">
+            <span class="w-5 h-5 rounded-full bg-accent-700 flex items-center justify-center flex-shrink-0">
+              <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+              </svg>
+            </span>
+            <span class="text-sm text-ink-500 line-through">{{ step_labels[stage_key] }}</span>
+          </div>
+        {% elif current_order == order %}
+          {# active step #}
+          <div class="flex items-center gap-3">
+            <span class="w-5 h-5 rounded-full border-2 border-accent-600 flex items-center justify-center flex-shrink-0">
+              <span class="w-2 h-2 rounded-full bg-accent-600 animate-pulse"></span>
+            </span>
+            <span class="text-sm font-medium text-ink-900">{{ step_labels[stage_key] }}…</span>
+          </div>
+        {% else %}
+          {# pending step #}
+          <div class="flex items-center gap-3">
+            <span class="w-5 h-5 rounded-full border-2 border-ink-200 flex-shrink-0"></span>
+            <span class="text-sm text-ink-400">{{ step_labels[stage_key] }}</span>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <!-- HTMX poll div -->
+    <div id="status-poll"
+         hx-get="/runs/{{ run.id }}/status/poll"
+         hx-trigger="every 2s"
+         hx-target="this"
+         hx-swap="outerHTML">
+    </div>
+
+    <!-- Run metadata -->
+    <div class="mt-8 text-xs font-mono text-ink-400 space-y-1">
+      <div>Run: {{ run.id }}</div>
+      {% if run.started_at %}
+        <div>Started: {{ run.started_at.strftime('%Y-%m-%d %H:%M:%S') }} UTC</div>
+      {% endif %}
+    </div>
+
+    <div class="mt-6">
+      <a href="/dashboard" class="text-sm text-ink-400 hover:text-ink-700 transition-colors">← Back to dashboard</a>
+    </div>
+
+  </main>
+
+</body>
+</html>

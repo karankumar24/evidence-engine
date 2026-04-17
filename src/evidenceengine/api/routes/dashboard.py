@@ -16,6 +16,7 @@ from evidenceengine.api.services.dashboard_queries import (
     load_runs_index,
     upsert_review_decision,
 )
+from evidenceengine.core.config import settings
 from evidenceengine.schemas.common import APIError
 
 TEMPLATES_DIR = Path(__file__).parent.parent.parent / "templates"
@@ -34,7 +35,7 @@ async def dashboard_index(
     return templates.TemplateResponse(
         request=request,
         name="dashboard_index.html",
-        context={"runs": runs},
+        context={"runs": runs, "debug": settings.debug},
     )
 
 
