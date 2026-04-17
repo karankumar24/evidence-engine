@@ -4,11 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}EvidenceEngine{% endblock %}</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..900;1,8..60,300..900&family=Inter:wght@300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/app.css">
   <script src="https://unpkg.com/htmx.org@2/dist/htmx.min.js"></script>
   <script defer src="https://unpkg.com/alpinejs@3/dist/cdn.min.js"></script>
 </head>
-<body class="h-full flex flex-col bg-white text-slate-900 font-sans antialiased"
+<body class="h-full flex flex-col bg-paper-50 text-ink-800 font-sans antialiased"
       x-data="reviewKeyboard()"
       @keydown.window.a.prevent="approve()"
       @keydown.window.r.prevent="reject()"
@@ -17,22 +20,22 @@
       @keydown.window.k.prevent="prevClaim()">
 
   <!-- Top bar -->
-  <header class="h-14 flex-shrink-0 border-b border-slate-200 bg-white z-10 flex items-center px-6 gap-6">
+  <header class="h-14 flex-shrink-0 border-b border-ink-200 bg-paper-50 z-10 flex items-center px-6 gap-6">
     {% block topbar %}{% endblock %}
   </header>
 
   <!-- Main content zone -->
   <div class="flex flex-1 overflow-hidden">
     <!-- Left sidebar queue -->
-    <aside class="w-[350px] flex-shrink-0 border-r border-slate-200 overflow-y-auto flex flex-col bg-slate-50">
+    <aside class="w-[360px] flex-shrink-0 border-r border-ink-200 overflow-y-auto flex flex-col bg-paper-100">
       {% block sidebar %}{% endblock %}
     </aside>
 
     <!-- Right detail panel -->
-    <main id="detail-panel" class="flex-1 overflow-y-auto p-6 bg-white"
+    <main id="detail-panel" class="flex-1 overflow-y-auto p-8 bg-white"
           hx-on:htmx:after-swap="Alpine.initTree(this)">
       {% block detail %}
-        <div class="flex h-full items-center justify-center text-slate-400 text-sm">
+        <div class="flex h-full items-center justify-center text-ink-400 text-sm font-serif">
           Select a claim to review
         </div>
       {% endblock %}

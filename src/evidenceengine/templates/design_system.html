@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Design System — EvidenceEngine</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script defer src="https://unpkg.com/alpinejs@3/dist/cdn.min.js"></script>
+  <style type="text/tailwindcss">
+    @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..900;1,8..60,300..900&family=Inter:wght@300..700&display=swap');
+
+    @theme {
+      --color-ink-900: #0F0F0F;
+      --color-ink-800: #1A1A1A;
+      --color-ink-700: #2D2D2D;
+      --color-ink-500: #6B6B6B;
+      --color-ink-400: #8A8A8A;
+      --color-ink-200: #D4D4D4;
+      --color-ink-100: #EBEBEB;
+      --color-ink-50: #F5F5F5;
+      --color-paper-50: #FAFAF8;
+      --color-paper-100: #F2F1EE;
+      --color-paper-200: #E8E6E1;
+      --color-accent-700: #1F3B2D;
+      --color-accent-800: #162B20;
+      --color-accent-300: #7AAF90;
+      --color-verdict-supported: #3F6B4A;
+      --color-verdict-contradicted: #8B2E2A;
+      --color-verdict-review: #7A5A1E;
+      --color-verdict-insufficient: #4A5568;
+      --font-serif: 'Source Serif 4', Georgia, serif;
+      --font-sans: 'Inter', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    }
+
+    @layer base {
+      body { font-family: var(--font-sans); }
+      .font-serif { font-family: var(--font-serif); }
+      .font-mono { font-family: var(--font-mono); }
+    }
+  </style>
+</head>
+<body class="bg-paper-50 text-ink-800 antialiased">
+
+  {% import "components/_badge.html" as badge %}
+  {% import "components/_button.html" as btn %}
+  {% import "components/_collapsible.html" as coll %}
+  {% import "components/_confidence.html" as conf %}
+  {% import "components/_pill_distribution.html" as dist %}
+  {% import "components/_card.html" as card %}
+  {% import "components/_empty_state.html" as empty %}
+  {% import "components/_evidence_span.html" as ev %}
+  {% import "components/_kbd.html" as kbd %}
+  {% import "components/_provenance_step.html" as prov %}
+
+  {# Sample data #}
+  {%- set sample_dist = {
+    "contradicted":         {"count": 3,  "pct": 15},
+    "needs_review":         {"count": 5,  "pct": 25},
+    "insufficient_support": {"count": 4,  "pct": 20},
+    "supported":            {"count": 8,  "pct": 40}
+  } -%}
+
+  <!-- Sticky header -->
+  <header class="sticky top-0 z-50 border-b border-ink-200 bg-paper-50/95 backdrop-blur-sm px-8 py-4">
+    <div class="max-w-5xl mx-auto flex items-center justify-between">
+      <div>
+        <span class="font-serif font-semibold text-ink-900 text-lg">EvidenceEngine</span>
+        <span class="ml-3 text-ink-400 text-sm font-mono">Design System</span>
+      </div>
+      <span class="inline-flex items-center gap-1.5 rounded-sm bg-verdict-review/10 px-2.5 py-1 text-xs font-medium text-verdict-review">
+        DEV ONLY
+      </span>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-8 py-12 space-y-16">
+
+    <!-- ─── Color Tokens ─────────────────────────────────────── -->
+    <section id="colors">
+      <h2 class="font-serif text-2xl font-semibold text-ink-900 mb-1">Color Tokens</h2>
+      <p class="text-ink-500 text-sm mb-6">Editorial palette — ink on paper, accent green, verdict signals.</p>
+
+      <div class="space-y-6">
+        <!-- Ink -->
+        <div>
+          <p class="text-xs font-mono text-ink-400 mb-2 uppercase tracking-widest">Ink</p>
+          <div class="flex gap-2 flex-wrap">
+            {% for shade, hex in [("900","#0F0F0F"),("800","#1A1A1A"),("700","#2D2D2D"),("500","#6B6B6B"),("400","#8A8A8A"),("200","#D4D4D4"),("100","#EBEBEB"),("50","#F5F5F5")] %}
+              <div class="flex flex-col items-center gap-1.5">
+                <div class="h-10 w-16 rounded-sm border border-ink-100" style="background:{{ hex }}"></div>
+                <span class="text-xs font-mono text-ink-500">{{ shade }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        <!-- Paper -->
+        <div>
+          <p class="text-xs font-mono text-ink-400 mb-2 uppercase tracking-widest">Paper</p>
+          <div class="flex gap-2 flex-wrap">
+            {% for shade, hex in [("50","#FAFAF8"),("100","#F2F1EE"),("200","#E8E6E1")] %}
+              <div class="flex flex-col items-center gap-1.5">
+                <div class="h-10 w-16 rounded-sm border border-ink-200" style="background:{{ hex }}"></div>
+                <span class="text-xs font-mono text-ink-500">{{ shade }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        <!-- Accent & Verdict -->
+        <div>
+          <p class="text-xs font-mono text-ink-400 mb-2 uppercase tracking-widest">Accent & Verdict</p>
+          <div class="flex gap-2 flex-wrap">
+            {% for label, hex in [("accent-700","#1F3B2D"),("accent-800","#162B20"),("accent-300","#7AAF90"),("supported","#3F6B4A"),("contradicted","#8B2E2A"),("review","#7A5A1E"),("insufficient","#4A5568")] %}
+              <div class="flex flex-col items-center gap-1.5">
+                <div class="h-10 w-20 rounded-sm border border-ink-100" style="background:{{ hex }}"></div>
+                <span class="text-xs font-mono text-ink-500">{{ label }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Typography ───────────────────────────────────────── -->
+    <section id="typography">
+      <h2 class="font-serif text-2xl font-semibold text-ink-900 mb-1">Typography</h2>
+      <p class="text-ink-500 text-sm mb-6">Source Serif 4 for display, Inter for UI, mono for data.</p>
+
+      <div class="space-y-4 border border-ink-100 rounded-sm p-6 bg-white">
+        <div class="font-serif text-4xl font-semibold text-ink-900">Source Serif 4 — Heading</div>
+        <div class="font-serif text-2xl font-medium text-ink-800">Source Serif 4 — Subheading</div>
+        <div class="font-serif text-lg text-ink-700 leading-relaxed">Source Serif 4 body — The 2023 IPCC report confirms a 1.5°C threshold will be exceeded within the next decade under current emissions trajectories.</div>
+        <hr class="border-ink-100">
+        <div class="text-sm text-ink-700">Inter Regular — UI text, labels, body copy at small sizes.</div>
+        <div class="text-xs text-ink-500">Inter Small — metadata, captions, timestamps.</div>
+        <div class="font-mono text-sm text-ink-600">JetBrains Mono — run IDs, percentages, scores: 0.87 · A · 94%</div>
+      </div>
+    </section>
+
+    <!-- ─── Badges ───────────────────────────────────────────── -->
+    <section id="badges">
+      <h2 class="font-serif text-2xl font-semibold text-ink-900 mb-1">Badges</h2>
+      <p class="text-ink-500 text-sm mb-6">Verdict, status, and method chips.</p>
+
+      <div class="space-y-6 border border-ink-100 rounded-sm p-6 bg-white">
+        <div>
+          <p class="text-xs font-mono text-ink-400 mb-3 uppercase tracking-widest">Verdict Badges</p>
+          <div class="flex flex-wrap gap-3">
+            {{ badge.verdict_badge("supported") }}
+            {{ badge.verdict_badge("contradicted") }}
+            {{ badge.verdict_badge("needs_review") }}
+            {{ badge.verdict_badge("insufficient_support") }}
+          </div>
+          <div class="flex flex-wrap gap-3 mt-2">
+            {{ badge.verdict_badge("supported", size="xs") }}
+            {{ badge.verdict_badge("contradicted", size="xs") }}
+            {{ badge.verdict_badge("needs_review", size="xs") }}
+            {{ badge.verdict_badge("insufficient_support", size="xs") }}
+          </div>
+        </div>
+        <div>
+          <p class="text-xs font-mono text-ink-400 mb-3 uppercase tracking-widest">Status Badges</p>
+          <div class="flex flex-wrap gap-3">
+            {{ badge.status_badge("pending") }}
+            {{ badge.status_badge("running") }}
+            {{ badge.status_badge("completed") }}
+            {{ badge.status_badge("failed") }}
+          </div>
+        </div>
+        <div>
+          <p class="text-xs font-mono text-ink-400 mb-3 uppercase tracking-widest">Method Badges</p>
+          <div class="flex flex-wrap gap-3">
+            {{ badge.method_badge("semantic") }}
+            {{ badge.method_badge("lexical") }}
+            {{ badge.method_badge("hybrid") }}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Buttons ──────────────────────────────────────────── -->
+    <section id="buttons">
+      <h2 class="font-serif text-2xl font-semibold text-ink-900 mb-1">Buttons</h2>
+      <p class="text-ink-500 text-sm mb-6">Four variants × three sizes.</p>
+
+      <div class="space-y-6 border border-ink-100 rounded-sm p-6 bg-white">
+        {% for variant in ["primary", "secondary", "ghost", "destructive"] %}
+          <div>
+            <p class="text-xs font-mono text-ink-400 mb-3 capitalize">{{ variant }}</p>
+            <div class="flex flex-wrap items-center gap-3">
+              {% call btn.button(variant=variant, size="sm") %}Small{% endcall %}
+              {% call btn.button(variant=variant, size="md") %}Medium{% endcall %}
+              {% call btn.button(variant=variant, size="lg") %}Large{% endcall %}
+              {% call btn.button(variant=variant, size="md") %}
+                <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M8 3v10M3 8h10"/>
+                </svg>
+                With Icon
+              {% endcall %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- ─── Confidence ───────────────────────────────────────── -->
+    <section id="confidence">
+      <h2 class="font-serif text-2xl font-semibold text-ink-900 mb-1">Confidence Display</h2>
+      <p class="text-ink-500 text-sm mb-6">Letter grade + 5-segment bar + mono percent.</p>
+
+      <div class="flex flex-wrap gap-8 border border-ink-100 rounded-sm p-6 bg-white">
+        {{ conf.confidence_display(0.92) }}
+        {{ conf.confidence_display(0.78) }}
+        {{ conf.confidence_display(0.61) }}
+        {{ conf.confidence_display(0.42) }}
+      </div>
+    </section>
+
+    <!-- ─── Pill Distribution ────────────────────────────────── -->
+    <section id="distribution">
+      <h2 class="font-serif text-2xl font-semibold text-ink-900 mb-1">Verdict Distribution</h2>
+      <p class="text-ink-500 text-sm mb-6">Proportional stacked mini-bar with legend.</p>
+
+      <div class="border border-ink-100 rounded-sm p-6 bg-white">
+        {{ dist.verdict_distribution(sample_dist) }}
+      </div>
+    </section>
+
+    <!-- ─── Collapsible ──────────────────────────────────────── -->
+    <section id="collapsible">
+      <h2 class="font-serif text-2xl font-semibold text-ink-900 mb-1">Collapsible</h2>
+      <p class="text-ink-500 text-sm mb-6">Alpine.js-driven expand/collapse with ARIA.</p>
+
+      <div class="space-y-2 border border-ink-100 rounded-sm p-6 bg-white">
+        {% call coll.collapsible("Evidence Sources", default_open=true, id="demo-open") %}
+          <div class="space-y-2">
+            <p class="text-sm text-ink-700 font-serif leading-relaxed">IPCC AR6 (2023): "It is unequivocal that human influence has warmed the atmosphere, ocean and land." — Section 3.1.2</p>
+            <p class="text-sm text-ink-700 font-serif leading-relaxed">NASA GISS Surface Temperature Analysis confirms the 2023 global mean temperature anomaly at +1.17°C above the 1951–1980 baseline.</p>
+          </div>
+        {% endcall %}
+        {% call coll.collapsible("Methodology Notes", default_open=false, id="demo-closed") %}
+          <p class="text-sm text-ink-700">Retrieval via semantic search with CrossEncoder reranking. Top-5 passages scored by cosine similarity threshold ≥ 0.65.</p>
+        {% endcall %}
+      </div>
+    </section>
+
+    <!-- ─── Evidence Span ────────────────────────────────────── -->
+    <section id="evidence-span">
+      <h2 class="font-serif text-2xl font-semibold text-ink-900 mb-1">Evidence Span</h2>
+      <p class="text-ink-500 text-sm mb-6">Evidence callout block with source provenance and method badge.</p>
+
+      <div class="border border-ink-100 rounded-sm p-6 bg-white space-y-3">
+        {{ ev.evidence_span({"span_text": "It is unequivocal that human influence has warmed the atmosphere, ocean and land. Widespread and rapid changes in the atmosphere, ocean, cryosphere and biosphere have occurred.", "page_number": 4, "section_header": "Summary for Policymakers"}, "packet") }}
+        {{ ev.evidence_span({"span_text": "The 2023 annual global surface temperature was 1.45°C above the pre-industrial (1850–1900) average, making it the warmest year on record.", "page_number": None, "section_header": "Global Temperature Analysis"}, "web_fallback") }}
+      </div>
+    </section>
+
+    <!-- ─── Keyboard Hints ───────────────────────────────────── -->
+    <section id="keyboard">
+      <h2 class="font-serif text-2xl font-semibold text-ink-900 mb-1">Keyboard Hints</h2>
+      <p class="text-ink-500 text-sm mb-6">Key chip component for inline keyboard shortcut documentation.</p>
+
+      <div class="border border-ink-100 rounded-sm p-6 bg-white">
+        <div class="flex flex-wrap items-center gap-4 text-sm text-ink-600">
+          <span class="flex items-center gap-1.5">{{ kbd.kbd("A") }} Approve</span>
+          <span class="flex items-center gap-1.5">{{ kbd.kbd("R") }} Reject</span>
+          <span class="flex items-center gap-1.5">{{ kbd.kbd("F") }} Flag for review</span>
+          <span class="flex items-center gap-1.5">{{ kbd.kbd("J") }} Next claim</span>
+          <span class="flex items-center gap-1.5">{{ kbd.kbd("K") }} Prev claim</span>
+          <span class="flex items-center gap-1.5">{{ kbd.kbd("?") }} Show help</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Provenance Step ──────────────────────────────────── -->
+    <section id="provenance">
+      <h2 class="font-serif text-2xl font-semibold text-ink-900 mb-1">Provenance Timeline</h2>
+      <p class="text-ink-500 text-sm mb-6">Vertical step-by-step pipeline trace.</p>
+
+      <div class="border border-ink-100 rounded-sm p-6 bg-white max-w-xl">
+        {% call prov.provenance_step(1, "Document Ingestion", "Parsed 24-page PDF, extracted 847 text segments.") %}{% endcall %}
+        {% call prov.provenance_step(2, "Claim Extraction", "Identified 20 verifiable claims via GPT-4 extraction prompt.") %}{% endcall %}
+        {% call prov.provenance_step(3, "Evidence Retrieval", "Top-5 passages retrieved per claim via semantic search (threshold 0.65).") %}{% endcall %}
+        {% call prov.provenance_step(4, "Classification", "Verdicts assigned: 8 supported, 3 contradicted, 5 needs_review, 4 insufficient.") %}{% endcall %}
+        {% call prov.provenance_step(5, "Review Queue", "5 claims in active reviewer queue.") %}{% endcall %}
+      </div>
+    </section>
+
+    <!-- ─── Card ─────────────────────────────────────────────── -->
+    <section id="card">
+      <h2 class="font-serif text-2xl font-semibold text-ink-900 mb-1">Card</h2>
+      <p class="text-ink-500 text-sm mb-6">Content container with optional header and footer slots.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% call card.card(title="IPCC AR6 — Section 3.4.2") %}
+          <p class="font-serif text-sm text-ink-700 leading-relaxed">
+            "Continued greenhouse gas emissions will cause further warming and long-lasting changes in all components of the climate system, increasing the likelihood of severe, pervasive and irreversible impacts."
+          </p>
+          <div class="mt-3 flex items-center gap-3">
+            {{ conf.confidence_display(0.89) }}
+            {{ badge.verdict_badge("supported", size="xs") }}
+          </div>
+        {% endcall %}
+
+        {% call card.card(title="Carbon Brief — Attribution Study") %}
+          <p class="font-serif text-sm text-ink-700 leading-relaxed">
+            "New attribution science shows that climate change made the 2023 Canadian wildfires at least twice as likely and increased burned area by up to 50%."
+          </p>
+          <div class="mt-3 flex items-center gap-3">
+            {{ conf.confidence_display(0.71) }}
+            {{ badge.verdict_badge("needs_review", size="xs") }}
+          </div>
+        {% endcall %}
+      </div>
+    </section>
+
+    <!-- ─── Empty State ──────────────────────────────────────── -->
+    <section id="empty-state">
+      <h2 class="font-serif text-2xl font-semibold text-ink-900 mb-1">Empty State</h2>
+      <p class="text-ink-500 text-sm mb-6">Zero-content placeholder with optional CTA.</p>
+
+      <div class="border border-ink-100 rounded-sm p-6 bg-white">
+        {{ empty.empty_state("No claims in queue", "Upload a document and run the pipeline to populate the review queue.", cta_label="Upload Document", cta_href="/packets/upload") }}
+      </div>
+    </section>
+
+    <!-- ─── Topbar ────────────────────────────────────────────── -->
+    <section id="topbar">
+      <h2 class="font-serif text-2xl font-semibold text-ink-900 mb-1">Topbar</h2>
+      <p class="text-ink-500 text-sm mb-6">Dashboard header composing title, run ID, status badge, and distribution bar.</p>
+
+      {%- set mock_packet = namespace(report_filename="ipcc_ar6_wg1_chapter3.pdf") -%}
+      {%- set mock_run    = namespace(id="a8f2c1e94b77", status="completed", completed_at=none) -%}
+
+      {% import "components/_topbar.html" as tb %}
+      <div class="border border-ink-100 rounded-sm bg-white">
+        <div class="h-14 flex items-center px-6 gap-6 border-b border-ink-100">
+          {{ tb.topbar(mock_packet, mock_run, sample_dist) }}
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer nav -->
+  <footer class="border-t border-ink-100 mt-16 py-6 px-8">
+    <div class="max-w-5xl mx-auto flex flex-wrap gap-4 text-xs font-mono text-ink-400">
+      <a href="#colors" class="hover:text-ink-700 transition-colors">Colors</a>
+      <a href="#typography" class="hover:text-ink-700 transition-colors">Typography</a>
+      <a href="#badges" class="hover:text-ink-700 transition-colors">Badges</a>
+      <a href="#buttons" class="hover:text-ink-700 transition-colors">Buttons</a>
+      <a href="#confidence" class="hover:text-ink-700 transition-colors">Confidence</a>
+      <a href="#distribution" class="hover:text-ink-700 transition-colors">Distribution</a>
+      <a href="#collapsible" class="hover:text-ink-700 transition-colors">Collapsible</a>
+      <a href="#evidence-span" class="hover:text-ink-700 transition-colors">Evidence Span</a>
+      <a href="#keyboard" class="hover:text-ink-700 transition-colors">Keyboard</a>
+      <a href="#provenance" class="hover:text-ink-700 transition-colors">Provenance</a>
+      <a href="#card" class="hover:text-ink-700 transition-colors">Card</a>
+      <a href="#empty-state" class="hover:text-ink-700 transition-colors">Empty State</a>
+      <a href="#topbar" class="hover:text-ink-700 transition-colors">Topbar</a>
+    </div>
+  </footer>
+
+</body>
+</html>

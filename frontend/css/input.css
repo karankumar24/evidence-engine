@@ -7,6 +7,11 @@
 
 @import "tailwindcss";
 
+@source "../../src/evidenceengine/templates/**/*.html";
+@source "../../src/evidenceengine/api/**/*.py";
+@source "../../src/evidenceengine/static/*.js";
+@source "../../docs/design/**/*.html";
+
 /* -----------------------------------------------------------------------------
  * Design tokens — exposed as Tailwind utilities via v4's @theme directive.
  * Anything declared here generates matching `bg-*`, `text-*`, `font-*`, etc.
@@ -160,4 +165,22 @@
   /* .ee-verdict-*   — verdict badges mapped to --color-verdict-*            */
   /* .ee-nav-link    — top-nav link (sans, ink-700, underline on hover)     */
   /* .ee-callout     — pull-quote / evidence callout (serif, ink rule)      */
+}
+
+/* A11y — respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* A11y — high-contrast focus rings for keyboard nav */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-accent-700);
+    outline-offset: 2px;
+  }
 }

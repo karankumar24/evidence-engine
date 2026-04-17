@@ -1,15 +1,16 @@
-{% set btn_active = {
-  "approve": "bg-green-600 text-white border-green-600",
-  "reject": "bg-red-600 text-white border-red-600",
-  "mark_insufficient": "bg-amber-500 text-white border-amber-500"
+{% set _active = {
+  "approve":          "bg-verdict-supported text-paper-50 border-verdict-supported",
+  "reject":           "bg-verdict-contradicted text-paper-50 border-verdict-contradicted",
+  "mark_insufficient": "bg-verdict-insufficient text-paper-50 border-verdict-insufficient"
 } %}
-{% set btn_inactive = "bg-white border border-slate-300 text-slate-600 hover:bg-slate-50" %}
+{% set _inactive = "bg-white text-ink-700 border border-ink-200 hover:bg-paper-50" %}
+{% set _base = "flex-1 py-2 px-3 rounded-sm text-sm font-medium transition-colors border focus:outline-none focus:ring-2 focus:ring-accent-300" %}
 
 <!-- Primary content: button state in detail panel -->
-<div class="flex gap-2 mt-4" id="review-buttons-{{ claim_id }}">
+<div class="flex gap-2 mt-5" id="review-buttons-{{ claim_id }}">
   {% for btn_action, btn_label in [("approve", "Approve"), ("reject", "Reject"), ("mark_insufficient", "Mark Insufficient")] %}
-    <button class="btn-{{ btn_action }} flex-1 py-2 px-3 rounded text-sm font-medium transition-colors border
-                   {% if action == btn_action %}{{ btn_active[btn_action] }}{% else %}{{ btn_inactive }}{% endif %}"
+    <button class="btn-{{ btn_action }} {{ _base }}
+                   {% if action == btn_action %}{{ _active[btn_action] }}{% else %}{{ _inactive }}{% endif %}"
             hx-post="/api/runs/{{ run_id }}/claims/{{ claim_id }}/review"
             hx-vals='{"action": "{{ btn_action }}"}'
             hx-target="#review-buttons-{{ claim_id }}"
@@ -20,8 +21,13 @@
 </div>
 
 <!-- OOB update: sync queue row status badge -->
+{% set _status_color = {
+  "approve": "text-verdict-supported",
+  "reject": "text-verdict-contradicted",
+  "mark_insufficient": "text-verdict-insufficient"
+} %}
 <span id="queue-row-{{ claim_id }}-status"
       hx-swap-oob="outerHTML:#queue-row-{{ claim_id }}-status"
-      class="font-medium {% if action == 'approve' %}text-green-600{% elif action == 'reject' %}text-red-600{% elif action == 'mark_insufficient' %}text-amber-600{% endif %}">
+      class="font-medium {{ _status_color.get(action, 'text-ink-300') if action else 'text-ink-300' }}">
   {{ action | replace('_', ' ') | title if action else 'Unreviewed' }}
 </span>
