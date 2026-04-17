@@ -17,7 +17,4 @@ _templates = Jinja2Templates(directory=str(Path(__file__).parent.parent.parent /
 async def design_system(request: Request) -> HTMLResponse:
     if not settings.debug:
         raise HTTPException(status_code=404, detail="Not found")
-    return _templates.TemplateResponse(
-        "design_system.html",
-        {"request": request},
-    )
+    return _templates.TemplateResponse(request, "design_system.html")
