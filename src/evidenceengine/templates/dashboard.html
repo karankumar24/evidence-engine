@@ -11,6 +11,23 @@
   {% include "partials/queue_list.html" %}
 {% endblock %}
 
+{% block detail %}
+  {% set _total = distribution.supported.count + distribution.contradicted.count + distribution.insufficient_support.count + distribution.needs_review.count %}
+  {% if _total == 0 %}
+    <div class="max-w-xl mx-auto mt-24 border border-ink-100 bg-paper-100 rounded-sm px-6 py-6">
+      <div class="text-xs font-mono text-ink-400 tracking-wider uppercase mb-2">Run status · {{ run.status }}</div>
+      <h2 class="font-serif text-lg font-semibold text-ink-900">Nothing to review yet</h2>
+      <p class="mt-2 text-sm text-ink-500 leading-relaxed">
+        This run has no classified verdicts. Finish the pipeline (extraction → retrieval → classification) before claims become reviewable.
+      </p>
+    </div>
+  {% else %}
+    <div class="flex h-full items-center justify-center text-ink-400 text-sm font-serif">
+      Select a claim to review
+    </div>
+  {% endif %}
+{% endblock %}
+
 {% block scripts %}
   <script src="/static/dashboard.js"></script>
 {% endblock %}

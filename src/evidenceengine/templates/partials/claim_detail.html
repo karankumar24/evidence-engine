@@ -76,9 +76,15 @@
     </ol>
   {% endcall %}
 
-  <!-- Review action buttons -->
-  {% set action = decision.action if decision else None %}
-  {% set claim_id = claim.id %}
-  {% include "partials/review_buttons.html" %}
+  <!-- Review action buttons — only meaningful once a verdict exists -->
+  {% if verdict %}
+    {% set action = decision.action if decision else None %}
+    {% set claim_id = claim.id %}
+    {% include "partials/review_buttons.html" %}
+  {% else %}
+    <div class="mt-5 px-4 py-3 bg-paper-100 border border-ink-100 rounded-sm text-xs text-ink-500 font-sans">
+      This claim has no verdict yet. Finish the pipeline run to enable review.
+    </div>
+  {% endif %}
 
 </div>
