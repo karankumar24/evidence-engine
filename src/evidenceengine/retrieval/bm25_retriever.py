@@ -2,10 +2,8 @@
 
 import os
 
-import bm25s
 
-
-def build_index(spans: list[str], index_dir: str) -> bm25s.BM25:
+def build_index(spans: list[str], index_dir: str):
     """Build a BM25 index from span strings and save to disk.
 
     Args:
@@ -15,6 +13,7 @@ def build_index(spans: list[str], index_dir: str) -> bm25s.BM25:
     Returns:
         Populated bm25s.BM25 retriever with the corpus loaded in memory.
     """
+    import bm25s  # noqa: PLC0415 — lazy to avoid blocking startup
     os.makedirs(index_dir, exist_ok=True)
     corpus_tokens = bm25s.tokenize(spans, stopwords="en")
     retriever = bm25s.BM25()
@@ -23,7 +22,7 @@ def build_index(spans: list[str], index_dir: str) -> bm25s.BM25:
     return retriever
 
 
-def load_or_build_index(spans: list[str], index_dir: str) -> bm25s.BM25:
+def load_or_build_index(spans: list[str], index_dir: str):
     """Load a BM25 index from disk if it exists; otherwise build and save it.
 
     Index is keyed by directory path, which callers should set to
@@ -36,6 +35,7 @@ def load_or_build_index(spans: list[str], index_dir: str) -> bm25s.BM25:
     Returns:
         bm25s.BM25 retriever with corpus loaded (mmap=True for memory efficiency).
     """
+    import bm25s  # noqa: PLC0415 — lazy to avoid blocking startup
     # bm25s.BM25.load requires the .index.npy file — check for it
     index_file = os.path.join(index_dir, "index.npy")
     if os.path.exists(index_file):
@@ -43,7 +43,7 @@ def load_or_build_index(spans: list[str], index_dir: str) -> bm25s.BM25:
     return build_index(spans, index_dir)
 
 
-def query_index(retriever: bm25s.BM25, query: str, k: int = 10) -> tuple[list[str], list[float]]:
+def query_index(retriever, query: str, k: int = 10) -> tuple[list[str], list[float]]:
     """Query a BM25 index for the top-k most relevant spans.
 
     bm25s.retrieve() returns 2D numpy arrays of shape (n_queries, k).
@@ -58,6 +58,7 @@ def query_index(retriever: bm25s.BM25, query: str, k: int = 10) -> tuple[list[st
         Tuple of (span_texts, scores) as plain Python lists.
         len(span_texts) == len(scores) == min(k, corpus_size).
     """
+    import bm25s  # noqa: PLC0415 — lazy to avoid blocking startup
     query_tokens = bm25s.tokenize([query], stopwords="en")
     results, scores = retriever.retrieve(query_tokens, k=k)
     # results shape: (1, k); scores shape: (1, k) — slice [0] for single-query

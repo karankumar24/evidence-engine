@@ -12,16 +12,18 @@ uses internal BLAS/PyTorch threads — multiple workers cause CPU thrashing.
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
-from sentence_transformers import CrossEncoder
+# sentence_transformers imported lazily inside get_reranker() to avoid blocking startup
 
 from evidenceengine.core.config import settings
 
-_reranker: CrossEncoder | None = None
+_reranker = None
 _executor = ThreadPoolExecutor(max_workers=1)
 
 
-def get_reranker() -> CrossEncoder:
+def get_reranker():
     """Lazy singleton — loads model once, reuses across all requests."""
+    from sentence_transformers import CrossEncoder  # noqa: PLC0415 — lazy to avoid blocking startup
+
     global _reranker
     if _reranker is None:
         _reranker = CrossEncoder(settings.reranker_model)

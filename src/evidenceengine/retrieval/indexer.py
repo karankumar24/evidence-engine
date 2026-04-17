@@ -1,7 +1,5 @@
 """Span extraction from parsed_content blocks at sentence + paragraph granularity."""
 
-import nltk
-
 
 def ensure_punkt() -> None:
     """Download punkt_tab tokenizer data if not already present (idempotent).
@@ -9,13 +7,11 @@ def ensure_punkt() -> None:
     punkt_tab is the current resource name in NLTK 3.9+; punkt is deprecated.
     Must be called before any nltk.sent_tokenize() invocation.
     """
+    import nltk  # noqa: PLC0415 — lazy to avoid blocking startup
     try:
         nltk.data.find("tokenizers/punkt_tab")
     except LookupError:
         nltk.download("punkt_tab", quiet=True)
-
-
-ensure_punkt()  # Idempotent — safe at module import time
 
 
 def extract_spans(parsed_content: dict) -> list[dict]:
@@ -33,6 +29,8 @@ def extract_spans(parsed_content: dict) -> list[dict]:
     Returns list of span dicts, each with:
     {text, page, paragraph, char_start, char_end, section_header, span_type}
     """
+    import nltk  # noqa: PLC0415 — lazy to avoid blocking startup
+    ensure_punkt()
     spans = []
     for block in parsed_content.get("blocks", []):
         text = block.get("text", "").strip()
