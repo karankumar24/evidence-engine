@@ -19,6 +19,13 @@
       @keydown.window.shift.slash.prevent="helpOpen = true"
       @keydown.window.escape="helpOpen = false">
 
+  <a href="#detail-panel"
+     class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50
+            focus:px-4 focus:py-2 focus:bg-paper-50 focus:text-ink-900
+            focus:border focus:border-ink-200 focus:rounded-sm focus:shadow-md">
+    Skip to claim detail
+  </a>
+
   <!-- Top bar -->
   <header class="h-14 flex-shrink-0 border-b border-ink-200 bg-paper-50 z-10 flex items-center px-6 gap-6">
     {% block topbar %}{% endblock %}

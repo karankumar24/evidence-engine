@@ -23,19 +23,27 @@
              class="border border-ink-100 rounded-md overflow-hidden bg-paper-50">
       {% if title %}
         <button type="button"
+                id="card-btn-{{ title | lower | replace(' ', '-') }}"
                 data-card-toggle
                 @click="open = !open"
                 :aria-expanded="open ? 'true' : 'false'"
+                aria-controls="card-panel-{{ title | lower | replace(' ', '-') }}"
                 class="w-full flex items-center justify-between px-4 py-3 bg-paper-100
                        hover:bg-paper-200 text-sm font-medium text-ink-800 text-left
                        font-serif">
           <span>{{ title }}</span>
           <span data-card-chevron
+                aria-hidden="true"
                 x-text="open ? '\u25B4' : '\u25BE'"
                 class="text-xs text-ink-400"></span>
         </button>
       {% endif %}
-      <div data-card-body x-show="open" class="px-4 py-3">
+      <div data-card-body
+           id="card-panel-{{ title | lower | replace(' ', '-') }}"
+           aria-labelledby="card-btn-{{ title | lower | replace(' ', '-') }}"
+           role="region"
+           x-show="open"
+           class="px-4 py-3">
         {{ caller() }}
       </div>
     </section>

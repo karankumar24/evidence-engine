@@ -2,7 +2,8 @@
 
 <!-- Filter bar -->
 <div id="queue-filters" class="p-3 border-b border-ink-100 bg-paper-50 space-y-2">
-  <select name="verdict_filter"
+  <label for="filter-verdict" class="sr-only">Filter by verdict</label>
+  <select id="filter-verdict" name="verdict_filter"
           class="w-full text-xs border border-ink-200 rounded-sm px-2.5 py-1.5 bg-white text-ink-700
                  focus:outline-none focus:ring-2 focus:ring-accent-300 focus:border-accent-700
                  font-sans appearance-none"
@@ -18,7 +19,8 @@
     <option value="supported" {% if active_filters.verdict_filter == 'supported' %}selected{% endif %}>Supported</option>
   </select>
 
-  <select name="confidence"
+  <label for="filter-confidence" class="sr-only">Filter by confidence</label>
+  <select id="filter-confidence" name="confidence"
           class="w-full text-xs border border-ink-200 rounded-sm px-2.5 py-1.5 bg-white text-ink-700
                  focus:outline-none focus:ring-2 focus:ring-accent-300 focus:border-accent-700
                  font-sans appearance-none"
@@ -34,7 +36,8 @@
   </select>
 
   {% if source_docs %}
-    <select name="source_doc_id"
+    <label for="filter-source" class="sr-only">Filter by source document</label>
+    <select id="filter-source" name="source_doc_id"
             class="w-full text-xs border border-ink-200 rounded-sm px-2.5 py-1.5 bg-white text-ink-700
                    focus:outline-none focus:ring-2 focus:ring-accent-300 focus:border-accent-700
                    font-sans appearance-none"
@@ -65,11 +68,15 @@
     } %}
     <div id="queue-row-{{ claim.id }}"
          class="claim-row px-4 py-3.5 border-b border-ink-100 cursor-pointer hover:bg-paper-100 transition-colors"
+         role="button"
+         tabindex="0"
+         aria-label="{{ claim.claim_text | truncate(80) }}"
          {% if decision %}data-reviewed="true"{% endif %}
          hx-get="/dashboard/{{ packet.id }}/{{ run.id }}/claims/{{ claim.id }}"
          hx-target="#detail-panel"
          hx-swap="innerHTML"
-         hx-push-url="false">
+         hx-push-url="false"
+         hx-trigger="click, keydown[key=='Enter'||key==' ']">
       <div class="flex items-start gap-2.5">
         {% if verdict %}
           {{ badge.verdict_badge(verdict.verdict_type, size="xs") }}
