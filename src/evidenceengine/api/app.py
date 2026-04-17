@@ -1,15 +1,28 @@
 """FastAPI application factory."""
 
 import os
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from evidenceengine.core.config import settings
 from evidenceengine.schemas.common import APIError
+
+_TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
+_error_templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
+
+
+def _wants_html(request: Request) -> bool:
+    """True when the client asked for HTML and the path is not a JSON API route."""
+    if request.url.path.startswith("/api/"):
+        return False
+    accept = request.headers.get("accept", "")
+    return "text/html" in accept.lower()
 
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -25,7 +38,12 @@ def register_exception_handlers(app: FastAPI) -> None:
     """
 
     @app.exception_handler(StarletteHTTPException)
-    async def http_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+    async def http_handler(request: Request, exc: StarletteHTTPException) -> Response:
+        if _wants_html(request) and exc.status_code in (404, 500):
+            template = "errors/404.html" if exc.status_code == 404 else "errors/500.html"
+            return _error_templates.TemplateResponse(
+                request, template, {"detail": str(exc.detail)}, status_code=exc.status_code
+            )
         return JSONResponse(
             status_code=exc.status_code,
             content={
