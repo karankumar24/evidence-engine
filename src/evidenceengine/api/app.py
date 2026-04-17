@@ -31,7 +31,7 @@ APP_VERSION = "0.1.0"
 
 _CSP = (
     "default-src 'self'; "
-    "script-src 'self' https://cdn.jsdelivr.net; "
+    "script-src 'self'; "
     "style-src 'self' 'unsafe-inline'; "
     "font-src 'self'; "
     "img-src 'self' data:; "
@@ -140,7 +140,7 @@ def create_app() -> FastAPI:
         allow_origins=settings.cors_origins,
         allow_credentials=allow_credentials,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["*"],
+        allow_headers=["Content-Type", "Authorization", "HX-Request", "HX-Target", "HX-Trigger", "HX-Vals"],
     )
 
     # Security headers on every response
@@ -182,14 +182,16 @@ def create_app() -> FastAPI:
     async def healthz() -> dict:
         from sqlalchemy import text
         from evidenceengine.core.database import async_session_factory
-        from fastapi import HTTPException as FastHTTPException
         try:
             async with async_session_factory() as session:
                 await session.execute(text("SELECT 1"))
             return {"status": "ok", "db": "reachable"}
         except Exception as exc:
             logger.error("Health check DB ping failed: %s", exc)
-            raise FastHTTPException(status_code=503, detail="Database unavailable")
+            return JSONResponse(
+                status_code=503,
+                content={"status": "error", "db": "unreachable"},
+            )
 
     return app
 

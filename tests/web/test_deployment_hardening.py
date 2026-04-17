@@ -51,6 +51,16 @@ async def test_csp_has_no_wildcard_sources():
     assert "script-src *" not in csp
 
 
+@pytest.mark.asyncio
+async def test_csp_script_src_no_third_party_cdn():
+    app = create_app()
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/health")
+    csp = resp.headers.get("content-security-policy", "")
+    assert "jsdelivr.net" not in csp, "CSP must not allowlist jsdelivr.net in production"
+    assert "unpkg.com" not in csp, "CSP must not allowlist unpkg.com"
+
+
 # ── Lifespan (no deprecated on_event) ────────────────────────────────────────
 
 def test_app_uses_lifespan_not_on_event():
