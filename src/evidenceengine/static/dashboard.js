@@ -1,4 +1,4 @@
-/* EvidenceEngine dashboard — Alpine.js component definitions */
+/* EvidenceEngine dashboard — event handlers for the reviewer UI */
 
 /* Track active queue row via data-active attribute, set on HTMX trigger. */
 document.addEventListener('htmx:beforeRequest', (e) => {
@@ -51,40 +51,42 @@ document.addEventListener('htmx:afterSwap', () => {
     });
 });
 
-// Exposed as a global so base.html can call reviewKeyboard() in x-data expression.
-// Also registered with Alpine.data for component-name syntax.
-window.reviewKeyboard = () => ({
-    helpOpen: false,
-    get activeClaim() {
-        return document.querySelector('.claim-row[data-active]');
-    },
-    approve() {
+/* Keyboard shortcuts: A/R/F/J/K — native listeners, no Alpine dependency. */
+function _activeRow() {
+    return document.querySelector('.claim-row[data-active]');
+}
+
+document.addEventListener('keydown', (e) => {
+    // Skip when focus is in an input, textarea, or select
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    // Skip when modifier keys are held (cmd/ctrl shortcuts)
+    if (e.metaKey || e.ctrlKey) return;
+
+    if (e.key === 'a') {
+        e.preventDefault();
         const btn = document.querySelector('#detail-panel .btn-approve');
         if (btn) btn.click();
-    },
-    reject() {
+    } else if (e.key === 'r') {
+        e.preventDefault();
         const btn = document.querySelector('#detail-panel .btn-reject');
         if (btn) btn.click();
-    },
-    flag() {
+    } else if (e.key === 'f') {
+        e.preventDefault();
         const btn = document.querySelector('#detail-panel .btn-mark_insufficient');
         if (btn) btn.click();
-    },
-    nextClaim() {
+    } else if (e.key === 'j') {
+        e.preventDefault();
         const rows = Array.from(document.querySelectorAll('.claim-row'));
-        const active = this.activeClaim;
+        const active = _activeRow();
         const idx = rows.indexOf(active);
         if (idx >= 0 && idx < rows.length - 1) rows[idx + 1].click();
         else if (rows.length > 0 && idx === -1) rows[0].click();
-    },
-    prevClaim() {
+    } else if (e.key === 'k') {
+        e.preventDefault();
         const rows = Array.from(document.querySelectorAll('.claim-row'));
-        const active = this.activeClaim;
+        const active = _activeRow();
         const idx = rows.indexOf(active);
         if (idx > 0) rows[idx - 1].click();
-    },
-});
-
-document.addEventListener('alpine:init', () => {
-    Alpine.data('reviewKeyboard', window.reviewKeyboard);
+    }
 });

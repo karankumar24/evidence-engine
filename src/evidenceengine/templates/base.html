@@ -10,12 +10,7 @@
   <script defer src="/static/vendor/alpine.min.js"></script>
 </head>
 <body class="h-full flex flex-col bg-paper-50 text-ink-800 font-sans antialiased"
-      x-data="reviewKeyboard"
-      @keydown.window.a.prevent="approve()"
-      @keydown.window.r.prevent="reject()"
-      @keydown.window.f.prevent="flag()"
-      @keydown.window.j.prevent="nextClaim()"
-      @keydown.window.k.prevent="prevClaim()"
+      x-data="{ helpOpen: false }"
       @keydown.window.shift.slash.prevent="helpOpen = true"
       @keydown.window.escape="helpOpen = false">
 
