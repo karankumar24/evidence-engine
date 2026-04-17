@@ -1,0 +1,44 @@
+IPCC Sixth Assessment Report — Working Group III
+Chapter 3: Mitigation Pathways Compatible with Long-term Goals (Synthetic Excerpt)
+
+REMAINING CARBON BUDGETS (Table 3.1)
+
+The remaining carbon budget from the start of 2020 for various temperature outcomes:
+
+  1.5°C, 50% probability:  approximately 500 GtCO2
+  1.5°C, 67% probability:  approximately 400 GtCO2
+  2.0°C, 67% probability:  approximately 1150 GtCO2
+  2.0°C, 83% probability:  approximately 900 GtCO2
+
+These estimates carry an uncertainty of ±220 GtCO2 (1-sigma). The budget values include
+warming from non-CO2 greenhouse gases, the Earth system feedback correction, and the
+historical temperature anomaly baseline.
+
+NDC AMBITION GAP (Section 3.5)
+
+Under current nationally determined contributions submitted prior to COP27, total GHG
+emissions in 2030 are projected at approximately 53 GtCO2e per year (median of submitted
+NDC assessments). The emission level consistent with a 2°C pathway in 2030 is approximately
+43 GtCO2e per year. The difference of roughly 10 GtCO2e per year represents the near-term
+ambition gap that must be closed to put the world on a Paris-aligned trajectory.
+
+For a 1.5°C pathway, global emissions must fall by approximately 45 percent by 2030 relative
+to 2010 levels. No major region is on track to achieve this rate of reduction under current
+policies.
+
+NET-ZERO TIMING
+
+Under scenarios that limit warming to 1.5°C with limited overshoot (Category C1):
+- Global CO2 reaches net zero around 2050
+- Global GHG net zero around 2070
+- Significant deployment of carbon dioxide removal (CDR) technologies is required
+
+Under scenarios that limit warming to 2°C (Category C3):
+- Global CO2 reaches net zero around 2070
+
+GROWTH RATE CONTEXT
+
+IPCC WG3 cites a decadal emission growth rate of 1.5 percent per year for 2010–2019, broadly
+consistent with the Global Carbon Project's estimate of the same rate for 2012–2021.
+The post-pandemic rebound in 2021 was larger than expected, raising concern that near-term
+emission reductions may be slower than modelled in mitigation scenarios.

@@ -1,0 +1,6 @@
+{
+  "name": "IPCC AR6 Excerpt",
+  "description": "Synthetic summary report based on IPCC AR6 findings with source documents for demo",
+  "report_file": "report.txt",
+  "source_files": ["source_01_wg1_spm.txt", "source_02_obs_data.txt"]
+}
