@@ -10,34 +10,54 @@ RUN npm run build:css
 # ── Stage 2: Python application ───────────────────────────────────────────────
 FROM python:3.13-slim AS app
 
-# Non-root user
+# System deps:
+#   - curl  : used by the container HEALTHCHECK
+#   - gosu  : drop privileges from root → ee in the entrypoint (after chown'ing
+#             the Fly volume mount, which is owned by root on first boot)
+RUN apt-get update && apt-get install -y --no-install-recommends curl gosu \
+    && rm -rf /var/lib/apt/lists/*
+
+# Non-root user the app actually runs as
 RUN groupadd --system ee && useradd --system --gid ee ee
 
 WORKDIR /app
 
-# Install Python deps from requirements.txt (reproducible)
+# Install Python deps from requirements.txt (regenerated via `uv export`)
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application source
+# Copy application source + static assets (fonts, vendor JS, etc.)
 COPY src/ ./src/
+
+# Alembic migrations — run at release time (see fly.toml [deploy])
+COPY alembic.ini ./
+COPY alembic/ ./alembic/
+
+# Overwrite the committed app.css with the freshly-built one from css-builder
 COPY --from=css-builder /app/src/evidenceengine/static/css/app.css \
      ./src/evidenceengine/static/css/app.css
 
-# Pre-built static assets (fonts, vendor JS)
-# These are committed to the repo and available in the build context.
-COPY src/evidenceengine/static/ ./src/evidenceengine/static/
+# Entrypoint drops to the ee user after fixing volume-mount ownership
+COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Ensure upload/index directories exist with correct ownership
+# Fallback upload/index dirs if no volume is mounted (dev / CI)
 RUN mkdir -p /app/uploads /app/indexes && chown -R ee:ee /app
-
-USER ee
 
 EXPOSE 8000
 
 ENV PYTHONPATH=/app/src
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV UPLOAD_DIR=/app/uploads
+ENV INDEX_DIR=/app/indexes
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:8000/healthz || exit 1
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+
+# Single worker keeps the BM25 index warm in memory; scale horizontally via
+# `fly scale count N` instead of bumping workers inside one container.
 CMD ["python", "-m", "uvicorn", "evidenceengine.api.app:app", \
-     "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+     "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

@@ -1,0 +1,50 @@
+# Fly.io deployment config for EvidenceEngine.
+#
+# First-time deploy:  see DEPLOY.md for the full runbook.
+#
+# App name is set by `fly launch` / `fly apps create`; override with
+# `fly deploy -a <name>` if you want a different name than the default.
+
+app = "evidenceengine"
+primary_region = "sjc"   # San Jose — closest to the default user; change if needed
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Runs once after every successful build, before the new version takes traffic.
+# Alembic env.py reads DATABASE_URL from env, so migrations work in-container.
+[deploy]
+  release_command = "alembic upgrade head"
+
+[env]
+  UPLOAD_DIR = "/data/uploads"
+  INDEX_DIR  = "/data/indexes"
+  PYTHONPATH = "/app/src"
+  # LLM_BASE_URL points at OpenRouter by default; override via `fly secrets`
+  # if you switch providers.
+  LLM_BASE_URL = "https://openrouter.ai/api/v1"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"       # scale-to-zero when idle (free tier friendly)
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout  = "5s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/healthz"
+
+# Persistent storage for uploaded PDFs + BM25 indexes. Without this, every
+# machine restart wipes user data.
+[mounts]
+  source      = "ee_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"          # BM25 + embeddings reranker need a bit; bump if OOM
