@@ -41,7 +41,11 @@ def recover_position(
         if norm_idx != -1:
             # Map normalized index back to raw — use raw find at approximate location
             # Best effort: search in a window around the normalized position
-            idx = norm_idx  # approximate; char_end will be approximate too
+            # Prefer finding the normalized form in raw_text directly; norm_idx
+            # is an offset into the normalized string, not raw_text, so it's only
+            # used as a last-resort approximation.
+            raw_idx = raw_text.find(norm_claim)
+            idx = raw_idx if raw_idx != -1 else norm_idx
 
     char_start = max(idx, 0)
     char_end = char_start + len(claim_text) if idx != -1 else 0

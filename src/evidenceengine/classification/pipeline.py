@@ -11,6 +11,7 @@ Handles edge cases without LLM calls:
 import uuid
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -72,8 +73,12 @@ async def classify_verdicts_for_run(
                 model_name="none",
                 prompt_version=None,
             )
-            db.add(verdict)
-            await db.flush()
+            try:
+                async with db.begin_nested():
+                    db.add(verdict)
+                    await db.flush()
+            except IntegrityError:
+                continue  # concurrent insert won the race — skip
             all_verdicts.append(verdict)
             continue
 
@@ -88,8 +93,12 @@ async def classify_verdicts_for_run(
                 model_name="none",
                 prompt_version=None,
             )
-            db.add(verdict)
-            await db.flush()
+            try:
+                async with db.begin_nested():
+                    db.add(verdict)
+                    await db.flush()
+            except IntegrityError:
+                continue  # concurrent insert won the race — skip
             all_verdicts.append(verdict)
             continue
 
@@ -117,8 +126,12 @@ async def classify_verdicts_for_run(
             model_name=settings.classification_model,
             prompt_version=settings.verdict_prompt_version,
         )
-        db.add(verdict)
-        await db.flush()  # get verdict.id before linking evidence spans
+        try:
+            async with db.begin_nested():
+                db.add(verdict)
+                await db.flush()  # get verdict.id before linking evidence spans
+        except IntegrityError:
+            continue  # concurrent insert won the race — skip
 
         for span in claim.evidence_spans:
             db.add(

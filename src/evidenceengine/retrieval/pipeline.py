@@ -139,7 +139,13 @@ async def retrieve_evidence_for_run(
 
             # Persist EvidenceSpan rows
             for rank_idx, item in enumerate(final_spans):
-                meta = text_to_meta.get(item["text"], {})
+                meta = text_to_meta.get(item["text"])
+                if meta is None:
+                    logger.warning(
+                        "span text not in index for claim %s rank %d — position metadata zeroed",
+                        claim.id, rank_idx,
+                    )
+                    meta = {}
                 span = EvidenceSpan(
                     claim_id=claim.id,
                     source_document_id=anchor.target_document_id,

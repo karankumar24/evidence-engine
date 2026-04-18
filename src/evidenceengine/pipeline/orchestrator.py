@@ -75,13 +75,16 @@ async def _mark_failed(run_version_id: str, exc: Exception) -> None:
     Called from the except block in run_full_pipeline — by then the primary
     session may be in a bad state, so we always open a new one here.
     """
-    async with async_session_factory() as err_session:
-        run = await err_session.get(RunVersion, uuid.UUID(run_version_id))
-        if run is not None:
-            run.status = "failed"
-            run.error_summary = f"{type(exc).__name__}: {exc}"
-            run.completed_at = datetime.now(timezone.utc)
-            await err_session.commit()
+    try:
+        async with async_session_factory() as err_session:
+            run = await err_session.get(RunVersion, uuid.UUID(run_version_id))
+            if run is not None:
+                run.status = "failed"
+                run.error_summary = f"{type(exc).__name__}: {exc}"
+                run.completed_at = datetime.now(timezone.utc)
+                await err_session.commit()
+    except Exception:
+        logger.exception("_mark_failed itself failed for run %s — run may be left in intermediate state", run_version_id)
 
 
 async def _classify_with_error_collection(
