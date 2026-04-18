@@ -13,10 +13,13 @@ RUN npx tailwindcss -i ./frontend/css/input.css -o ./src/evidenceengine/static/c
 FROM python:3.13-slim AS app
 
 # System deps:
-#   - curl  : used by the container HEALTHCHECK
-#   - gosu  : drop privileges from root → ee in the entrypoint (after chown'ing
-#             the Fly volume mount, which is owned by root on first boot)
-RUN apt-get update && apt-get install -y --no-install-recommends curl gosu \
+#   - curl       : used by the container HEALTHCHECK
+#   - gosu       : drop privileges from root → ee in the entrypoint (after
+#                  chown'ing the Fly volume mount, owned by root on first boot)
+#   - libmagic1  : C lib backing the `python-magic` MIME sniffer used in
+#                  ingestion/validation.py (upload route)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      curl gosu libmagic1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Non-root user the app actually runs as
