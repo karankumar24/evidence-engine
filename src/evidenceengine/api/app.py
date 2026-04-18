@@ -31,7 +31,7 @@ APP_VERSION = "0.1.0"
 
 _CSP = (
     "default-src 'self'; "
-    "script-src 'self'; "
+    "script-src 'self' 'unsafe-eval'; "  # Alpine 3 uses new Function() for expressions
     "style-src 'self' 'unsafe-inline'; "
     "font-src 'self'; "
     "img-src 'self' data:; "

@@ -6,6 +6,7 @@
   <title>EvidenceEngine — New Verification Run</title>
   <link rel="stylesheet" href="/static/css/fonts.css?v=0.1.0">
   <link rel="stylesheet" href="/static/css/app.css?v=0.1.0">
+  <style>[x-cloak]{display:none}</style>
   <script src="/static/vendor/htmx.min.js"></script>
   <script defer src="/static/vendor/alpine.min.js"></script>
 </head>
@@ -126,7 +127,7 @@
                        disabled:opacity-50 disabled:cursor-not-allowed
                        focus:outline-none focus:ring-2 focus:ring-accent-300">
           <span x-show="!loading">Run Verification →</span>
-          <span x-show="loading && reportFile" class="flex items-center gap-2">
+          <span x-show="loading && reportFile" x-cloak class="flex items-center gap-2">
             <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
