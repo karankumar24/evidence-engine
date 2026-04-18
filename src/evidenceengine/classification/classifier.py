@@ -12,17 +12,13 @@ from evidenceengine.core.config import settings
 if TYPE_CHECKING:
     from openai import AsyncOpenAI
 
-
-def __getattr__(name: str):
-    # PEP 562: defer `from openai import AsyncOpenAI` until first access.
-    # Saves 5–20 min of macOS syspolicyd `.so` validation at cold boot.
-    # Tests that `patch("…classifier.AsyncOpenAI")` still work — the
-    # patch setattrs the module global, shadowing this fallback.
-    if name == "AsyncOpenAI":
-        from openai import AsyncOpenAI as _cls
-        globals()["AsyncOpenAI"] = _cls
-        return _cls
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+# Lazily populated on the first classify_claim() call. Keeps
+# `from openai import AsyncOpenAI` out of the module-import path (saves
+# 5–20 min of macOS syspolicyd `.so` scanning at uvicorn boot).
+# Tests that `patch("…classifier.AsyncOpenAI", mock)` still work: the
+# patch overwrites this sentinel with the mock, and `AsyncOpenAI is None`
+# is False, so the function uses the mock unchanged.
+AsyncOpenAI = None  # type: ignore[assignment]
 
 PROMPT_VERSION = "v1"
 
@@ -98,6 +94,11 @@ async def classify_claim(
         f"CLAIM:\n{claim_text}\n\n"
         f"EVIDENCE SPANS:\n{evidence_blocks}"
     )
+
+    global AsyncOpenAI
+    if AsyncOpenAI is None:
+        from openai import AsyncOpenAI as _cls
+        AsyncOpenAI = _cls
 
     client = AsyncOpenAI(
         api_key=settings.llm_api_key,

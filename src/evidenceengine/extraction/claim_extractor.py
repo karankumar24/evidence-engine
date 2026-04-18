@@ -13,19 +13,15 @@ from evidenceengine.extraction.schemas import ClaimExtractionResponse
 if TYPE_CHECKING:
     from openai import AsyncOpenAI
 
+# Lazily populated on the first extract_claims_from_blocks() call. Keeps
+# `from openai import AsyncOpenAI` out of the module-import path (saves
+# 5–20 min of macOS syspolicyd `.so` scanning at uvicorn boot).
+# Tests that `patch("…claim_extractor.AsyncOpenAI", mock)` still work: the
+# patch overwrites this sentinel with the mock, and `AsyncOpenAI is None`
+# is False, so the function uses the mock unchanged.
+AsyncOpenAI = None  # type: ignore[assignment]
+
 logger = logging.getLogger(__name__)
-
-
-def __getattr__(name: str):
-    # PEP 562: defer `from openai import AsyncOpenAI` until first access.
-    # Saves 5–20 min of macOS syspolicyd `.so` validation at cold boot.
-    # Tests that `patch("…claim_extractor.AsyncOpenAI")` still work — the
-    # patch setattrs the module global, shadowing this fallback.
-    if name == "AsyncOpenAI":
-        from openai import AsyncOpenAI as _cls
-        globals()["AsyncOpenAI"] = _cls
-        return _cls
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 _SYSTEM_PROMPT = """You are a precise scientific claim extractor. Your task is to identify sentences that make factual claims supported by citations.
 
@@ -58,6 +54,11 @@ async def extract_claims_from_blocks(
     """
     if not citation_blocks:
         return ClaimExtractionResponse(claims=[])
+
+    global AsyncOpenAI
+    if AsyncOpenAI is None:
+        from openai import AsyncOpenAI as _cls
+        AsyncOpenAI = _cls
 
     client = AsyncOpenAI(
         api_key=settings.llm_api_key,
