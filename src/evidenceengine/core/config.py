@@ -42,6 +42,30 @@ class Settings(BaseSettings):
             return [o.strip() for o in v.split(",") if o.strip()]
         return v  # type: ignore[return-value]
 
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_database_url(cls, v: object) -> str:
+        # Managed Postgres providers (Fly, Heroku, Supabase) hand out URLs
+        # that asyncpg can't consume directly. Normalize:
+        #   - `postgres://`  → `postgresql+asyncpg://`
+        #   - `postgresql://` (no driver) → `postgresql+asyncpg://`
+        #   - strip `sslmode=…`  (psycopg2 flag; asyncpg uses `ssl=` instead,
+        #     and Fly's internal `.flycast` network is already encrypted).
+        if not isinstance(v, str):
+            return v  # type: ignore[return-value]
+        url = v
+        if url.startswith("postgres://"):
+            url = "postgresql+asyncpg://" + url[len("postgres://"):]
+        elif url.startswith("postgresql://") and "+asyncpg" not in url.split("://", 1)[0]:
+            url = "postgresql+asyncpg://" + url[len("postgresql://"):]
+        # Drop sslmode from the query string — asyncpg rejects it as a kwarg.
+        if "sslmode=" in url:
+            from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+            parts = urlsplit(url)
+            query = [(k, val) for k, val in parse_qsl(parts.query, keep_blank_values=True) if k != "sslmode"]
+            url = urlunsplit(parts._replace(query=urlencode(query)))
+        return url
+
     # Back-compat shims: existing code references settings.openai_api_key /
     # settings.openai_base_url. Keep those names working after the LLM_* rename.
     @property

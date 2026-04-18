@@ -30,16 +30,12 @@ if config.config_file_name is not None:
 # Use our models' metadata for autogenerate support
 target_metadata = Base.metadata
 
-# Allow DATABASE_URL env var to override the alembic.ini default so the same
-# migration command works locally and in production (Fly.io, Render, etc.).
-if _env_url := os.getenv("DATABASE_URL"):
-    # Normalize bare postgres:// URLs (some managed providers hand these out)
-    # to the async driver SQLAlchemy needs.
-    if _env_url.startswith("postgres://"):
-        _env_url = "postgresql+asyncpg://" + _env_url[len("postgres://"):]
-    elif _env_url.startswith("postgresql://") and "+asyncpg" not in _env_url:
-        _env_url = "postgresql+asyncpg://" + _env_url[len("postgresql://"):]
-    config.set_main_option("sqlalchemy.url", _env_url)
+# Use the Settings-normalized DATABASE_URL so the same migration command
+# works locally and in production (Fly.io, Heroku, Supabase, etc.). Settings
+# handles `postgres://` → `postgresql+asyncpg://` rewrite and strips
+# psycopg2-style `sslmode=…` query params that asyncpg rejects.
+from evidenceengine.core.config import settings  # noqa: E402
+config.set_main_option("sqlalchemy.url", settings.database_url)
 
 
 def run_migrations_offline() -> None:
