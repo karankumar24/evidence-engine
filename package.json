@@ -5,7 +5,8 @@
   "description": "Frontend build tooling for the EvidenceEngine reviewer dashboard (Tailwind v4).",
   "scripts": {
     "build:css": "tailwindcss -i ./frontend/css/input.css -o ./src/evidenceengine/static/css/app.css --minify",
-    "watch:css": "tailwindcss -i ./frontend/css/input.css -o ./src/evidenceengine/static/css/app.css --watch"
+    "watch:css": "tailwindcss -i ./frontend/css/input.css -o ./src/evidenceengine/static/css/app.css --watch",
+    "start": "PYTHONPATH=/Users/karankumar/Desktop/vibebuild/src /Users/karankumar/Desktop/vibebuild/.venv/bin/uvicorn evidenceengine.api.app:app --host 127.0.0.1 --port 8000"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
