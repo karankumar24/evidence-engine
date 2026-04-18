@@ -154,25 +154,36 @@ def create_app() -> FastAPI:
     STATIC_DIR.mkdir(exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    from evidenceengine.api.routes.packets import router as packets_router
-    from evidenceengine.api.routes.extraction import router as extraction_router
-    from evidenceengine.api.routes.retrieval import router as retrieval_router
-    from evidenceengine.api.routes.classification import router as classification_router
-    from evidenceengine.api.routes.pipeline import router as pipeline_router
+    # FRONTEND_ONLY=1 skips pipeline routers (extraction/retrieval/classification/
+    # submit/packets/pipeline). Cuts cold-import time ~10x on macOS by avoiding
+    # openai + rapidfuzz + ML deps. Dashboard/design-system/runs still work
+    # against the live DB.
+    frontend_only = os.getenv("FRONTEND_ONLY", "0") == "1"
+
     from evidenceengine.api.routes.runs import router as runs_router
     from evidenceengine.api.routes.dashboard import router as dashboard_router
     from evidenceengine.api.routes.design_system import router as design_system_router
-    from evidenceengine.api.routes.submit import router as submit_router
 
-    app.include_router(packets_router)
-    app.include_router(extraction_router)
-    app.include_router(retrieval_router)
-    app.include_router(classification_router)
-    app.include_router(pipeline_router)
     app.include_router(runs_router)
     app.include_router(dashboard_router)
     app.include_router(design_system_router)
-    app.include_router(submit_router)
+
+    if not frontend_only:
+        from evidenceengine.api.routes.packets import router as packets_router
+        from evidenceengine.api.routes.extraction import router as extraction_router
+        from evidenceengine.api.routes.retrieval import router as retrieval_router
+        from evidenceengine.api.routes.classification import router as classification_router
+        from evidenceengine.api.routes.pipeline import router as pipeline_router
+        from evidenceengine.api.routes.submit import router as submit_router
+
+        app.include_router(packets_router)
+        app.include_router(extraction_router)
+        app.include_router(retrieval_router)
+        app.include_router(classification_router)
+        app.include_router(pipeline_router)
+        app.include_router(submit_router)
+    else:
+        logger.warning("FRONTEND_ONLY=1 — pipeline routes disabled (upload, extract, retrieve, classify)")
 
     @app.get("/", include_in_schema=False)
     async def root() -> RedirectResponse:
