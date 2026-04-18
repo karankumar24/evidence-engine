@@ -146,30 +146,29 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Any run still in a pipeline stage means its background task was killed
     # mid-flight — _mark_failed was never called. Mark them failed now so the
     # dashboard doesn't show perpetually-spinning EXTRACTING entries.
-    if os.getenv("FRONTEND_ONLY", "0") != "1":
-        try:
-            from datetime import datetime, timezone
-            from sqlalchemy import select, update
-            from evidenceengine.core.database import async_session_factory
-            from evidenceengine.models.run import RunVersion
-            _IN_FLIGHT = ("queued", "parsing", "extracting", "retrieving", "classifying")
-            async with async_session_factory() as _s:
-                result = await _s.execute(
-                    select(RunVersion).where(RunVersion.status.in_(_IN_FLIGHT))
+    try:
+        from datetime import datetime, timezone
+        from sqlalchemy import select
+        from evidenceengine.core.database import async_session_factory
+        from evidenceengine.models.run import RunVersion
+        _IN_FLIGHT = ("queued", "parsing", "extracting", "retrieving", "classifying")
+        async with async_session_factory() as _s:
+            result = await _s.execute(
+                select(RunVersion).where(RunVersion.status.in_(_IN_FLIGHT))
+            )
+            orphans = result.scalars().all()
+            if orphans:
+                for run in orphans:
+                    run.status = "failed"
+                    run.error_summary = "ServerRestart: pipeline was interrupted by server shutdown"
+                    run.completed_at = datetime.now(timezone.utc)
+                await _s.commit()
+                logger.warning(
+                    "Recovered %d orphaned in-flight run(s) → marked as failed",
+                    len(orphans),
                 )
-                orphans = result.scalars().all()
-                if orphans:
-                    for run in orphans:
-                        run.status = "failed"
-                        run.error_summary = "ServerRestart: pipeline was interrupted by server shutdown"
-                        run.completed_at = datetime.now(timezone.utc)
-                    await _s.commit()
-                    logger.warning(
-                        "Recovered %d orphaned in-flight run(s) → marked as failed",
-                        len(orphans),
-                    )
-        except Exception:
-            logger.exception("Failed to recover orphaned runs at startup — continuing")
+    except Exception:
+        logger.exception("Failed to recover orphaned runs at startup — continuing")
 
     yield
 
@@ -205,36 +204,25 @@ def create_app() -> FastAPI:
     STATIC_DIR.mkdir(exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    # FRONTEND_ONLY=1 skips pipeline routers (extraction/retrieval/classification/
-    # submit/packets/pipeline). Cuts cold-import time ~10x on macOS by avoiding
-    # openai + rapidfuzz + ML deps. Dashboard/design-system/runs still work
-    # against the live DB.
-    frontend_only = os.getenv("FRONTEND_ONLY", "0") == "1"
-
     from evidenceengine.api.routes.runs import router as runs_router
     from evidenceengine.api.routes.dashboard import router as dashboard_router
     from evidenceengine.api.routes.design_system import router as design_system_router
+    from evidenceengine.api.routes.packets import router as packets_router
+    from evidenceengine.api.routes.extraction import router as extraction_router
+    from evidenceengine.api.routes.retrieval import router as retrieval_router
+    from evidenceengine.api.routes.classification import router as classification_router
+    from evidenceengine.api.routes.pipeline import router as pipeline_router
+    from evidenceengine.api.routes.submit import router as submit_router
 
     app.include_router(runs_router)
     app.include_router(dashboard_router)
     app.include_router(design_system_router)
-
-    if not frontend_only:
-        from evidenceengine.api.routes.packets import router as packets_router
-        from evidenceengine.api.routes.extraction import router as extraction_router
-        from evidenceengine.api.routes.retrieval import router as retrieval_router
-        from evidenceengine.api.routes.classification import router as classification_router
-        from evidenceengine.api.routes.pipeline import router as pipeline_router
-        from evidenceengine.api.routes.submit import router as submit_router
-
-        app.include_router(packets_router)
-        app.include_router(extraction_router)
-        app.include_router(retrieval_router)
-        app.include_router(classification_router)
-        app.include_router(pipeline_router)
-        app.include_router(submit_router)
-    else:
-        logger.warning("FRONTEND_ONLY=1 — pipeline routes disabled (upload, extract, retrieve, classify)")
+    app.include_router(packets_router)
+    app.include_router(extraction_router)
+    app.include_router(retrieval_router)
+    app.include_router(classification_router)
+    app.include_router(pipeline_router)
+    app.include_router(submit_router)
 
     @app.get("/", include_in_schema=False)
     async def root() -> RedirectResponse:
