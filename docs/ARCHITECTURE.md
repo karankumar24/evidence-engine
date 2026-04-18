@@ -60,9 +60,9 @@ verified offset.
         ┌───────────────────────────┼──────────────────────┐
         │                           │                      │
 ┌───────▼──────────┐  ┌─────────────▼──────────┐  ┌───────▼──────────┐
-│   PostgreSQL 16   │  │  OpenAI GPT-4o-mini    │  │  BM25s + Cross-  │
-│   (persistence)   │  │  (extraction +         │  │  Encoder Reranker│
-│                   │  │   classification LLM)  │  │  (retrieval)     │
+│   PostgreSQL 16   │  │  OpenRouter / any      │  │  BM25s + Cross-  │
+│   (persistence)   │  │  OpenAI-compatible LLM │  │  Encoder Reranker│
+│                   │  │  (extract + classify)  │  │  (retrieval)     │
 └───────────────────┘  └────────────────────────┘  └──────────────────┘
 ```
 
@@ -81,7 +81,8 @@ into the document's raw text. The parse-then-accept pattern means all files
 are fully parsed before any database row is written — a failed parse on one
 file rolls back the entire upload and removes partially-written uploads.
 
-**Extraction Pipeline** — Uses an OpenAI GPT-4o-mini LLM call to decompose
+**Extraction Pipeline** — Uses an OpenAI-compatible LLM (default: OpenRouter's
+free `arcee-ai/trinity-large-preview:free`) to decompose
 the report's text blocks into atomic, verifiable claims. A regex-based
 citation detector first marks all `[1]`, `[2]` markers; the extractor resolves
 each claim's citation reference to a `SourceDocument` row. Any citation that
@@ -338,7 +339,7 @@ handles the full lifecycle including `RunVersion` tracking.
 | Database | PostgreSQL 16 | JSONB for `parsed_content`; reliable FK enforcement; Docker-composable |
 | BM25 retrieval | bm25s | Disk-backed index; no vector DB required in v1; fast keyword matching |
 | Reranking | sentence-transformers cross-encoder | Re-scores BM25 candidates with semantic similarity; improves recall@K |
-| LLM | OpenAI GPT-4o-mini | Structured output via `beta.chat.completions.parse`; cost-efficient |
+| LLM | OpenRouter (any OpenAI-compatible provider) | Default: `arcee-ai/trinity-large-preview:free`. Structured output via `beta.chat.completions.parse` |
 | Dashboard | HTMX + Alpine.js + Jinja2 | Progressive enhancement; no JS build step; CDN-served Tailwind |
 | Package manager | uv | Fast, lockfile-based; compatible with setuptools; reproducible installs |
 | Evaluation | Pure Python CLI (`eval.runner`) | No web server dependency; CI-runnable quality gate |

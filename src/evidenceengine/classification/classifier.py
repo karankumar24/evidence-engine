@@ -100,8 +100,8 @@ async def classify_claim(
     )
 
     client = AsyncOpenAI(
-        api_key=settings.openai_api_key,
-        base_url=settings.openai_base_url or None,
+        api_key=settings.llm_api_key,
+        base_url=settings.llm_base_url or None,
     )
 
     completion = await client.beta.chat.completions.parse(

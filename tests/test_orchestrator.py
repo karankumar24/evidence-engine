@@ -30,7 +30,7 @@ def _orchestrator_env():
     """
     with (
         patch(
-            "evidenceengine.pipeline.orchestrator.settings.openai_api_key",
+            "evidenceengine.pipeline.orchestrator.settings.llm_api_key",
             "sk-test-unit",
         ),
         patch(

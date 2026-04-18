@@ -145,10 +145,12 @@ async def run_full_pipeline(run_version_id: str) -> None:
                    so that the task runner (uvicorn / asyncio) can log it.
     """
     try:
-        key = settings.openai_api_key
+        key = settings.llm_api_key
         if not key or key.startswith("sk-REPLACE"):
             raise RuntimeError(
-                "OPENAI_API_KEY is not configured. Set a real key in .env before running the pipeline."
+                "LLM_API_KEY is not configured. Set a real key (e.g. an OpenRouter "
+                "sk-or-v1-… key) in .env before running the pipeline. "
+                "Legacy OPENAI_API_KEY is also accepted."
             )
 
         async with async_session_factory() as session:

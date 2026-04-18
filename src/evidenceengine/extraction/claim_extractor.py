@@ -60,8 +60,8 @@ async def extract_claims_from_blocks(
         return ClaimExtractionResponse(claims=[])
 
     client = AsyncOpenAI(
-        api_key=settings.openai_api_key,
-        base_url=settings.openai_base_url or None,
+        api_key=settings.llm_api_key,
+        base_url=settings.llm_base_url or None,
     )
 
     # Chunk blocks to avoid context limits

@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from pydantic import field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -13,8 +13,17 @@ class Settings(BaseSettings):
     upload_dir: str = "./uploads"
     max_file_size_mb: int = 50
     debug: bool = False
-    openai_api_key: str = ""
-    openai_base_url: str = ""  # leave blank for real OpenAI; set to https://openrouter.ai/api/v1 for OpenRouter
+    # LLM provider is OpenRouter by default; any OpenAI-compatible endpoint works
+    # (Azure, local vLLM, real OpenAI). Accepts either LLM_API_KEY (preferred) or
+    # legacy OPENAI_API_KEY — LLM_API_KEY wins when both are set.
+    llm_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("LLM_API_KEY", "OPENAI_API_KEY"),
+    )
+    llm_base_url: str = Field(
+        default="",
+        validation_alias=AliasChoices("LLM_BASE_URL", "OPENAI_BASE_URL"),
+    )
     extraction_model: str = "gpt-4o-mini"
     retrieval_top_k_bm25: int = 10
     retrieval_top_k_final: int = 5
@@ -32,6 +41,16 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return [o.strip() for o in v.split(",") if o.strip()]
         return v  # type: ignore[return-value]
+
+    # Back-compat shims: existing code references settings.openai_api_key /
+    # settings.openai_base_url. Keep those names working after the LLM_* rename.
+    @property
+    def openai_api_key(self) -> str:
+        return self.llm_api_key
+
+    @property
+    def openai_base_url(self) -> str:
+        return self.llm_base_url
 
 
 settings = Settings()
