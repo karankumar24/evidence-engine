@@ -12,7 +12,16 @@ def build_index(spans: list[str], index_dir: str):
 
     Returns:
         Populated bm25s.BM25 retriever with the corpus loaded in memory.
+
+    Raises:
+        ValueError: If spans is empty — bm25s produces a broken index from
+                    an empty corpus that silently returns no results on query.
     """
+    if not spans:
+        raise ValueError(
+            "Cannot build BM25 index from empty corpus — "
+            "caller must ensure at least one span is extracted before indexing."
+        )
     import bm25s  # noqa: PLC0415 — lazy to avoid blocking startup
     os.makedirs(index_dir, exist_ok=True)
     corpus_tokens = bm25s.tokenize(spans, stopwords="en")

@@ -4,7 +4,10 @@ Uses AsyncOpenAI's beta structured output endpoint (beta.chat.completions.parse)
 to produce VerdictClassificationResponse instances with chain-of-thought reasoning.
 """
 
+import logging
 from typing import TYPE_CHECKING
+
+logger = logging.getLogger(__name__)
 
 from evidenceengine.classification.schemas import VerdictClassificationResponse
 from evidenceengine.core.config import settings
@@ -125,6 +128,17 @@ async def classify_claim(
             confidence_score=0.0,
         )
 
+    if message.parsed is None:
+        logger.error(
+            "LLM returned null parsed response for classification — "
+            "structured output may have failed. Returning needs_review fallback."
+        )
+        return VerdictClassificationResponse(
+            reasoning="Classification failed: structured output parsing returned null.",
+            verdict_type="needs_review",
+            confidence_score=0.0,
+        )
+
     return message.parsed
 
 
@@ -148,7 +162,10 @@ def apply_confidence_threshold(
 
     if result.confidence_score < threshold:
         return VerdictClassificationResponse(
-            reasoning=result.reasoning,
+            reasoning=(
+                f"Low confidence ({result.confidence_score:.2f} < threshold {threshold:.2f}) "
+                f"— routed to needs_review. Original reasoning: {result.reasoning}"
+            ),
             verdict_type="needs_review",
             confidence_score=result.confidence_score,
         )

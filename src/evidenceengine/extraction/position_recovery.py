@@ -34,21 +34,28 @@ def recover_position(
     position_exact = idx != -1
 
     # --- Normalized fallback ---
+    # Track norm_claim so char_end can use its length when it's the matched form.
+    norm_claim: str | None = None
     if idx == -1:
         norm_claim = " ".join(claim_text.split())
         norm_raw = " ".join(raw_text.split())
         norm_idx = norm_raw.find(norm_claim)
         if norm_idx != -1:
-            # Map normalized index back to raw — use raw find at approximate location
-            # Best effort: search in a window around the normalized position
-            # Prefer finding the normalized form in raw_text directly; norm_idx
-            # is an offset into the normalized string, not raw_text, so it's only
-            # used as a last-resort approximation.
+            # Prefer finding the normalized form directly in raw_text so idx is a
+            # true raw offset. norm_idx is an offset into the *normalized* string —
+            # only use it as a last-resort approximation.
             raw_idx = raw_text.find(norm_claim)
             idx = raw_idx if raw_idx != -1 else norm_idx
 
     char_start = max(idx, 0)
-    char_end = char_start + len(claim_text) if idx != -1 else 0
+    if idx == -1:
+        char_end = 0
+    elif not position_exact and norm_claim is not None:
+        # Matched via normalized form — span length must use norm_claim, not
+        # claim_text, because that's what was actually located in raw_text.
+        char_end = char_start + len(norm_claim)
+    else:
+        char_end = char_start + len(claim_text)
 
     # --- Find matching block by char_start offset ---
     matched_block: dict | None = None

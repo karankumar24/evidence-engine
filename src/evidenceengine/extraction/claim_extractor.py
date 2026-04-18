@@ -90,7 +90,14 @@ async def extract_claims_from_blocks(
             )
             continue
 
-        if message.parsed:
-            all_claims.extend(message.parsed.claims)
+        if message.parsed is None:
+            logger.error(
+                "LLM returned null parsed response for extraction chunk starting at "
+                "block %d — structured output may have failed. Skipping chunk.",
+                chunk_start,
+            )
+            continue
+
+        all_claims.extend(message.parsed.claims)
 
     return ClaimExtractionResponse(claims=all_claims)
