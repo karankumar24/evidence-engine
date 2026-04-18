@@ -2,10 +2,12 @@
 FROM node:20-slim AS css-builder
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev
+# devDependencies include @tailwindcss/cli which is required for build:css.
+# This stage is discarded after CSS is compiled, so the size cost is free.
+RUN npm ci
 COPY frontend/ ./frontend/
 COPY src/evidenceengine/templates/ ./src/evidenceengine/templates/
-RUN npm run build:css
+RUN npx tailwindcss -i ./frontend/css/input.css -o ./src/evidenceengine/static/css/app.css --minify
 
 # ── Stage 2: Python application ───────────────────────────────────────────────
 FROM python:3.13-slim AS app
