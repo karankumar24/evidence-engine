@@ -49,7 +49,21 @@ async def upload_submit(
     file_store: FileStore = Depends(get_file_store),
 ) -> HTMLResponse:
     packet_id = str(uuid_module.uuid4())
-    all_files = [(report, "report")] + [(s, "source") for s in sources]
+
+    # Guard: report is required — browser-side validation can be bypassed
+    if not report.filename:
+        return templates.TemplateResponse(
+            request=request,
+            name="upload.html",
+            context={"error": "No report file selected. Please choose a PDF or DOCX file.", "max_mb": settings.max_file_size_mb},
+            status_code=422,
+        )
+
+    # Filter out empty ghost files from the sources list (browsers may send an empty
+    # sources field even when no source was selected)
+    real_sources = [s for s in sources if s.filename]
+
+    all_files = [(report, "report")] + [(s, "source") for s in real_sources]
 
     # Read and size-check
     file_contents: list[tuple[UploadFile, str, bytes]] = []
@@ -69,10 +83,11 @@ async def upload_submit(
         try:
             validate_file_type(content)
         except ValueError as exc:
+            label = f"'{upload_file.filename}': " if upload_file.filename else ""
             return templates.TemplateResponse(
                 request=request,
                 name="upload.html",
-                context={"error": f"'{upload_file.filename}': {exc}", "max_mb": settings.max_file_size_mb},
+                context={"error": f"{label}{exc}", "max_mb": settings.max_file_size_mb},
                 status_code=422,
             )
 
