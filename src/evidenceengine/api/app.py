@@ -142,6 +142,35 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             logger.exception("openai prewarm failed — first pipeline run may hang")
     app.state.openai_prewarm = asyncio.create_task(_prewarm_openai())
 
+    # Recover orphaned in-flight runs from a previous server crash/restart.
+    # Any run still in a pipeline stage means its background task was killed
+    # mid-flight — _mark_failed was never called. Mark them failed now so the
+    # dashboard doesn't show perpetually-spinning EXTRACTING entries.
+    if os.getenv("FRONTEND_ONLY", "0") != "1":
+        try:
+            from datetime import datetime, timezone
+            from sqlalchemy import select, update
+            from evidenceengine.core.database import async_session_factory
+            from evidenceengine.models.run import RunVersion
+            _IN_FLIGHT = ("queued", "parsing", "extracting", "retrieving", "classifying")
+            async with async_session_factory() as _s:
+                result = await _s.execute(
+                    select(RunVersion).where(RunVersion.status.in_(_IN_FLIGHT))
+                )
+                orphans = result.scalars().all()
+                if orphans:
+                    for run in orphans:
+                        run.status = "failed"
+                        run.error_summary = "ServerRestart: pipeline was interrupted by server shutdown"
+                        run.completed_at = datetime.now(timezone.utc)
+                    await _s.commit()
+                    logger.warning(
+                        "Recovered %d orphaned in-flight run(s) → marked as failed",
+                        len(orphans),
+                    )
+        except Exception:
+            logger.exception("Failed to recover orphaned runs at startup — continuing")
+
     yield
 
 

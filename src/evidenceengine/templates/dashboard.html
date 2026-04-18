@@ -18,7 +18,11 @@
       <div class="text-xs font-mono text-ink-400 tracking-wider uppercase mb-2">Run status · {{ run.status }}</div>
       <h2 class="font-serif text-lg font-semibold text-ink-900">Nothing to review yet</h2>
       <p class="mt-2 text-sm text-ink-500 leading-relaxed">
-        This run has no classified verdicts. Finish the pipeline (extraction → retrieval → classification) before claims become reviewable.
+        {% if run.status == 'completed' %}
+          The pipeline completed but extracted no verifiable claims from this document. The report may not contain checkable factual assertions, or may be too short for claim extraction.
+        {% else %}
+          This run has no classified verdicts. Finish the pipeline (extraction → retrieval → classification) before claims become reviewable.
+        {% endif %}
       </p>
     </div>
   {% else %}

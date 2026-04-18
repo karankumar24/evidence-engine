@@ -34,7 +34,7 @@
     {% if runs %}
       <div class="border border-ink-100 rounded-sm overflow-hidden divide-y divide-ink-100 bg-white">
         {% for run in runs %}
-          <a href="/dashboard/{{ run.packet_id }}/{{ run.id }}"
+          <a href="{{ '/dashboard/' ~ run.packet_id ~ '/' ~ run.id if run.status == 'completed' else '/runs/' ~ run.id ~ '/status' }}"
              class="flex items-center gap-5 px-6 py-4 hover:bg-paper-50 transition-colors group">
             <div class="flex-1 min-w-0">
               <div class="font-serif text-sm font-medium text-ink-900 truncate group-hover:text-accent-700 transition-colors">
