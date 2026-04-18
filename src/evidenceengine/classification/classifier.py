@@ -4,10 +4,25 @@ Uses AsyncOpenAI's beta structured output endpoint (beta.chat.completions.parse)
 to produce VerdictClassificationResponse instances with chain-of-thought reasoning.
 """
 
-from openai import AsyncOpenAI
+from typing import TYPE_CHECKING
 
 from evidenceengine.classification.schemas import VerdictClassificationResponse
 from evidenceengine.core.config import settings
+
+if TYPE_CHECKING:
+    from openai import AsyncOpenAI
+
+
+def __getattr__(name: str):
+    # PEP 562: defer `from openai import AsyncOpenAI` until first access.
+    # Saves 5–20 min of macOS syspolicyd `.so` validation at cold boot.
+    # Tests that `patch("…classifier.AsyncOpenAI")` still work — the
+    # patch setattrs the module global, shadowing this fallback.
+    if name == "AsyncOpenAI":
+        from openai import AsyncOpenAI as _cls
+        globals()["AsyncOpenAI"] = _cls
+        return _cls
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 PROMPT_VERSION = "v1"
 

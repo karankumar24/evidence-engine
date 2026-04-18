@@ -5,13 +5,27 @@ to extract only sentences that carry citation markers from report text blocks.
 """
 
 import logging
-
-from openai import AsyncOpenAI
+from typing import TYPE_CHECKING
 
 from evidenceengine.core.config import settings
 from evidenceengine.extraction.schemas import ClaimExtractionResponse
 
+if TYPE_CHECKING:
+    from openai import AsyncOpenAI
+
 logger = logging.getLogger(__name__)
+
+
+def __getattr__(name: str):
+    # PEP 562: defer `from openai import AsyncOpenAI` until first access.
+    # Saves 5–20 min of macOS syspolicyd `.so` validation at cold boot.
+    # Tests that `patch("…claim_extractor.AsyncOpenAI")` still work — the
+    # patch setattrs the module global, shadowing this fallback.
+    if name == "AsyncOpenAI":
+        from openai import AsyncOpenAI as _cls
+        globals()["AsyncOpenAI"] = _cls
+        return _cls
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 _SYSTEM_PROMPT = """You are a precise scientific claim extractor. Your task is to identify sentences that make factual claims supported by citations.
 
