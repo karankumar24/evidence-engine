@@ -112,6 +112,15 @@ errors from OpenRouter, wait 60s — free tier limits reset fast.
 - **macOS Tahoe local dev** still hits Gatekeeper grind on first run
   after a fresh venv; this does NOT affect Fly.io (Linux containers
   have no syspolicyd).
+- **Local CSS must be rebuilt manually.** `scripts/dev.sh` does not run
+  Tailwind. After editing any template or `frontend/css/input.css`, run:
+  ```sh
+  npm run build:css     # one-shot rebuild
+  # or in a second terminal:
+  npm run watch:css     # auto-rebuilds on change
+  ```
+  Fly.io always rebuilds CSS fresh in the Dockerfile `css-builder` stage,
+  so the deployed site is always up-to-date; local dev is not.
 - **No auth.** Anyone with the URL can review claims. Keep the URL
   private until auth lands.
 
