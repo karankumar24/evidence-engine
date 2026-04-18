@@ -43,6 +43,9 @@ def validate_file_type(file_content: bytes) -> str:
     Raises:
         ValueError: If the file type is not PDF or DOCX, with a clear message.
     """
+    if not file_content:
+        raise ValueError("No file attached. Please select a PDF or DOCX file.")
+
     # Strategy: check raw signatures first (reliable for PDF and DOCX),
     # then fall back to python-magic for confirmation.
 
