@@ -58,12 +58,27 @@ class Settings(BaseSettings):
             url = "postgresql+asyncpg://" + url[len("postgres://"):]
         elif url.startswith("postgresql://") and "+asyncpg" not in url.split("://", 1)[0]:
             url = "postgresql+asyncpg://" + url[len("postgresql://"):]
-        # Drop sslmode from the query string — asyncpg rejects it as a kwarg.
-        if "sslmode=" in url:
+        # Translate psycopg2 `sslmode=…` → asyncpg `ssl=…`. asyncpg rejects the
+        # `sslmode` kwarg but accepts the same string values under `ssl`.
+        # Without this, Fly internal postgres (no TLS) blows up with
+        # ConnectionResetError because asyncpg defaults to ssl=prefer.
+        if "sslmode=" in url or "ssl=" in url:
             from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
             parts = urlsplit(url)
-            query = [(k, val) for k, val in parse_qsl(parts.query, keep_blank_values=True) if k != "sslmode"]
-            url = urlunsplit(parts._replace(query=urlencode(query)))
+            new_query: list[tuple[str, str]] = []
+            seen_ssl = False
+            for k, val in parse_qsl(parts.query, keep_blank_values=True):
+                if k == "sslmode":
+                    new_query.append(("ssl", val))
+                    seen_ssl = True
+                elif k == "ssl":
+                    new_query.append((k, val))
+                    seen_ssl = True
+                else:
+                    new_query.append((k, val))
+            if not seen_ssl:
+                new_query.append(("ssl", "disable"))
+            url = urlunsplit(parts._replace(query=urlencode(new_query)))
         return url
 
     # Back-compat shims: existing code references settings.openai_api_key /
