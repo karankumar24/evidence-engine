@@ -5,6 +5,7 @@ NEVER call it with a request-scope session. The RunVersion row MUST be committed
 before this task is scheduled (BackgroundTasks or asyncio.create_task).
 """
 
+import asyncio
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -13,15 +14,49 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from evidenceengine.classification.pipeline import classify_verdicts_for_run
+from evidenceengine.core.config import settings
 from evidenceengine.core.database import async_session_factory
 from evidenceengine.extraction.pipeline import extract_claims_for_document
+from evidenceengine.ingestion.validation import (
+    serialize_parsed_document,
+    validate_and_parse_file,
+)
 from evidenceengine.models.document import SourceDocument
 from evidenceengine.models.run import RunVersion
 from evidenceengine.retrieval.pipeline import retrieve_evidence_for_run
 
 logger = logging.getLogger(__name__)
 
-STAGE_STATUSES = ["queued", "extracting", "retrieving", "classifying", "completed", "failed"]
+STAGE_STATUSES = ["queued", "parsing", "extracting", "retrieving", "classifying", "completed", "failed"]
+
+
+async def _parse_pending_documents(packet_id: uuid.UUID, session: AsyncSession) -> None:
+    """Parse any SourceDocument rows for this packet with parse_status='pending'.
+
+    Runs PyMuPDF/pymupdf4llm in a worker thread so the event loop stays free.
+    Commits each doc individually so a later failure doesn't lose prior parses.
+    """
+    result = await session.execute(
+        select(SourceDocument).where(
+            SourceDocument.packet_id == packet_id,
+            SourceDocument.parse_status == "pending",
+        )
+    )
+    pending = list(result.scalars().all())
+    for doc in pending:
+        logger.info("Parsing source document %s (%s)", doc.id, doc.filename)
+        try:
+            parsed = await asyncio.to_thread(validate_and_parse_file, doc.file_path)
+        except Exception as exc:
+            doc.parse_status = "failed"
+            await session.commit()
+            raise RuntimeError(f"Parse failed for {doc.filename}: {exc}") from exc
+        doc.parsed_content = serialize_parsed_document(parsed)
+        doc.raw_text = parsed.raw_text
+        doc.markdown_text = parsed.markdown_text
+        doc.total_pages = parsed.total_pages
+        doc.parse_status = "completed"
+        await session.commit()
 
 
 async def _set_stage(run_version_id: str, stage: str, session: AsyncSession) -> RunVersion:
@@ -110,12 +145,22 @@ async def run_full_pipeline(run_version_id: str) -> None:
                    so that the task runner (uvicorn / asyncio) can log it.
     """
     try:
+        key = settings.openai_api_key
+        if not key or key.startswith("sk-REPLACE"):
+            raise RuntimeError(
+                "OPENAI_API_KEY is not configured. Set a real key in .env before running the pipeline."
+            )
+
         async with async_session_factory() as session:
+            # ── Stage 0: Parse any pending source documents ───────────────────
+            await _set_stage(run_version_id, "parsing", session)
+            run = await session.get(RunVersion, uuid.UUID(run_version_id))
+            await _parse_pending_documents(run.packet_id, session)
+
             # ── Stage 1: Extract ──────────────────────────────────────────────
             await _set_stage(run_version_id, "extracting", session)
 
             # Find the report SourceDocument for this run's packet
-            run = await session.get(RunVersion, uuid.UUID(run_version_id))
             result = await session.execute(
                 select(SourceDocument).where(
                     SourceDocument.packet_id == run.packet_id,
@@ -159,6 +204,10 @@ async def run_full_pipeline(run_version_id: str) -> None:
             run_version_id,
             type(exc).__name__,
             exc,
+            exc_info=True,
         )
         await _mark_failed(run_version_id, exc)
-        raise  # re-raise so uvicorn / task runner logs full traceback
+        # Do NOT re-raise: BackgroundTasks propagate exceptions up through
+        # FastAPI's response pipeline, which triggers the request-scope session's
+        # rollback handler and erases the run/packet rows the endpoint just inserted.
+        # The failure is already recorded in run.error_summary via _mark_failed.

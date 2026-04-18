@@ -9,10 +9,7 @@
   <script src="/static/vendor/htmx.min.js"></script>
   <script defer src="/static/vendor/alpine.min.js"></script>
 </head>
-<body class="h-full flex flex-col bg-paper-50 text-ink-800 font-sans antialiased"
-      x-data="{ helpOpen: false }"
-      @keydown.window.shift.slash.prevent="helpOpen = true"
-      @keydown.window.escape="helpOpen = false">
+<body class="h-full flex flex-col bg-paper-50 text-ink-800 font-sans antialiased">
 
   <a href="#detail-panel"
      class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50

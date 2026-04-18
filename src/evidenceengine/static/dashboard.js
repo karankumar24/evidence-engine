@@ -56,12 +56,66 @@ function _activeRow() {
     return document.querySelector('.claim-row[data-active]');
 }
 
+function _helpModal() {
+    return document.getElementById('keyboard-help');
+}
+
+function _isHelpOpen() {
+    const m = _helpModal();
+    return m && !m.hasAttribute('hidden');
+}
+
+function _openHelp() {
+    const m = _helpModal();
+    if (m) m.removeAttribute('hidden');
+}
+
+function _closeHelp() {
+    const m = _helpModal();
+    if (m) m.setAttribute('hidden', '');
+}
+
+/* Click delegation for modal open/close via data attributes. */
+document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-keyboard-help-open]')) {
+        e.preventDefault();
+        _openHelp();
+        return;
+    }
+    if (e.target.closest('[data-keyboard-help-close]')) {
+        e.preventDefault();
+        _closeHelp();
+        return;
+    }
+    // Backdrop click: only when clicking the backdrop itself, not a child
+    const backdrop = e.target.closest('[data-keyboard-help-backdrop]');
+    if (backdrop && e.target === backdrop) {
+        _closeHelp();
+    }
+});
+
 document.addEventListener('keydown', (e) => {
     // Skip when focus is in an input, textarea, or select
     const tag = document.activeElement && document.activeElement.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     // Skip when modifier keys are held (cmd/ctrl shortcuts)
     if (e.metaKey || e.ctrlKey) return;
+
+    // Modal controls: Esc closes, ? opens (works regardless of other state)
+    if (e.key === 'Escape') {
+        if (_isHelpOpen()) {
+            e.preventDefault();
+            _closeHelp();
+        }
+        return;
+    }
+    if (e.key === '?') {
+        e.preventDefault();
+        _openHelp();
+        return;
+    }
+    // When modal is open, swallow remaining shortcuts to prevent side-effects
+    if (_isHelpOpen()) return;
 
     if (e.key === 'a') {
         e.preventDefault();

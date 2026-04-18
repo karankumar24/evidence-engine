@@ -45,7 +45,10 @@ async def extract_claims_from_blocks(
     if not citation_blocks:
         return ClaimExtractionResponse(claims=[])
 
-    client = AsyncOpenAI(api_key=settings.openai_api_key)
+    client = AsyncOpenAI(
+        api_key=settings.openai_api_key,
+        base_url=settings.openai_base_url or None,
+    )
 
     # Chunk blocks to avoid context limits
     all_claims: list = []

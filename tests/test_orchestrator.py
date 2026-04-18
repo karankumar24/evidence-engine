@@ -19,6 +19,27 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+
+@pytest.fixture(autouse=True)
+def _orchestrator_env():
+    """Neutralize orchestrator preconditions that don't apply to unit tests:
+
+    - API key fail-fast (tests don't hit the real OpenAI client; mocks handle that)
+    - Stage 0 parse (tests create SourceDocuments with pre-populated parsed_content;
+      the actual file at file_path doesn't need to exist)
+    """
+    with (
+        patch(
+            "evidenceengine.pipeline.orchestrator.settings.openai_api_key",
+            "sk-test-unit",
+        ),
+        patch(
+            "evidenceengine.pipeline.orchestrator._parse_pending_documents",
+            new_callable=AsyncMock,
+        ),
+    ):
+        yield
+
 # Function-scoped engine avoids asyncpg "another operation is in progress" errors
 # that occur when the session-scoped engine from conftest.py is shared across
 # async tests that use different event loops.
@@ -486,9 +507,10 @@ async def test_top_level_failure_recovery(db_session):
 
         from evidenceengine.pipeline.orchestrator import run_full_pipeline
 
-        # run_full_pipeline re-raises after marking failed
-        with pytest.raises(RuntimeError, match="network timeout"):
-            await run_full_pipeline(run_id_str)
+        # run_full_pipeline swallows the exception after _mark_failed records it.
+        # Re-raising would propagate up through BackgroundTasks and trigger the
+        # request-scope DB rollback, erasing the run/packet rows.
+        await run_full_pipeline(run_id_str)
 
     # _mark_failed must have been called with correct args
     mock_mark_failed.assert_called_once()

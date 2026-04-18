@@ -1,7 +1,9 @@
 """Application configuration via Pydantic Settings."""
 
+from typing import Annotated
+
 from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -12,6 +14,7 @@ class Settings(BaseSettings):
     max_file_size_mb: int = 50
     debug: bool = False
     openai_api_key: str = ""
+    openai_base_url: str = ""  # leave blank for real OpenAI; set to https://openrouter.ai/api/v1 for OpenRouter
     extraction_model: str = "gpt-4o-mini"
     retrieval_top_k_bm25: int = 10
     retrieval_top_k_final: int = 5
@@ -20,7 +23,7 @@ class Settings(BaseSettings):
     classification_model: str = "gpt-4o-mini"
     verdict_needs_review_threshold: float = 0.7
     verdict_prompt_version: str = "v1"
-    cors_origins: list[str] = ["http://127.0.0.1:8000", "http://localhost:8000"]
+    cors_origins: Annotated[list[str], NoDecode] = ["http://127.0.0.1:8000", "http://localhost:8000"]
     sentry_dsn: str = ""
 
     @field_validator("cors_origins", mode="before")

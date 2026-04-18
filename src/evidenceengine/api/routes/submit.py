@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from evidenceengine.api.dependencies import get_db, get_file_store
 from evidenceengine.core.config import settings
-from evidenceengine.ingestion.validation import validate_and_parse_file, validate_file_type
+from evidenceengine.ingestion.validation import validate_file_type
 from evidenceengine.models.document import DocumentPacket, SourceDocument
 from evidenceengine.models.run import RunVersion
 from evidenceengine.pipeline.orchestrator import run_full_pipeline
@@ -82,22 +82,7 @@ async def upload_submit(
         filename = upload_file.filename or "unknown"
         saved_paths[filename] = file_store.save(packet_id, filename, content)
 
-    # Parse all files
-    parsed_results: dict[str, object] = {}
-    for upload_file, role, content in file_contents:
-        filename = upload_file.filename or "unknown"
-        try:
-            parsed_results[filename] = validate_and_parse_file(saved_paths[filename], content)
-        except ValueError as exc:
-            file_store.delete_packet(packet_id)
-            return templates.TemplateResponse(
-                request=request,
-                name="upload.html",
-                context={"error": f"Could not parse '{filename}': {exc}", "max_mb": settings.max_file_size_mb},
-                status_code=422,
-            )
-
-    # Create DB records
+    # Create DB records (parsing deferred to pipeline background task to keep upload fast)
     report_filename = report.filename or "report"
     packet = DocumentPacket(
         id=uuid_module.UUID(packet_id),
@@ -110,7 +95,6 @@ async def upload_submit(
 
     for upload_file, role, content in file_contents:
         filename = upload_file.filename or "unknown"
-        parsed = parsed_results[filename]
         source_doc = SourceDocument(
             packet_id=packet.id,
             is_report=(role == "report"),
@@ -118,11 +102,7 @@ async def upload_submit(
             file_path=saved_paths[filename],
             file_type=_detect_file_type(filename),
             file_size_bytes=len(content),
-            parsed_content=_serialize_parsed(parsed),
-            raw_text=parsed.raw_text,
-            markdown_text=parsed.markdown_text,
-            total_pages=parsed.total_pages,
-            parse_status="completed",
+            parse_status="pending",
         )
         db.add(source_doc)
 
@@ -131,6 +111,11 @@ async def upload_submit(
     run = RunVersion(packet_id=packet.id, status="queued")
     db.add(run)
     await db.flush()
+
+    # Commit now so the run/packet rows are durable before the background task starts.
+    # BackgroundTasks run after the response but within the request exception scope —
+    # any exception they raise would otherwise trigger the session's rollback handler.
+    await db.commit()
 
     background_tasks.add_task(run_full_pipeline, str(run.id))
 
@@ -282,24 +267,6 @@ if settings.debug:
 def _detect_file_type(filename: str) -> str:
     ext = filename.lower().rsplit(".", 1)[-1] if "." in filename else ""
     return "pdf" if ext == "pdf" else "docx" if ext in ("docx", "doc") else ext
-
-
-def _serialize_parsed(parsed) -> dict:
-    blocks = []
-    for block in parsed.blocks:
-        blocks.append({
-            "text": block.text,
-            "block_type": block.block_type,
-            "position": {
-                "page": block.position.page,
-                "paragraph": block.position.paragraph,
-                "char_start": block.position.char_start,
-                "char_end": block.position.char_end,
-                "section_header": block.position.section_header,
-                "bbox": list(block.position.bbox) if block.position.bbox else None,
-            },
-        })
-    return {"filename": parsed.filename, "total_pages": parsed.total_pages, "blocks": blocks, "tables": parsed.tables}
 
 
 _DEMO_RAW_TEXT = """

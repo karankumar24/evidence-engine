@@ -84,7 +84,10 @@ async def classify_claim(
         f"EVIDENCE SPANS:\n{evidence_blocks}"
     )
 
-    client = AsyncOpenAI(api_key=settings.openai_api_key)
+    client = AsyncOpenAI(
+        api_key=settings.openai_api_key,
+        base_url=settings.openai_base_url or None,
+    )
 
     completion = await client.beta.chat.completions.parse(
         model=settings.classification_model,

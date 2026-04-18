@@ -34,18 +34,19 @@
     <!-- Pipeline steps -->
     <div class="text-left space-y-3 mb-10">
 
-      {% set stages = ["queued", "extracting", "retrieving", "classifying", "completed"] %}
+      {% set stages = ["queued", "parsing", "extracting", "retrieving", "classifying", "completed"] %}
       {% set step_labels = {
         "queued": "Queued",
+        "parsing": "Parsing documents",
         "extracting": "Extracting claims",
         "retrieving": "Retrieving evidence",
         "classifying": "Classifying verdicts",
         "completed": "Complete"
       } %}
-      {% set stage_order = {"queued": 0, "extracting": 1, "retrieving": 2, "classifying": 3, "completed": 4, "failed": 4} %}
+      {% set stage_order = {"queued": 0, "parsing": 1, "extracting": 2, "retrieving": 3, "classifying": 4, "completed": 5, "failed": 5} %}
       {% set current_order = stage_order.get(run.status, 0) %}
 
-      {% for stage_key in ["extracting", "retrieving", "classifying"] %}
+      {% for stage_key in ["parsing", "extracting", "retrieving", "classifying"] %}
         {% set order = stage_order[stage_key] %}
         {% if current_order > order %}
           {# completed step #}

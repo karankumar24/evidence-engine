@@ -132,3 +132,27 @@ def validate_and_parse_file(
         raise
     except Exception as exc:
         raise ValueError(f"Failed to parse {filename}: {exc}") from exc
+
+
+def serialize_parsed_document(parsed) -> dict:
+    """Serialize a ParsedDocument into the JSONB shape persisted on SourceDocument.parsed_content."""
+    blocks = []
+    for block in parsed.blocks:
+        blocks.append({
+            "text": block.text,
+            "block_type": block.block_type,
+            "position": {
+                "page": block.position.page,
+                "paragraph": block.position.paragraph,
+                "char_start": block.position.char_start,
+                "char_end": block.position.char_end,
+                "section_header": block.position.section_header,
+                "bbox": list(block.position.bbox) if block.position.bbox else None,
+            },
+        })
+    return {
+        "filename": parsed.filename,
+        "total_pages": parsed.total_pages,
+        "blocks": blocks,
+        "tables": parsed.tables,
+    }
