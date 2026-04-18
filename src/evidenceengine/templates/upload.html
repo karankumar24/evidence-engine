@@ -18,7 +18,19 @@
   </header>
 
   <main class="max-w-2xl mx-auto px-8 py-12"
-        x-data="{ loading: false, showSources: false }">
+        x-data="{
+          loading: false,
+          showSources: false,
+          reportFile: null,
+          setReportFile(files) {
+            if (!files || files.length === 0) return;
+            const dt = new DataTransfer();
+            dt.items.add(files[0]);
+            this.$refs.reportInput.files = dt.files;
+            this.reportFile = files[0];
+            this.$refs.reportLabel.textContent = files[0].name;
+          }
+        }">
 
     <div class="mb-8">
       <h1 class="font-serif text-3xl font-semibold text-ink-900 leading-tight">Verify a Document</h1>
@@ -51,7 +63,7 @@
         <div class="border-2 border-dashed border-ink-200 rounded-sm p-6 text-center
                     hover:border-accent-400 transition-colors bg-white"
              @dragover.prevent
-             @drop.prevent="$refs.reportInput.files = $event.dataTransfer.files; $refs.reportLabel.textContent = $event.dataTransfer.files[0]?.name || 'Drop a file here'">
+             @drop.prevent="setReportFile($event.dataTransfer.files)">
           <input type="file"
                  id="report"
                  name="report"
@@ -59,7 +71,7 @@
                  required
                  class="sr-only"
                  x-ref="reportInput"
-                 @change="$refs.reportLabel.textContent = $event.target.files[0]?.name || 'Choose a file'">
+                 @change="reportFile = $event.target.files[0] || null; $refs.reportLabel.textContent = reportFile?.name || 'Choose a file'">
           <label for="report" class="cursor-pointer">
             <svg class="mx-auto mb-3 w-8 h-8 text-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -107,14 +119,14 @@
       <!-- Submit -->
       <div class="flex items-center gap-4 pt-2">
         <button type="submit"
-                :disabled="loading"
+                :disabled="loading || !reportFile"
                 class="inline-flex items-center gap-2 px-5 py-2.5 rounded-sm text-sm font-medium
                        bg-accent-700 text-paper-50 border border-accent-700
                        hover:bg-accent-800 transition-colors
                        disabled:opacity-50 disabled:cursor-not-allowed
                        focus:outline-none focus:ring-2 focus:ring-accent-300">
           <span x-show="!loading">Run Verification →</span>
-          <span x-show="loading" class="flex items-center gap-2">
+          <span x-show="loading && reportFile" class="flex items-center gap-2">
             <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
