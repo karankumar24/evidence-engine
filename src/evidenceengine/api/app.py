@@ -1,5 +1,6 @@
 """FastAPI application factory."""
 
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -120,6 +121,27 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             logger.info("Sentry initialized")
         except ImportError:
             logger.warning("sentry-sdk not installed; SENTRY_DSN ignored")
+
+    # Pre-warm the openai module in a background thread. On macOS Tahoe the
+    # first `from openai import AsyncOpenAI` triggers syspolicyd Gatekeeper
+    # scanning of httpx/anyio/pydantic_core .so files (5-20 min, zero CPU).
+    # Without this prewarm, the hang lands on the user's first pipeline run
+    # mid-extract, with no visible feedback. Here it runs concurrently with
+    # uvicorn startup and logs progress so the delay is observable.
+    async def _prewarm_openai() -> None:
+        import asyncio as _asyncio
+        import time as _time
+        def _do_import() -> float:
+            t0 = _time.monotonic()
+            from openai import AsyncOpenAI  # noqa: F401
+            return _time.monotonic() - t0
+        try:
+            dur = await _asyncio.to_thread(_do_import)
+            logger.info("openai module prewarmed in %.1fs", dur)
+        except Exception:
+            logger.exception("openai prewarm failed — first pipeline run may hang")
+    app.state.openai_prewarm = asyncio.create_task(_prewarm_openai())
+
     yield
 
 
