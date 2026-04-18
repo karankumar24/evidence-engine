@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     classification_model: str = "gpt-4o-mini"
     verdict_needs_review_threshold: float = 0.7
     verdict_prompt_version: str = "v1"
+    # LLM HTTP client safety rails — OpenAI SDK default timeout is 600s which
+    # compounds with OpenRouter free-tier rate-limits into multi-minute hangs.
+    llm_request_timeout_seconds: float = 60.0
+    llm_max_retries: int = 2
     cors_origins: Annotated[list[str], NoDecode] = ["http://127.0.0.1:8000", "http://localhost:8000"]
     sentry_dsn: str = ""
 

@@ -167,7 +167,7 @@ async def run_status_poll(
 
     response = templates.TemplateResponse(
         request=request,
-        name="partials/run_status_fragment.html",
+        name="partials/run_status_body.html",
         context={"run": run},
     )
 

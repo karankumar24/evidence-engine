@@ -31,58 +31,8 @@
       The AI pipeline is running. This page will automatically redirect when complete.
     </p>
 
-    <!-- Pipeline steps -->
-    <div class="text-left space-y-3 mb-10">
-
-      {% set stages = ["queued", "parsing", "extracting", "retrieving", "classifying", "completed"] %}
-      {% set step_labels = {
-        "queued": "Queued",
-        "parsing": "Parsing documents",
-        "extracting": "Extracting claims",
-        "retrieving": "Retrieving evidence",
-        "classifying": "Classifying verdicts",
-        "completed": "Complete"
-      } %}
-      {% set stage_order = {"queued": 0, "parsing": 1, "extracting": 2, "retrieving": 3, "classifying": 4, "completed": 5, "failed": 5} %}
-      {% set current_order = stage_order.get(run.status, 0) %}
-
-      {% for stage_key in ["parsing", "extracting", "retrieving", "classifying"] %}
-        {% set order = stage_order[stage_key] %}
-        {% if current_order > order %}
-          {# completed step #}
-          <div class="flex items-center gap-3">
-            <span class="w-5 h-5 rounded-full bg-accent-700 flex items-center justify-center flex-shrink-0">
-              <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
-              </svg>
-            </span>
-            <span class="text-sm text-ink-500 line-through">{{ step_labels[stage_key] }}</span>
-          </div>
-        {% elif current_order == order %}
-          {# active step #}
-          <div class="flex items-center gap-3">
-            <span class="w-5 h-5 rounded-full border-2 border-accent-600 flex items-center justify-center flex-shrink-0">
-              <span class="w-2 h-2 rounded-full bg-accent-600 animate-pulse"></span>
-            </span>
-            <span class="text-sm font-medium text-ink-900">{{ step_labels[stage_key] }}…</span>
-          </div>
-        {% else %}
-          {# pending step #}
-          <div class="flex items-center gap-3">
-            <span class="w-5 h-5 rounded-full border-2 border-ink-200 flex-shrink-0"></span>
-            <span class="text-sm text-ink-400">{{ step_labels[stage_key] }}</span>
-          </div>
-        {% endif %}
-      {% endfor %}
-    </div>
-
-    <!-- HTMX poll div -->
-    <div id="status-poll"
-         hx-get="/runs/{{ run.id }}/status/poll"
-         hx-trigger="every 2s"
-         hx-target="this"
-         hx-swap="outerHTML">
-    </div>
+    <!-- Pipeline steps + status poll (container swapped every 2s by HTMX) -->
+    {% include "partials/run_status_body.html" %}
 
     <!-- Run metadata -->
     <div class="mt-8 text-xs font-mono text-ink-400 space-y-1">
