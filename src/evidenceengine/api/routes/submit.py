@@ -126,6 +126,7 @@ async def upload_submit(
     run = RunVersion(packet_id=packet.id, status="queued")
     db.add(run)
     await db.flush()
+    await db.commit()  # must commit before background task opens its own session
 
     background_tasks.add_task(run_full_pipeline, str(run.id))
 

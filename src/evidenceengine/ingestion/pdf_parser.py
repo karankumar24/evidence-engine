@@ -11,7 +11,6 @@ This is enforced with a self-check after assembly — any offset drift raises Va
 import os
 
 import fitz  # PyMuPDF
-import pymupdf4llm
 
 from evidenceengine.ingestion.models import ParsedBlock, ParsedDocument, TextPosition
 
@@ -63,12 +62,6 @@ def parse_pdf(filepath: str) -> ParsedDocument:
         FileNotFoundError: If the file does not exist.
     """
     filename = os.path.basename(filepath)
-
-    # Layer 1: Get clean markdown with proper reading order
-    try:
-        markdown_text: str = pymupdf4llm.to_markdown(filepath)
-    except Exception as exc:
-        raise ValueError(f"pymupdf4llm failed on {filename}: {exc}") from exc
 
     doc = fitz.open(filepath)
     total_pages = doc.page_count
@@ -164,6 +157,11 @@ def parse_pdf(filepath: str) -> ParsedDocument:
 
     # Assemble raw_text by joining block texts with "\n"
     raw_text = "\n".join(b.text for b in blocks)
+
+    # Layer 1: Build markdown from assembled blocks (no ONNX/ML dependency).
+    # pymupdf4llm 1.27+ triggers ONNX CoreML inference on macOS which hangs.
+    # Plain text from fitz is sufficient for LLM claim extraction.
+    markdown_text = raw_text
 
     # CRITICAL self-check: verify offset integrity for every block
     # Recompute offsets from the assembled raw_text to catch any drift

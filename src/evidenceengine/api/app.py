@@ -176,6 +176,31 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             logger.exception("TLS prewarm failed — first LLM pipeline call may stall")
     app.state.tls_prewarm = asyncio.create_task(_prewarm_tls())
 
+    # Pre-warm the full parse pipeline import chain. On macOS Tahoe, every .pyc
+    # file read during import triggers syspolicyd scanning (~10s per file), so
+    # a full cold-start import of pdf_parser + docx_parser + fitz can take 20+
+    # minutes the first time. These modules are lazy-imported inside the parse
+    # hot path, so without this prewarm the scan lands on the user's first
+    # upload. We warm the entire chain here (in a background thread) so that
+    # the server is immediately responsive while the scan runs in parallel.
+    async def _prewarm_parsers() -> None:
+        import asyncio as _asyncio
+        import time as _time
+        def _do_import() -> float:
+            t0 = _time.monotonic()
+            import fitz  # noqa: F401
+            _ = fitz.version
+            from evidenceengine.ingestion import pdf_parser  # noqa: F401
+            from evidenceengine.ingestion import docx_parser  # noqa: F401
+            from evidenceengine.ingestion import validation  # noqa: F401
+            return _time.monotonic() - t0
+        try:
+            dur = await _asyncio.to_thread(_do_import)
+            logger.info("parsers (fitz + pdf + docx) prewarmed in %.1fs", dur)
+        except Exception:
+            logger.exception("parser prewarm failed — first document upload may hang")
+    app.state.parser_prewarm = asyncio.create_task(_prewarm_parsers())
+
     # Recover orphaned in-flight runs from a previous server crash/restart.
     # Any run still in a pipeline stage means its background task was killed
     # mid-flight — _mark_failed was never called. Mark them failed now so the

@@ -35,11 +35,12 @@ async def trigger_full_run(
             status=404,
         )
 
-    # 2. Create RunVersion — db.flush() populates run.id before background task is scheduled.
-    #    The session commits when the request handler returns (via get_db generator).
+    # 2. Create RunVersion — commit before scheduling so the background task's
+    #    independent session can see the row (it opens after the request completes).
     run = RunVersion(packet_id=packet_id, status="queued")
     db.add(run)
-    await db.flush()  # populate run.id; get_db commits after return
+    await db.flush()
+    await db.commit()  # must commit before background task opens its own session
 
     # 3. Schedule background task with primitive string ID only — NEVER pass db session
     background_tasks.add_task(run_full_pipeline, str(run.id))
