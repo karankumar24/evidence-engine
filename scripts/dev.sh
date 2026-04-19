@@ -25,6 +25,11 @@ fi
 # so we prepend src/ to PYTHONPATH explicitly.
 export PYTHONPATH="$REPO/src${PYTHONPATH:+:$PYTHONPATH}"
 
+# Clear macOS Gatekeeper quarantine from venv — pip/uv write new .so files with
+# the quarantine xattr, causing syspolicyd to block the first dlopen for 5-30min.
+# This is a no-op when nothing is quarantined (exits 0 anyway via ||true).
+xattr -r -d com.apple.quarantine "$REPO/.venv" 2>/dev/null || true
+
 # Start postgres if using docker-compose and it isn't already up
 if command -v docker-compose >/dev/null 2>&1; then
   docker-compose up -d postgres >/dev/null 2>&1 || true

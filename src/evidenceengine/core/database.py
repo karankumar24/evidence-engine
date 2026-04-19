@@ -11,6 +11,7 @@ engine = create_async_engine(
     pool_size=5,
     max_overflow=10,
     echo=settings.debug,
+    pool_pre_ping=True,  # auto-recycle stale connections after DB restart
     connect_args={"timeout": 10},  # asyncpg connect timeout — prevents infinite hang if DB is unreachable
 )
 
