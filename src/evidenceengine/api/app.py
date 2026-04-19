@@ -113,6 +113,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     from evidenceengine.core.logging_config import configure_logging
     configure_logging(debug=settings.debug)
     os.makedirs(settings.upload_dir, exist_ok=True)
+
+    # Increase AnyIO thread pool from default 40 → 100.
+    # Each LLM call in asyncio.to_thread occupies one slot for up to 30s (fallback timeout).
+    # Without this, concurrent pipeline requests exhaust the pool and queue behind each other.
+    import anyio
+    anyio.to_thread.current_default_thread_limiter().total_tokens = 100
     if settings.sentry_dsn:
         try:
             import sentry_sdk
