@@ -47,9 +47,17 @@ COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Fallback upload/index/cache dirs. HF cache is needed for the cross-encoder
-# reranker download — without HF_HOME set it defaults to $HOME/.cache which
-# resolves to /home/ee/.cache on Fly and fails with PermissionError.
-RUN mkdir -p /app/uploads /app/indexes /app/.cache/huggingface && chown -R ee:ee /app
+# reranker download; NLTK data dir is needed for punkt_tab tokenizer. Without
+# HF_HOME/NLTK_DATA set these default to $HOME which resolves to /home/ee on
+# Fly (that dir does not exist — PermissionError).
+RUN mkdir -p /app/uploads /app/indexes /app/.cache/huggingface /app/nltk_data \
+    && chown -R ee:ee /app
+
+# Pre-download NLTK punkt_tab at build time so first-use retrieval does not
+# have to download it (would fail on read-only Fly rootfs if HOME misconfigured).
+RUN pip install --no-cache-dir nltk \
+    && python -m nltk.downloader -d /app/nltk_data punkt punkt_tab \
+    && chown -R ee:ee /app/nltk_data
 
 EXPOSE 8000
 
@@ -60,6 +68,7 @@ ENV UPLOAD_DIR=/app/uploads
 ENV INDEX_DIR=/app/indexes
 ENV HF_HOME=/app/.cache/huggingface
 ENV TRANSFORMERS_CACHE=/app/.cache/huggingface
+ENV NLTK_DATA=/app/nltk_data
 ENV HOME=/app
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
