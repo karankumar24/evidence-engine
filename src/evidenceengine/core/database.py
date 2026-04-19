@@ -11,6 +11,7 @@ engine = create_async_engine(
     pool_size=5,
     max_overflow=10,
     echo=settings.debug,
+    connect_args={"timeout": 10},  # asyncpg connect timeout — prevents infinite hang if DB is unreachable
 )
 
 async_session_factory = async_sessionmaker(
