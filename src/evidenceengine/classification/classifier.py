@@ -7,13 +7,13 @@ to produce VerdictClassificationResponse instances with chain-of-thought reasoni
 import logging
 from typing import TYPE_CHECKING
 
-logger = logging.getLogger(__name__)
-
 from evidenceengine.classification.schemas import VerdictClassificationResponse
 from evidenceengine.core.config import settings
 
 if TYPE_CHECKING:
     from openai import AsyncOpenAI
+
+logger = logging.getLogger(__name__)
 
 # Lazily populated on the first classify_claim() call. Keeps
 # `from openai import AsyncOpenAI` out of the module-import path (saves
