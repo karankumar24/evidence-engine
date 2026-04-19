@@ -23,6 +23,8 @@ primary_region = "sjc"   # San Jose — closest to the default user; change if n
   # LLM_BASE_URL points at OpenRouter by default; override via `fly secrets`
   # if you switch providers.
   LLM_BASE_URL = "https://openrouter.ai/api/v1"
+  # Fallback chain tried in order on timeout/error/refusal (comma-separated).
+  MODEL_FALLBACK_CHAIN = "google/gemini-2.0-flash-exp:free,qwen/qwen3-30b-a3b:free,meta-llama/llama-4-maverick:free,arcee-ai/trinity-large-preview:free"
 
 [http_service]
   internal_port = 8000
