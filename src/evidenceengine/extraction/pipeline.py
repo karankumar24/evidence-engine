@@ -28,7 +28,6 @@ from evidenceengine.extraction.anchor_resolver import (
     extract_references_entries,
     resolve_to_source_document,
 )
-from evidenceengine.extraction.citation_detector import detect_citation_markers
 from evidenceengine.extraction.claim_extractor import extract_claims_from_blocks
 from evidenceengine.extraction.position_recovery import recover_position
 from evidenceengine.models.claim import CitationAnchor, Claim
