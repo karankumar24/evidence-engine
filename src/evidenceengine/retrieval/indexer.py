@@ -30,11 +30,20 @@ def extract_spans(parsed_content: dict) -> list[dict]:
     {text, page, paragraph, char_start, char_end, section_header, span_type}
     """
     import nltk  # noqa: PLC0415 — lazy to avoid blocking startup
+    import re  # noqa: PLC0415
     ensure_punkt()
+    # Minimum number of alphabetic characters for a span to be indexable.
+    # Filters out page numbers, section dividers, axis labels, footer digits,
+    # which otherwise dominate BM25 results for numeric claims.
+    _MIN_ALPHA_CHARS = 20
+    _alpha_re = re.compile(r"[A-Za-z]")
     spans = []
     for block in parsed_content.get("blocks", []):
         text = block.get("text", "").strip()
         if not text:
+            continue
+        if len(_alpha_re.findall(text)) < _MIN_ALPHA_CHARS:
+            # Block is essentially non-text (page numbers, tables of digits, etc.)
             continue
         pos = block.get("position", {})
         page = pos.get("page")
