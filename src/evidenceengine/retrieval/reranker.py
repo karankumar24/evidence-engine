@@ -10,23 +10,27 @@ uses internal BLAS/PyTorch threads — multiple workers cause CPU thrashing.
 """
 
 import asyncio
+import threading
 from concurrent.futures import ThreadPoolExecutor
 
 # sentence_transformers imported lazily inside get_reranker() to avoid blocking startup
-
 from evidenceengine.core.config import settings
 
 _reranker = None
+_reranker_lock = threading.Lock()
 _executor = ThreadPoolExecutor(max_workers=1)
 
 
 def get_reranker():
     """Lazy singleton — loads model once, reuses across all requests."""
-    from sentence_transformers import CrossEncoder  # noqa: PLC0415 — lazy to avoid blocking startup
-
     global _reranker
     if _reranker is None:
-        _reranker = CrossEncoder(settings.reranker_model)
+        with _reranker_lock:
+            if _reranker is None:
+                from sentence_transformers import (
+                    CrossEncoder,  # noqa: PLC0415 — lazy to avoid blocking startup
+                )
+                _reranker = CrossEncoder(settings.reranker_model)
     return _reranker
 
 

@@ -1,10 +1,11 @@
 """Design system gallery — dev-only, gated by settings.debug."""
 
+from pathlib import Path
+
 from fastapi import APIRouter, HTTPException
 from fastapi.requests import Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from pathlib import Path
 
 from evidenceengine.core.config import settings
 

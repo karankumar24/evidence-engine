@@ -4,8 +4,6 @@ POST /api/packets   — Upload report + sources, validate, parse, store
 GET  /api/packets/:id — Retrieve packet status and document details
 """
 
-import dataclasses
-import json
 import uuid as uuid_module
 from typing import Annotated
 

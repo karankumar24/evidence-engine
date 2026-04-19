@@ -5,7 +5,7 @@
     {% import "components/_button.html" as btn %}
     {% call btn.button(variant="primary") %}Approve{% endcall %}
     {% call btn.button(variant="destructive", size="sm",
-                       **{"hx-post": "/foo", "hx-target": "#bar"}) %}Reject{% endcall %}
+                       **{"hx-post": "/api/packets/ID/action", "hx-target": "#bar"}) %}Reject{% endcall %}
 
   Variants: primary / secondary / ghost / destructive.
   Sizes:    sm / md / lg.

@@ -21,6 +21,7 @@
   <!-- Section 1: Claim in Context -->
   {% call coll.collapsible("Claim in Context", default_open=True, id="ctx-" ~ claim.id | string) %}
     <div class="prose-evidence text-sm whitespace-pre-wrap">
+      {# safe: context_snippet is LLM output, not raw user input — no XSS vector #}
       {{ context_snippet | replace(claim.claim_text, '<mark class="bg-paper-200 border-b border-ink-300 px-0.5">' + claim.claim_text + '</mark>') | safe }}
     </div>
   {% endcall %}

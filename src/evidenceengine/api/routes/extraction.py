@@ -16,7 +16,7 @@ from sqlalchemy.orm import selectinload
 from evidenceengine.api.dependencies import get_db
 from evidenceengine.core.config import settings
 from evidenceengine.extraction.pipeline import extract_claims_for_document
-from evidenceengine.models.claim import Claim, CitationAnchor
+from evidenceengine.models.claim import Claim
 from evidenceengine.models.document import DocumentPacket, SourceDocument
 from evidenceengine.models.run import RunVersion
 from evidenceengine.schemas.claim import ClaimResponse, ExtractionResponse

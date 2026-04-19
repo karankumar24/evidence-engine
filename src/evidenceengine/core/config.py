@@ -81,7 +81,7 @@ class Settings(BaseSettings):
         # Without this, Fly internal postgres (no TLS) blows up with
         # ConnectionResetError because asyncpg defaults to ssl=prefer.
         if "sslmode=" in url or "ssl=" in url:
-            from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+            from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
             parts = urlsplit(url)
             new_query: list[tuple[str, str]] = []
             seen_ssl = False

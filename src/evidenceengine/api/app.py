@@ -156,8 +156,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Running a synchronous urllib request in a thread here warms the macOS
     # security subsystem so subsequent async httpx connections are non-blocking.
     async def _prewarm_tls() -> None:
-        import time as _time
         import asyncio as _asyncio
+        import time as _time
         def _do_connect() -> float:
             import urllib.request
             t0 = _time.monotonic()
@@ -183,7 +183,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Wrapped in asyncio.timeout so a slow/unreachable DB never blocks startup.
     try:
         from datetime import datetime, timezone
+
         from sqlalchemy import select
+
         from evidenceengine.core.database import async_session_factory
         from evidenceengine.models.run import RunVersion
         _IN_FLIGHT = ("queued", "parsing", "extracting", "retrieving", "classifying")
@@ -242,14 +244,14 @@ def create_app() -> FastAPI:
     STATIC_DIR.mkdir(exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    from evidenceengine.api.routes.runs import router as runs_router
+    from evidenceengine.api.routes.classification import router as classification_router
     from evidenceengine.api.routes.dashboard import router as dashboard_router
     from evidenceengine.api.routes.design_system import router as design_system_router
-    from evidenceengine.api.routes.packets import router as packets_router
     from evidenceengine.api.routes.extraction import router as extraction_router
-    from evidenceengine.api.routes.retrieval import router as retrieval_router
-    from evidenceengine.api.routes.classification import router as classification_router
+    from evidenceengine.api.routes.packets import router as packets_router
     from evidenceengine.api.routes.pipeline import router as pipeline_router
+    from evidenceengine.api.routes.retrieval import router as retrieval_router
+    from evidenceengine.api.routes.runs import router as runs_router
     from evidenceengine.api.routes.submit import router as submit_router
 
     app.include_router(runs_router)
@@ -275,6 +277,7 @@ def create_app() -> FastAPI:
     @app.get("/healthz", tags=["health"])
     async def healthz() -> dict:
         from sqlalchemy import text
+
         from evidenceengine.core.database import async_session_factory
         try:
             async with async_session_factory() as session:

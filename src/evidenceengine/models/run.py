@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -18,6 +18,9 @@ class RunVersion(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """Records a single pipeline run for a packet — config, status, and timing."""
 
     __tablename__ = "run_versions"
+    __table_args__ = (
+        Index("ix_run_versions_created_at", "created_at"),
+    )
 
     packet_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("document_packets.id", name="fk_run_versions_packet_id_document_packets"),

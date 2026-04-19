@@ -32,6 +32,7 @@ class ClaimResponse(BaseModel):
     claim_text: str
     section_header: str | None
     page_number: int | None
+    paragraph_index: int | None
     char_start: int
     char_end: int
     status: str
