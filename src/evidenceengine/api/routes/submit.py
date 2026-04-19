@@ -127,11 +127,6 @@ async def upload_submit(
     db.add(run)
     await db.flush()
 
-    # Commit now so the run/packet rows are durable before the background task starts.
-    # BackgroundTasks run after the response but within the request exception scope —
-    # any exception they raise would otherwise trigger the session's rollback handler.
-    await db.commit()
-
     background_tasks.add_task(run_full_pipeline, str(run.id))
 
     return RedirectResponse(f"/runs/{run.id}/status", status_code=303)
@@ -273,7 +268,6 @@ if settings.debug:
             )
             db.add(verdict)
 
-        await db.commit()
         return RedirectResponse(f"/dashboard/{packet_id}/{run_id}", status_code=303)
 
 

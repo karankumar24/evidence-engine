@@ -8,7 +8,7 @@ Phase 5 will move this to an async task queue).
 import uuid as uuid_module
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -20,6 +20,7 @@ from evidenceengine.models.claim import Claim, CitationAnchor
 from evidenceengine.models.document import DocumentPacket, SourceDocument
 from evidenceengine.models.run import RunVersion
 from evidenceengine.schemas.claim import ClaimResponse, ExtractionResponse
+from evidenceengine.schemas.common import APIError
 
 router = APIRouter(prefix="/api/packets", tags=["extraction"])
 
@@ -44,7 +45,7 @@ async def trigger_extraction(
     )
     packet = result.scalar_one_or_none()
     if packet is None:
-        raise HTTPException(status_code=404, detail=f"Packet {packet_id} not found")
+        raise APIError(code="PACKET_NOT_FOUND", message=f"Packet {packet_id} not found", status=404)
 
     # 2. Find the report document in this packet
     result = await db.execute(
@@ -55,9 +56,10 @@ async def trigger_extraction(
     )
     report_doc = result.scalar_one_or_none()
     if report_doc is None:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Packet {packet_id} has no report document (is_report=True)",
+        raise APIError(
+            code="NO_REPORT_DOCUMENT",
+            message=f"Packet {packet_id} has no report document (is_report=True)",
+            status=422,
         )
 
     # 3. Create RunVersion to track this extraction run
@@ -83,7 +85,6 @@ async def trigger_extraction(
     # 5. Update RunVersion with completion status
     run_version.status = "completed"
     run_version.completed_at = datetime.now(timezone.utc)
-    await db.commit()
 
     # 6. Reload claims with citation_anchors eagerly (avoid N+1 queries)
     if claims:

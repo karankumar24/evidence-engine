@@ -27,7 +27,7 @@ class FileStore:
         """
         packet_dir = os.path.join(self.base_dir, str(packet_id))
         os.makedirs(packet_dir, exist_ok=True)
-        file_path = os.path.join(packet_dir, filename)
+        file_path = os.path.join(packet_dir, os.path.basename(filename))
         with open(file_path, "wb") as f:
             f.write(content)
         return file_path

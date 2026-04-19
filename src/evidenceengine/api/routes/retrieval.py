@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +13,7 @@ from evidenceengine.models.claim import Claim
 from evidenceengine.models.document import DocumentPacket
 from evidenceengine.models.run import RunVersion
 from evidenceengine.retrieval.pipeline import retrieve_evidence_for_run
+from evidenceengine.schemas.common import APIError
 from evidenceengine.schemas.evidence import RetrievalResponse
 
 router = APIRouter(prefix="/api/packets", tags=["retrieval"])
@@ -37,7 +38,7 @@ async def trigger_retrieval(
     )
     packet = result.scalar_one_or_none()
     if packet is None:
-        raise HTTPException(status_code=404, detail="DocumentPacket not found")
+        raise APIError(code="PACKET_NOT_FOUND", message="DocumentPacket not found", status=404)
 
     # 2. Find RunVersion for this packet
     run_result = await db.execute(
@@ -48,9 +49,10 @@ async def trigger_retrieval(
     run_version = run_result.scalars().first()
 
     if run_version is None:
-        raise HTTPException(
-            status_code=422,
-            detail="No RunVersion found for this packet. Run extraction first.",
+        raise APIError(
+            code="NO_RUN_VERSION",
+            message="No RunVersion found for this packet. Run extraction first.",
+            status=422,
         )
 
     # 3. Check claims exist
@@ -60,9 +62,10 @@ async def trigger_retrieval(
     claims = claim_result.scalars().all()
     claim_count = len(claims)
     if claim_count == 0:
-        raise HTTPException(
-            status_code=422,
-            detail="No claims found for this packet's run. Run extraction first.",
+        raise APIError(
+            code="NO_CLAIMS",
+            message="No claims found for this packet's run. Run extraction first.",
+            status=422,
         )
 
     # 4. Run retrieval pipeline
@@ -80,7 +83,6 @@ async def trigger_retrieval(
         **(run_version.model_versions or {}),
         "reranker": settings.reranker_model,
     }
-    await db.commit()
 
     return RetrievalResponse(
         run_version_id=run_version.id,
