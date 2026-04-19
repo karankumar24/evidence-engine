@@ -76,21 +76,30 @@ async def retrieve_evidence_for_run(
             if a.resolution_status == "resolved" and a.target_document_id is not None
         ]
 
-        if not resolved_anchors:
-            # Claim is unresolvable — skip retrieval, count in denominator
-            logger.debug("Skipping claim %s — no resolved anchors", claim.id)
-            continue
+        # Build the list of (target_doc_id, anchor_or_None) pairs to search.
+        # If the claim has resolved citation anchors, use those source documents.
+        # Otherwise fall back to self-verification: search the report itself for
+        # supporting/contradicting evidence (the report's own other paragraphs).
+        if resolved_anchors:
+            search_targets = [(str(a.target_document_id), a) for a in resolved_anchors]
+        else:
+            search_targets = [(str(claim.source_document_id), None)]
+            logger.debug(
+                "Claim %s has no resolved anchors — using report as self-verification corpus",
+                claim.id,
+            )
 
         claim_has_spans = False
 
-        for anchor in resolved_anchors:
-            doc_id_str = str(anchor.target_document_id)
+        for doc_id_str, anchor in search_targets:
+
+            target_doc_uuid = uuid_lib.UUID(doc_id_str)
 
             # Load and cache BM25 index for this source document
             if doc_id_str not in index_cache:
                 source_doc_result = await db.execute(
                     select(SourceDocument).where(
-                        SourceDocument.id == anchor.target_document_id
+                        SourceDocument.id == target_doc_uuid
                     )
                 )
                 source_doc = source_doc_result.scalar_one_or_none()
@@ -124,6 +133,14 @@ async def retrieve_evidence_for_run(
                 k=settings.retrieval_top_k_bm25,
             )
 
+            # In self-verification mode, exclude the claim's own paragraph from
+            # evidence (otherwise it trivially matches itself with perfect score).
+            if anchor is None:
+                claim_text_normalized = claim.claim_text.strip()
+                bm25_texts = [
+                    t for t in bm25_texts if t.strip() != claim_text_normalized
+                ]
+
             if not bm25_texts:
                 continue
 
@@ -148,7 +165,7 @@ async def retrieve_evidence_for_run(
                     meta = {}
                 span = EvidenceSpan(
                     claim_id=claim.id,
-                    source_document_id=anchor.target_document_id,
+                    source_document_id=target_doc_uuid,
                     run_version_id=uuid_lib.UUID(run_version_id),
                     span_text=item["text"],
                     page_number=meta.get("page"),

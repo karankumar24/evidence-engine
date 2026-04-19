@@ -13,18 +13,20 @@ from evidenceengine.extraction.schemas import ClaimExtractionResponse
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = """You are a precise scientific claim extractor. Your task is to identify sentences that make factual claims supported by citations.
+_SYSTEM_PROMPT = """You are a precise factual-claim extractor. Your task is to identify every verifiable factual claim in the text.
+
+A factual claim is a sentence that asserts something a reader could check — numbers, dates, percentages, causal statements, attributions, outcomes, comparisons, superlatives, or any specific empirical assertion.
 
 Rules:
-1. Extract ONLY sentences that contain citation markers (e.g., [1], Smith 2023, ¹)
+1. Extract every sentence that makes a checkable factual assertion — whether or not it has a citation marker
 2. Copy claim sentences VERBATIM — word-for-word, no paraphrasing, no summarizing
-3. Do NOT include uncited background sentences
-4. For each claim, identify ALL citation markers within it and their style:
+3. SKIP sentences that are purely navigational, purely descriptive of the document structure (e.g., "This report summarises..."), or pure opinion with no verifiable content
+4. If the claim happens to contain a citation marker, identify it and its style:
    - "numeric": [1], [2,3], [1-3]
    - "author_year": Smith 2023, (Jones et al., 2021)
    - "footnote": ¹, ², superscript numbers
-5. A single sentence may have multiple citation markers — include all of them
-6. If no citation markers are found in the text, return an empty claims list"""
+5. If a claim has no citation marker, return an empty citation_markers list for it — do NOT skip the claim
+6. It is normal and expected for many claims to have zero citation markers. Extract them anyway."""
 
 _MAX_BLOCKS_PER_CALL = 50
 

@@ -62,34 +62,22 @@ async def classify_verdicts_for_run(
         if existing_result.scalar_one_or_none() is not None:
             continue
 
-        # Edge case: unresolvable anchor — no LLM call
-        if claim.status == "unresolvable_anchor":
-            verdict = Verdict(
-                claim_id=claim.id,
-                run_version_id=run_version_uuid,
-                verdict_type="needs_review",
-                confidence_score=0.0,
-                reasoning="All citation anchors unresolvable — cited source documents could not be matched.",
-                model_name="none",
-                prompt_version=None,
-            )
-            try:
-                async with db.begin_nested():
-                    db.add(verdict)
-                    await db.flush()
-            except IntegrityError:
-                continue  # concurrent insert won the race — skip
-            all_verdicts.append(verdict)
-            continue
-
-        # Edge case: zero evidence spans — no LLM call (VERDICT-02)
+        # Edge case: zero evidence spans — no LLM call (VERDICT-02).
+        # Check evidence first: self-verification may produce spans even when
+        # citation anchors were unresolvable, and we want those to reach the LLM.
         if not claim.evidence_spans:
+            if claim.status == "unresolvable_anchor":
+                default_verdict_type = "needs_review"
+                default_reasoning = "All citation anchors unresolvable — cited source documents could not be matched."
+            else:
+                default_verdict_type = "insufficient_support"
+                default_reasoning = "No evidence spans retrieved for this claim."
             verdict = Verdict(
                 claim_id=claim.id,
                 run_version_id=run_version_uuid,
-                verdict_type="insufficient_support",
+                verdict_type=default_verdict_type,
                 confidence_score=0.0,
-                reasoning="No evidence spans retrieved for this claim.",
+                reasoning=default_reasoning,
                 model_name="none",
                 prompt_version=None,
             )

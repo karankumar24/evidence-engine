@@ -78,24 +78,26 @@ async def extract_claims_for_document(
     )
     sources = result.scalars().all()
 
-    # 3. Pre-filter blocks that contain citation markers
+    # 3. Collect paragraph blocks (open extraction — every factual claim, not just cited)
     parsed_blocks = (report.parsed_content or {}).get("blocks", [])
-    citation_blocks = [
-        b for b in parsed_blocks if detect_citation_markers(b.get("text", ""))
+    content_blocks = [
+        b for b in parsed_blocks
+        if b.get("text", "").strip() and b.get("block_type") != "heading"
     ]
 
-    if not citation_blocks:
+    if not content_blocks:
         logger.warning(
-            "No citation blocks found in report %s — returning empty claim list",
+            "Report %s has no content paragraphs — returning empty claim list",
             report_document_id,
         )
         return []
 
-    # 4. Extract references entries for numeric citation resolution
+    # 4. Extract references entries for numeric citation resolution (still useful
+    #    when the LLM does find markers in cited academic text)
     references_entries = extract_references_entries(parsed_blocks)
 
     # 5. LLM extraction — returns ClaimExtractionResponse
-    extraction_result = await extract_claims_from_blocks(citation_blocks)
+    extraction_result = await extract_claims_from_blocks(content_blocks)
 
     # 6. Persist each claim and its anchors
     claims: list[Claim] = []
