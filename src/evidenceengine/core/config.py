@@ -36,6 +36,20 @@ class Settings(BaseSettings):
     # compounds with OpenRouter free-tier rate-limits into multi-minute hangs.
     llm_request_timeout_seconds: float = 60.0
     llm_max_retries: int = 2
+    # Fallback model chain — comma-separated in .env, parsed to list.
+    # When non-empty, the pipeline tries each model in order on timeout/error/refusal.
+    # Falls back gracefully to extraction_model / classification_model if unset.
+    model_fallback_chain: list[str] = Field(default_factory=list)
+    # Per-model timeout when the fallback chain has >1 model — shorter so failures
+    # don't pile up (full chain still gets N × llm_fallback_timeout_seconds budget).
+    llm_fallback_timeout_seconds: float = 30.0
+
+    @field_validator("model_fallback_chain", mode="before")
+    @classmethod
+    def parse_model_chain(cls, v: object) -> list[str]:
+        if isinstance(v, str):
+            return [m.strip() for m in v.split(",") if m.strip()]
+        return v or []  # type: ignore[return-value]
     cors_origins: Annotated[list[str], NoDecode] = ["http://127.0.0.1:8000", "http://localhost:8000"]
     sentry_dsn: str = ""
 

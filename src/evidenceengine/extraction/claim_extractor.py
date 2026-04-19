@@ -56,23 +56,25 @@ async def extract_claims_from_blocks(
         # Run synchronous OpenAI client in a thread to avoid blocking the event loop.
         # AsyncOpenAI + httpx on macOS blocks the asyncio selector for the full
         # request duration; the sync client in a thread is safe and non-blocking.
-        def _sync_request(content: str = text_content) -> ClaimExtractionResponse | None:
-            from openai import OpenAI as _SyncOpenAI  # noqa: PLC0415
-            with _SyncOpenAI(
+        def _sync_request(content: str = text_content) -> object:
+            from evidenceengine.llm.fallback import sync_call_with_fallback  # noqa: PLC0415
+            chain = settings.model_fallback_chain or [settings.extraction_model]
+            timeout = (
+                settings.llm_fallback_timeout_seconds
+                if len(chain) > 1
+                else settings.llm_request_timeout_seconds
+            )
+            return sync_call_with_fallback(
+                model_chain=chain,
+                messages=[
+                    {"role": "system", "content": _SYSTEM_PROMPT},
+                    {"role": "user", "content": content},
+                ],
+                response_format=ClaimExtractionResponse,
+                timeout=timeout,
                 api_key=settings.llm_api_key,
                 base_url=settings.llm_base_url or None,
-                timeout=settings.llm_request_timeout_seconds,
-                max_retries=settings.llm_max_retries,
-            ) as client:
-                completion = client.beta.chat.completions.parse(
-                    model=settings.extraction_model,
-                    messages=[
-                        {"role": "system", "content": _SYSTEM_PROMPT},
-                        {"role": "user", "content": content},
-                    ],
-                    response_format=ClaimExtractionResponse,
-                )
-            return completion.choices[0].message
+            )
 
         message = await asyncio.to_thread(_sync_request)
 
