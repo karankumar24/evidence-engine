@@ -1,27 +1,16 @@
 """Verdict classification logic: classify_claim() and apply_confidence_threshold().
 
-Uses AsyncOpenAI's beta structured output endpoint (beta.chat.completions.parse)
-to produce VerdictClassificationResponse instances with chain-of-thought reasoning.
+Uses the synchronous OpenAI beta structured output endpoint (beta.chat.completions.parse)
+inside asyncio.to_thread so that httpx network I/O does not block the uvicorn event loop.
 """
 
+import asyncio
 import logging
-from typing import TYPE_CHECKING
 
 from evidenceengine.classification.schemas import VerdictClassificationResponse
 from evidenceengine.core.config import settings
 
-if TYPE_CHECKING:
-    from openai import AsyncOpenAI
-
 logger = logging.getLogger(__name__)
-
-# Lazily populated on the first classify_claim() call. Keeps
-# `from openai import AsyncOpenAI` out of the module-import path (saves
-# 5–20 min of macOS syspolicyd `.so` scanning at uvicorn boot).
-# Tests that `patch("…classifier.AsyncOpenAI", mock)` still work: the
-# patch overwrites this sentinel with the mock, and `AsyncOpenAI is None`
-# is False, so the function uses the mock unchanged.
-AsyncOpenAI = None  # type: ignore[assignment]
 
 PROMPT_VERSION = "v1"
 
@@ -77,6 +66,9 @@ async def classify_claim(
 ) -> VerdictClassificationResponse:
     """Classify a claim against retrieved evidence spans using structured LLM output.
 
+    Runs the synchronous OpenAI client in a thread pool (via asyncio.to_thread)
+    to prevent httpx from blocking the uvicorn event loop on macOS.
+
     Args:
         claim_text: The factual claim to be verified.
         evidence_spans: List of dicts with keys span_text, relevance_score, rank.
@@ -98,28 +90,28 @@ async def classify_claim(
         f"EVIDENCE SPANS:\n{evidence_blocks}"
     )
 
-    global AsyncOpenAI
-    if AsyncOpenAI is None:
-        from openai import AsyncOpenAI as _cls
-        AsyncOpenAI = _cls
+    # Run synchronous OpenAI client in a thread to avoid blocking the event loop.
+    # AsyncOpenAI + httpx on macOS blocks the asyncio selector for the full
+    # request duration; the sync client in a thread is safe and non-blocking.
+    def _sync_request(msg: str = user_message) -> object:
+        from openai import OpenAI as _SyncOpenAI  # noqa: PLC0415
+        with _SyncOpenAI(
+            api_key=settings.llm_api_key,
+            base_url=settings.llm_base_url or None,
+            timeout=settings.llm_request_timeout_seconds,
+            max_retries=settings.llm_max_retries,
+        ) as client:
+            completion = client.beta.chat.completions.parse(
+                model=settings.classification_model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": msg},
+                ],
+                response_format=VerdictClassificationResponse,
+            )
+        return completion.choices[0].message
 
-    client = AsyncOpenAI(
-        api_key=settings.llm_api_key,
-        base_url=settings.llm_base_url or None,
-        timeout=settings.llm_request_timeout_seconds,
-        max_retries=settings.llm_max_retries,
-    )
-
-    completion = await client.beta.chat.completions.parse(
-        model=settings.classification_model,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_message},
-        ],
-        response_format=VerdictClassificationResponse,
-    )
-
-    message = completion.choices[0].message
+    message = await asyncio.to_thread(_sync_request)
 
     if message.refusal:
         return VerdictClassificationResponse(

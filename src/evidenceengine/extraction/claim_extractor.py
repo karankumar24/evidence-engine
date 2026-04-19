@@ -1,25 +1,15 @@
-"""Async LLM claim extractor using AsyncOpenAI structured output.
+"""LLM claim extractor using structured output.
 
-Calls GPT-4o-mini (or configured model) with response_format=ClaimExtractionResponse
-to extract only sentences that carry citation markers from report text blocks.
+Uses the synchronous OpenAI client inside asyncio.to_thread so that
+httpx network I/O (which blocks the event loop on macOS via the async
+client) runs in a worker thread, keeping uvicorn fully responsive.
 """
 
+import asyncio
 import logging
-from typing import TYPE_CHECKING
 
 from evidenceengine.core.config import settings
 from evidenceengine.extraction.schemas import ClaimExtractionResponse
-
-if TYPE_CHECKING:
-    from openai import AsyncOpenAI
-
-# Lazily populated on the first extract_claims_from_blocks() call. Keeps
-# `from openai import AsyncOpenAI` out of the module-import path (saves
-# 5–20 min of macOS syspolicyd `.so` scanning at uvicorn boot).
-# Tests that `patch("…claim_extractor.AsyncOpenAI", mock)` still work: the
-# patch overwrites this sentinel with the mock, and `AsyncOpenAI is None`
-# is False, so the function uses the mock unchanged.
-AsyncOpenAI = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +34,9 @@ async def extract_claims_from_blocks(
 ) -> ClaimExtractionResponse:
     """Extract cited claims from pre-filtered text blocks using LLM structured output.
 
+    Runs the synchronous OpenAI client in a thread pool (via asyncio.to_thread)
+    to prevent httpx from blocking the uvicorn event loop on macOS.
+
     Args:
         citation_blocks: Blocks already filtered to those containing citation markers.
                          Each dict has at minimum a "text" key.
@@ -55,34 +48,34 @@ async def extract_claims_from_blocks(
     if not citation_blocks:
         return ClaimExtractionResponse(claims=[])
 
-    global AsyncOpenAI
-    if AsyncOpenAI is None:
-        from openai import AsyncOpenAI as _cls
-        AsyncOpenAI = _cls
-
-    client = AsyncOpenAI(
-        api_key=settings.llm_api_key,
-        base_url=settings.llm_base_url or None,
-        timeout=settings.llm_request_timeout_seconds,
-        max_retries=settings.llm_max_retries,
-    )
-
-    # Chunk blocks to avoid context limits
     all_claims: list = []
     for chunk_start in range(0, len(citation_blocks), _MAX_BLOCKS_PER_CALL):
         chunk = citation_blocks[chunk_start : chunk_start + _MAX_BLOCKS_PER_CALL]
         text_content = "\n\n".join(block.get("text", "") for block in chunk)
 
-        completion = await client.chat.completions.parse(
-            model=settings.extraction_model,
-            messages=[
-                {"role": "system", "content": _SYSTEM_PROMPT},
-                {"role": "user", "content": text_content},
-            ],
-            response_format=ClaimExtractionResponse,
-        )
+        # Run synchronous OpenAI client in a thread to avoid blocking the event loop.
+        # AsyncOpenAI + httpx on macOS blocks the asyncio selector for the full
+        # request duration; the sync client in a thread is safe and non-blocking.
+        def _sync_request(content: str = text_content) -> ClaimExtractionResponse | None:
+            from openai import OpenAI as _SyncOpenAI  # noqa: PLC0415
+            with _SyncOpenAI(
+                api_key=settings.llm_api_key,
+                base_url=settings.llm_base_url or None,
+                timeout=settings.llm_request_timeout_seconds,
+                max_retries=settings.llm_max_retries,
+            ) as client:
+                completion = client.beta.chat.completions.parse(
+                    model=settings.extraction_model,
+                    messages=[
+                        {"role": "system", "content": _SYSTEM_PROMPT},
+                        {"role": "user", "content": content},
+                    ],
+                    response_format=ClaimExtractionResponse,
+                )
+            return completion.choices[0].message
 
-        message = completion.choices[0].message
+        message = await asyncio.to_thread(_sync_request)
+
         if message.refusal:
             logger.warning(
                 "LLM refused to extract claims: %s. Returning empty for this chunk.",

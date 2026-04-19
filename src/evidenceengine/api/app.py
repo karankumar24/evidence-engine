@@ -133,7 +133,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         import time as _time
         def _do_import() -> float:
             t0 = _time.monotonic()
-            from openai import AsyncOpenAI  # noqa: F401
+            from openai import OpenAI  # noqa: F401
             return _time.monotonic() - t0
         try:
             dur = await _asyncio.to_thread(_do_import)
@@ -141,6 +141,33 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         except Exception:
             logger.exception("openai prewarm failed — first pipeline run may hang")
     app.state.openai_prewarm = asyncio.create_task(_prewarm_openai())
+
+    # Pre-warm the TLS/SSL stack by making a synchronous HTTPS connection in a
+    # background thread. On macOS Tahoe, the first TLS handshake triggers
+    # Gatekeeper/keychain scanning that BLOCKS the asyncio event loop for several
+    # minutes — making the server appear hung during the first LLM pipeline call.
+    # Running a synchronous urllib request in a thread here warms the macOS
+    # security subsystem so subsequent async httpx connections are non-blocking.
+    async def _prewarm_tls() -> None:
+        import time as _time
+        import asyncio as _asyncio
+        def _do_connect() -> float:
+            import urllib.request
+            t0 = _time.monotonic()
+            try:
+                urllib.request.urlopen(
+                    (settings.llm_base_url or "https://openrouter.ai/api/v1") + "/models",
+                    timeout=20,
+                )
+            except Exception:
+                pass  # 401/404/network error is fine — the TLS handshake is what matters
+            return _time.monotonic() - t0
+        try:
+            dur = await _asyncio.to_thread(_do_connect)
+            logger.info("TLS stack prewarmed to LLM endpoint in %.1fs", dur)
+        except Exception:
+            logger.exception("TLS prewarm failed — first LLM pipeline call may stall")
+    app.state.tls_prewarm = asyncio.create_task(_prewarm_tls())
 
     # Recover orphaned in-flight runs from a previous server crash/restart.
     # Any run still in a pipeline stage means its background task was killed

@@ -273,7 +273,7 @@ if settings.debug:
             )
             db.add(verdict)
 
-        await db.flush()
+        await db.commit()
         return RedirectResponse(f"/dashboard/{packet_id}/{run_id}", status_code=303)
 
 

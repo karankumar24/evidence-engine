@@ -74,17 +74,17 @@ class TestVerdictClassificationResponseSchema:
 # ---------------------------------------------------------------------------
 
 
-def _make_mock_response(verdict_type: str, confidence_score: float, reasoning: str = "Test reasoning."):
-    """Build a mock OpenAI response with a parsed VerdictClassificationResponse."""
+def _make_mock_message(verdict_type: str, confidence_score: float, reasoning: str = "Test reasoning."):
+    """Build the message object that _sync_request returns (completion.choices[0].message)."""
     parsed = VerdictClassificationResponse(
         reasoning=reasoning,
         verdict_type=verdict_type,
         confidence_score=confidence_score,
     )
-    mock_response = MagicMock()
-    mock_response.choices[0].message.parsed = parsed
-    mock_response.choices[0].message.refusal = None
-    return mock_response
+    mock_message = MagicMock()
+    mock_message.parsed = parsed
+    mock_message.refusal = None
+    return mock_message
 
 
 SAMPLE_EVIDENCE_SPANS = [
@@ -98,105 +98,99 @@ class TestClassifyClaimFunction:
 
     @pytest.mark.asyncio
     async def test_returns_supported_verdict(self):
-        mock_response = _make_mock_response("supported", 0.9)
-        with patch("evidenceengine.classification.classifier.AsyncOpenAI") as mock_cls:
-            mock_client = MagicMock()
-            mock_cls.return_value = mock_client
-            mock_client.beta.chat.completions.parse = AsyncMock(return_value=mock_response)
-
+        mock_message = _make_mock_message("supported", 0.9)
+        with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+                   new_callable=AsyncMock) as mock_thread:
+            mock_thread.return_value = mock_message
             result = await classify_claim(
                 claim_text="Revenue grew by 12%.",
                 evidence_spans=SAMPLE_EVIDENCE_SPANS,
             )
-
         assert result.verdict_type == "supported"
         assert result.confidence_score == 0.9
 
     @pytest.mark.asyncio
     async def test_returns_contradicted_verdict(self):
-        mock_response = _make_mock_response("contradicted", 0.88)
-        with patch("evidenceengine.classification.classifier.AsyncOpenAI") as mock_cls:
-            mock_client = MagicMock()
-            mock_cls.return_value = mock_client
-            mock_client.beta.chat.completions.parse = AsyncMock(return_value=mock_response)
-
+        mock_message = _make_mock_message("contradicted", 0.88)
+        with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+                   new_callable=AsyncMock) as mock_thread:
+            mock_thread.return_value = mock_message
             result = await classify_claim(
                 claim_text="Revenue declined.",
                 evidence_spans=SAMPLE_EVIDENCE_SPANS,
             )
-
         assert result.verdict_type == "contradicted"
 
     @pytest.mark.asyncio
     async def test_returns_insufficient_support_verdict(self):
-        mock_response = _make_mock_response("insufficient_support", 0.6)
-        with patch("evidenceengine.classification.classifier.AsyncOpenAI") as mock_cls:
-            mock_client = MagicMock()
-            mock_cls.return_value = mock_client
-            mock_client.beta.chat.completions.parse = AsyncMock(return_value=mock_response)
-
+        mock_message = _make_mock_message("insufficient_support", 0.6)
+        with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+                   new_callable=AsyncMock) as mock_thread:
+            mock_thread.return_value = mock_message
             result = await classify_claim(
                 claim_text="All financial metrics improved.",
                 evidence_spans=SAMPLE_EVIDENCE_SPANS,
             )
-
         assert result.verdict_type == "insufficient_support"
 
     @pytest.mark.asyncio
     async def test_returns_needs_review_verdict(self):
-        mock_response = _make_mock_response("needs_review", 0.5)
-        with patch("evidenceengine.classification.classifier.AsyncOpenAI") as mock_cls:
-            mock_client = MagicMock()
-            mock_cls.return_value = mock_client
-            mock_client.beta.chat.completions.parse = AsyncMock(return_value=mock_response)
-
+        mock_message = _make_mock_message("needs_review", 0.5)
+        with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+                   new_callable=AsyncMock) as mock_thread:
+            mock_thread.return_value = mock_message
             result = await classify_claim(
                 claim_text="Performance was mixed.",
                 evidence_spans=SAMPLE_EVIDENCE_SPANS,
             )
-
         assert result.verdict_type == "needs_review"
 
     @pytest.mark.asyncio
     async def test_returns_needs_review_with_zero_confidence_on_refusal(self):
-        mock_response = MagicMock()
-        mock_response.choices[0].message.refusal = "I cannot classify this claim."
-        mock_response.choices[0].message.parsed = None
-
-        with patch("evidenceengine.classification.classifier.AsyncOpenAI") as mock_cls:
-            mock_client = MagicMock()
-            mock_cls.return_value = mock_client
-            mock_client.beta.chat.completions.parse = AsyncMock(return_value=mock_response)
-
+        mock_message = MagicMock()
+        mock_message.refusal = "I cannot classify this claim."
+        mock_message.parsed = None
+        with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+                   new_callable=AsyncMock) as mock_thread:
+            mock_thread.return_value = mock_message
             result = await classify_claim(
                 claim_text="Sensitive claim.",
                 evidence_spans=SAMPLE_EVIDENCE_SPANS,
             )
-
         assert result.verdict_type == "needs_review"
         assert result.confidence_score == 0.0
 
     @pytest.mark.asyncio
     async def test_formats_evidence_spans_as_numbered_blocks(self):
-        mock_response = _make_mock_response("supported", 0.9)
+        """Verify the user message sent to the LLM contains correctly formatted evidence blocks.
+
+        Patches openai.OpenAI so _sync_request runs fully (building the real message)
+        but uses a fake sync client to capture what was sent.
+        """
         captured_messages = []
 
-        async def capture_parse(**kwargs):
+        def fake_parse(**kwargs):
             captured_messages.extend(kwargs.get("messages", []))
-            return mock_response
+            from evidenceengine.classification.schemas import VerdictClassificationResponse
+            parsed = VerdictClassificationResponse(
+                reasoning="Test.", verdict_type="supported", confidence_score=0.9
+            )
+            result_msg = MagicMock()
+            result_msg.refusal = None
+            result_msg.parsed = parsed
+            return MagicMock(choices=[MagicMock(message=result_msg)])
 
-        with patch("evidenceengine.classification.classifier.AsyncOpenAI") as mock_cls:
-            mock_client = MagicMock()
-            mock_cls.return_value = mock_client
-            mock_client.beta.chat.completions.parse = capture_parse
+        with patch("openai.OpenAI") as mock_openai_cls:
+            mock_client = mock_openai_cls.return_value.__enter__.return_value
+            mock_client.beta.chat.completions.parse = fake_parse
 
             await classify_claim(
                 claim_text="Revenue grew.",
                 evidence_spans=SAMPLE_EVIDENCE_SPANS,
             )
 
-        user_message = next(m for m in captured_messages if m["role"] == "user")
-        content = user_message["content"]
+        user_msg = next(m for m in captured_messages if m["role"] == "user")
+        content = user_msg["content"]
         assert "[Evidence 1 (relevance: 0.95)]" in content
         assert "[Evidence 2 (relevance: 0.82)]" in content
         assert "Revenue grew by 12% year over year." in content

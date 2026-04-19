@@ -2,7 +2,7 @@
 
 TDD RED phase: written BEFORE implementation.
 Uses real test DB with transaction rollback.
-Mocks AsyncOpenAI to avoid real LLM calls.
+Mocks asyncio.to_thread to avoid real LLM calls.
 """
 
 import os
@@ -119,8 +119,8 @@ async def make_packet_with_claim(
     return packet, report_doc, run_version, claims, all_spans
 
 
-def make_mock_openai(verdict_type="supported", confidence_score=0.9, reasoning="Clear evidence supports the claim."):
-    """Create a mock AsyncOpenAI client that returns a structured verdict response."""
+def make_mock_message(verdict_type="supported", confidence_score=0.9, reasoning="Clear evidence supports the claim."):
+    """Build the message object that asyncio.to_thread(_sync_request) returns."""
     from evidenceengine.classification.schemas import VerdictClassificationResponse
 
     mock_parsed = VerdictClassificationResponse(
@@ -131,17 +131,7 @@ def make_mock_openai(verdict_type="supported", confidence_score=0.9, reasoning="
     mock_message = MagicMock()
     mock_message.parsed = mock_parsed
     mock_message.refusal = None
-
-    mock_completion = MagicMock()
-    mock_completion.choices = [MagicMock(message=mock_message)]
-
-    mock_beta = MagicMock()
-    mock_beta.chat.completions.parse = AsyncMock(return_value=mock_completion)
-
-    mock_client = MagicMock()
-    mock_client.beta = mock_beta
-
-    return mock_client
+    return mock_message
 
 
 # ---------------------------------------------------------------------------
@@ -157,9 +147,9 @@ async def test_pipeline_single_claim_creates_verdict_and_evidence_rows(db_sessio
 
     _, _, run_version, claims, spans = await make_packet_with_claim(db_session, n_claims=1, evidence_per_claim=2)
 
-    mock_client = make_mock_openai(verdict_type="supported", confidence_score=0.9, reasoning="Supported by evidence.")
-
-    with patch("evidenceengine.classification.classifier.AsyncOpenAI", return_value=mock_client):
+    with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+               new_callable=AsyncMock) as mock_thread:
+        mock_thread.return_value = make_mock_message(verdict_type="supported", confidence_score=0.9, reasoning="Supported by evidence.")
         verdicts = await classify_verdicts_for_run(str(run_version.id), db_session)
 
     assert len(verdicts) == 1
@@ -187,13 +177,13 @@ async def test_pipeline_verdict_fields_match_llm_response(db_session):
 
     _, _, run_version, _, _ = await make_packet_with_claim(db_session, n_claims=1, evidence_per_claim=2)
 
-    mock_client = make_mock_openai(
-        verdict_type="contradicted",
-        confidence_score=0.85,
-        reasoning="Evidence directly contradicts the claim.",
-    )
-
-    with patch("evidenceengine.classification.classifier.AsyncOpenAI", return_value=mock_client):
+    with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+               new_callable=AsyncMock) as mock_thread:
+        mock_thread.return_value = make_mock_message(
+            verdict_type="contradicted",
+            confidence_score=0.85,
+            reasoning="Evidence directly contradicts the claim.",
+        )
         verdicts = await classify_verdicts_for_run(str(run_version.id), db_session)
 
     assert len(verdicts) == 1
@@ -212,9 +202,9 @@ async def test_pipeline_verdict_evidence_weight_matches_relevance_score(db_sessi
 
     _, _, run_version, claims, spans = await make_packet_with_claim(db_session, n_claims=1, evidence_per_claim=2)
 
-    mock_client = make_mock_openai()
-
-    with patch("evidenceengine.classification.classifier.AsyncOpenAI", return_value=mock_client):
+    with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+               new_callable=AsyncMock) as mock_thread:
+        mock_thread.return_value = make_mock_message()
         await classify_verdicts_for_run(str(run_version.id), db_session)
 
     verdict_result = await db_session.execute(
@@ -244,16 +234,16 @@ async def test_pipeline_zero_evidence_produces_insufficient_support(db_session):
 
     _, _, run_version, _, _ = await make_packet_with_claim(db_session, n_claims=1, evidence_per_claim=0)
 
-    mock_client = make_mock_openai()
-
-    with patch("evidenceengine.classification.classifier.AsyncOpenAI", return_value=mock_client):
+    with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+               new_callable=AsyncMock) as mock_thread:
+        mock_thread.return_value = make_mock_message()
         verdicts = await classify_verdicts_for_run(str(run_version.id), db_session)
 
     assert len(verdicts) == 1
     assert verdicts[0].verdict_type == "insufficient_support"
     assert verdicts[0].confidence_score == 0.0
     # LLM was never called
-    mock_client.beta.chat.completions.parse.assert_not_called()
+    mock_thread.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -265,15 +255,15 @@ async def test_pipeline_unresolvable_anchor_produces_needs_review(db_session):
         db_session, n_claims=1, evidence_per_claim=2, claim_status="unresolvable_anchor"
     )
 
-    mock_client = make_mock_openai()
-
-    with patch("evidenceengine.classification.classifier.AsyncOpenAI", return_value=mock_client):
+    with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+               new_callable=AsyncMock) as mock_thread:
+        mock_thread.return_value = make_mock_message()
         verdicts = await classify_verdicts_for_run(str(run_version.id), db_session)
 
     assert len(verdicts) == 1
     assert verdicts[0].verdict_type == "needs_review"
     assert verdicts[0].confidence_score == 0.0
-    mock_client.beta.chat.completions.parse.assert_not_called()
+    mock_thread.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -283,9 +273,9 @@ async def test_pipeline_low_confidence_overridden_to_needs_review(db_session):
 
     _, _, run_version, _, _ = await make_packet_with_claim(db_session, n_claims=1, evidence_per_claim=2)
 
-    mock_client = make_mock_openai(verdict_type="supported", confidence_score=0.4)
-
-    with patch("evidenceengine.classification.classifier.AsyncOpenAI", return_value=mock_client):
+    with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+               new_callable=AsyncMock) as mock_thread:
+        mock_thread.return_value = make_mock_message(verdict_type="supported", confidence_score=0.4)
         verdicts = await classify_verdicts_for_run(str(run_version.id), db_session)
 
     assert len(verdicts) == 1
@@ -302,13 +292,15 @@ async def test_pipeline_idempotent_no_duplicate_verdicts(db_session):
 
     _, _, run_version, _, _ = await make_packet_with_claim(db_session, n_claims=1, evidence_per_claim=2)
 
-    mock_client = make_mock_openai()
-
-    with patch("evidenceengine.classification.classifier.AsyncOpenAI", return_value=mock_client):
+    with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+               new_callable=AsyncMock) as mock_thread:
+        mock_thread.return_value = make_mock_message()
         verdicts_first = await classify_verdicts_for_run(str(run_version.id), db_session)
 
     # Second call — should not raise UniqueConstraint
-    with patch("evidenceengine.classification.classifier.AsyncOpenAI", return_value=mock_client):
+    with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+               new_callable=AsyncMock) as mock_thread:
+        mock_thread.return_value = make_mock_message()
         verdicts_second = await classify_verdicts_for_run(str(run_version.id), db_session)
 
     result = await db_session.execute(
@@ -327,9 +319,9 @@ async def test_pipeline_multiple_claims_one_verdict_each(db_session):
 
     _, _, run_version, claims, _ = await make_packet_with_claim(db_session, n_claims=3, evidence_per_claim=2)
 
-    mock_client = make_mock_openai()
-
-    with patch("evidenceengine.classification.classifier.AsyncOpenAI", return_value=mock_client):
+    with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+               new_callable=AsyncMock) as mock_thread:
+        mock_thread.return_value = make_mock_message()
         verdicts = await classify_verdicts_for_run(str(run_version.id), db_session)
 
     assert len(verdicts) == 3
@@ -348,9 +340,9 @@ async def test_pipeline_empty_run_returns_empty_list(db_session):
 
     _, _, run_version, _, _ = await make_packet_with_claim(db_session, n_claims=0)
 
-    mock_client = make_mock_openai()
-
-    with patch("evidenceengine.classification.classifier.AsyncOpenAI", return_value=mock_client):
+    with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+               new_callable=AsyncMock) as mock_thread:
+        mock_thread.return_value = make_mock_message()
         verdicts = await classify_verdicts_for_run(str(run_version.id), db_session)
 
     assert verdicts == []
@@ -418,9 +410,9 @@ async def test_classify_endpoint_returns_202(async_client, db_session):
     rv = result.scalar_one()
     packet_id = rv.packet_id
 
-    mock_client = make_mock_openai()
-
-    with patch("evidenceengine.classification.classifier.AsyncOpenAI", return_value=mock_client):
+    with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+               new_callable=AsyncMock) as mock_thread:
+        mock_thread.return_value = make_mock_message()
         response = await async_client.post(f"/api/packets/{packet_id}/classify")
 
     assert response.status_code == 202
@@ -439,9 +431,9 @@ async def test_classify_endpoint_sets_run_version_fields(async_client, db_sessio
 
     packet, _, run_version, _, _ = await make_packet_with_claim(db_session, n_claims=1, evidence_per_claim=2)
 
-    mock_client = make_mock_openai()
-
-    with patch("evidenceengine.classification.classifier.AsyncOpenAI", return_value=mock_client):
+    with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+               new_callable=AsyncMock) as mock_thread:
+        mock_thread.return_value = make_mock_message()
         response = await async_client.post(f"/api/packets/{packet.id}/classify")
 
     assert response.status_code == 202
