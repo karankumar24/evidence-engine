@@ -19,13 +19,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from evidenceengine.core.config import settings
-from evidenceengine.models.claim import CitationAnchor, Claim
+from evidenceengine.models.claim import Claim
 from evidenceengine.models.document import SourceDocument
 from evidenceengine.models.evidence import EvidenceSpan
 from evidenceengine.retrieval.bm25_retriever import load_or_build_index, query_index
 from evidenceengine.retrieval.indexer import extract_spans
-from evidenceengine.retrieval.reranker import rerank
 from evidenceengine.retrieval.recall_logger import log_retrieval_metrics
+from evidenceengine.retrieval.reranker import rerank
 
 logger = logging.getLogger(__name__)
 
