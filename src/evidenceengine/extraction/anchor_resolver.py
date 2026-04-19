@@ -1,6 +1,6 @@
 """Anchor resolver: maps citation markers to SourceDocument records.
 
-Uses exact reference-section lookup for numeric citations and RapidFuzz
+Uses exact reference-section lookup for numeric citations and difflib
 fuzzy matching for author-year citations.
 
 Key invariant: NEVER drop a CitationAnchor — if unresolvable, write
@@ -8,13 +8,12 @@ resolution_status='unresolvable' to DB. This is enforced by the caller
 (pipeline.py), not here. This module only returns (doc_id|None, status).
 """
 
+import difflib
 import re
 
-from rapidfuzz import fuzz
-
-# Minimum fuzzy match score to consider a citation resolved.
-# Research-backed: token_sort_ratio >= 80 balances precision/recall for
-# author-year citations against document filenames and raw text snippets.
+# Minimum fuzzy match score (0-100) to consider a citation resolved.
+# Calibrated at 80 to balance precision/recall for author-year citations
+# against document filenames and raw text snippets.
 RESOLUTION_THRESHOLD = 80
 
 # Recognized headings that introduce a references section.
@@ -105,8 +104,7 @@ def resolve_to_source_document(
         filename_clean = doc.filename.replace("_", " ").replace(".", " ")
         # Build target string: cleaned filename + first 500 chars of raw_text
         target = f"{filename_clean} {(doc.raw_text or '')[:500]}"
-        # WRatio combines multiple algorithms — best for mixed filename/text matching
-        score = fuzz.WRatio(candidate, target)
+        score = difflib.SequenceMatcher(None, candidate.lower(), target.lower()).ratio() * 100
         if score > best_score:
             best_score = score
             best_doc_id = str(doc.id)

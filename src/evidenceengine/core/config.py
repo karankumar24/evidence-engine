@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     # Fallback model chain — comma-separated in .env, parsed to list.
     # When non-empty, the pipeline tries each model in order on timeout/error/refusal.
     # Falls back gracefully to extraction_model / classification_model if unset.
-    model_fallback_chain: list[str] = Field(default_factory=list)
+    model_fallback_chain: Annotated[list[str], NoDecode] = Field(default_factory=list)
     # Per-model timeout when the fallback chain has >1 model — shorter so failures
     # don't pile up (full chain still gets N × llm_fallback_timeout_seconds budget).
     llm_fallback_timeout_seconds: float = 30.0
