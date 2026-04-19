@@ -46,8 +46,10 @@ COPY --from=css-builder /app/src/evidenceengine/static/css/app.css \
 COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Fallback upload/index dirs if no volume is mounted (dev / CI)
-RUN mkdir -p /app/uploads /app/indexes && chown -R ee:ee /app
+# Fallback upload/index/cache dirs. HF cache is needed for the cross-encoder
+# reranker download — without HF_HOME set it defaults to $HOME/.cache which
+# resolves to /home/ee/.cache on Fly and fails with PermissionError.
+RUN mkdir -p /app/uploads /app/indexes /app/.cache/huggingface && chown -R ee:ee /app
 
 EXPOSE 8000
 
@@ -56,6 +58,9 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV UPLOAD_DIR=/app/uploads
 ENV INDEX_DIR=/app/indexes
+ENV HF_HOME=/app/.cache/huggingface
+ENV TRANSFORMERS_CACHE=/app/.cache/huggingface
+ENV HOME=/app
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD curl -fsS http://127.0.0.1:8000/healthz || exit 1
