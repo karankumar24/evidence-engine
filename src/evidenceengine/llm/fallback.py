@@ -12,8 +12,11 @@ from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
-# HTTP status codes that mean "try the next model" rather than "fatal error"
-_RETRIABLE_CODES = frozenset({400, 408, 429, 502, 503, 529})
+# HTTP status codes that mean "try the next model" rather than "fatal error".
+# 404 is included because OpenRouter returns it when a model name is not
+# available (free models rotate in/out), and we want to fall through rather
+# than abort the whole run.
+_RETRIABLE_CODES = frozenset({400, 404, 408, 429, 502, 503, 529})
 
 
 def sync_call_with_fallback(
