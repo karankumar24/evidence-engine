@@ -141,3 +141,4 @@ node_modules/
 # Claude Code local state (shouldn't be committed)
 # =============================================================================
 .claude/
+.gstack/
