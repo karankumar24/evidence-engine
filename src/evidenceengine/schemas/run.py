@@ -67,3 +67,4 @@ class RunResultsResponse(BaseModel):
     status: str
     verdicts: list[VerdictResultItem]
     claim_errors: list[dict]  # from pipeline_config["claim_errors"]
+    error_summary: str | None = None  # populated when status == "failed"

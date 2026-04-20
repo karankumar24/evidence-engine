@@ -51,4 +51,5 @@ async def get_run_results(
         status=run.status,
         verdicts=[VerdictResultItem.model_validate(v) for v in verdicts],
         claim_errors=claim_errors,
+        error_summary=run.error_summary,
     )
