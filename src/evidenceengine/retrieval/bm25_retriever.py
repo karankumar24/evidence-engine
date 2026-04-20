@@ -70,7 +70,28 @@ def query_index(retriever, query: str, k: int = 10) -> tuple[list[str], list[flo
     import bm25s  # noqa: PLC0415 — lazy to avoid blocking startup
     query_tokens = bm25s.tokenize([query], stopwords="en")
     results, scores = retriever.retrieve(query_tokens, k=k)
-    # results shape: (1, k); scores shape: (1, k) — slice [0] for single-query
-    span_texts = [str(s) for s in results[0]]
+    # results shape: (1, k); scores shape: (1, k).
+    # Each entry in results[0] is a numpy int index into retriever.corpus OR a
+    # dict {id, text} when the corpus was loaded with load_corpus=True. We
+    # resolve both to the actual text. Before this resolution the function
+    # was returning the stringified indices (e.g. "4", "11") as if they were
+    # passage text — retrieval was effectively broken for callers that use
+    # the returned texts as evidence.
+    corpus = getattr(retriever, "corpus", None)
+
+    def _resolve(entry):
+        if isinstance(entry, dict):
+            return entry.get("text", "")
+        if corpus is not None:
+            try:
+                item = corpus[int(entry)]
+            except (TypeError, ValueError, IndexError):
+                return str(entry)
+            if isinstance(item, dict):
+                return item.get("text", "")
+            return str(item)
+        return str(entry)
+
+    span_texts = [_resolve(s) for s in results[0]]
     score_list = [float(s) for s in scores[0]]
     return span_texts, score_list
