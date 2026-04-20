@@ -3,7 +3,7 @@
 import uuid
 from collections import Counter
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -206,9 +206,22 @@ async def upsert_review_decision(
 
 
 async def load_runs_index(db: AsyncSession, limit: int = 50) -> list[RunVersion]:
-    """Load recent runs with their packets for the dashboard index page."""
+    """Load LATEST run per packet for the dashboard index page (deduplicated).
+
+    Without this dedup, the dashboard accumulates rows across every re-upload of
+    the same packet, hiding the user's most recent verdict result among historical
+    failures. Uses a window function to pick row_number=1 per partition_by(packet_id),
+    ordered by created_at DESC. Falls back gracefully if the DB has no runs.
+    """
+    rn = func.row_number().over(
+        partition_by=RunVersion.packet_id,
+        order_by=RunVersion.created_at.desc(),
+    ).label("rn")
+    latest_subq = select(RunVersion.id, rn).subquery()
     result = await db.execute(
         select(RunVersion)
+        .join(latest_subq, RunVersion.id == latest_subq.c.id)
+        .where(latest_subq.c.rn == 1)
         .options(selectinload(RunVersion.packet))
         .order_by(RunVersion.created_at.desc())
         .limit(limit)
