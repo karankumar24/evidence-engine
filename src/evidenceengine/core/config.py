@@ -49,7 +49,16 @@ class Settings(BaseSettings):
     # Fallback model chain — comma-separated in .env, parsed to list.
     # When non-empty, the pipeline tries each model in order on timeout/error/refusal.
     # Falls back gracefully to extraction_model / classification_model if unset.
-    model_fallback_chain: Annotated[list[str], NoDecode] = Field(default_factory=list)
+    # Default is the same live chain shipped in fly.toml so local dev gets the
+    # same resilience as prod. Audit monthly against /api/v1/models.
+    model_fallback_chain: Annotated[list[str], NoDecode] = Field(
+        default_factory=lambda: [
+            "qwen/qwen3-next-80b-a3b-instruct:free",
+            "meta-llama/llama-3.3-70b-instruct:free",
+            "google/gemma-4-26b-a4b-it:free",
+            "arcee-ai/trinity-large-preview:free",
+        ]
+    )
     # Per-model timeout when the fallback chain has >1 model — shorter so failures
     # don't pile up (full chain still gets N × llm_fallback_timeout_seconds budget).
     llm_fallback_timeout_seconds: float = 30.0
