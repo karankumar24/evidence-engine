@@ -13,8 +13,31 @@ import re
 
 # Minimum fuzzy match score (0-100) to consider a citation resolved.
 # Calibrated at 80 to balance precision/recall for author-year citations
-# against document filenames and raw text snippets.
+# against document filenames and raw text snippets. The score is the max of
+# (a) char-level SequenceMatcher ratio and (b) token-coverage of candidate
+# tokens within target tokens — see resolve_to_source_document().
 RESOLUTION_THRESHOLD = 80
+
+# Token-coverage substantive-token guard: a candidate must contain at least
+# one token of length >= 4 to qualify for token-coverage scoring. Prevents
+# trivial matches (e.g. candidate "Foo" matching any doc containing "foo").
+# 4 chars admits years (2023) and short author surnames (Wang, Park) while
+# rejecting stop-word-grade tokens (a, to, of).
+_MIN_SUBSTANTIVE_TOKEN_LEN = 4
+
+# Token splitter: word characters of length 2+ (drops punctuation, single chars).
+_TOKEN_RE = re.compile(r"[a-z0-9]{2,}")
+
+
+def _tokens(text: str) -> set[str]:
+    """Lowercase token set, length >= 2, alphanumeric only."""
+    return set(_TOKEN_RE.findall(text.lower()))
+
+
+def _has_substantive_token(tokens: set[str]) -> bool:
+    """True if the token set contains at least one token of length >= 4."""
+    return any(len(t) >= _MIN_SUBSTANTIVE_TOKEN_LEN for t in tokens)
+
 
 # Recognized headings that introduce a references section.
 _REFERENCES_HEADERS = frozenset(
@@ -99,12 +122,28 @@ def resolve_to_source_document(
     best_score = 0
     best_doc_id: str | None = None
 
+    candidate_lower = candidate.lower()
+    candidate_tokens = _tokens(candidate_lower)
+
     for doc in non_report_docs:
         # Clean filename: replace underscores/dots with spaces for better token matching
         filename_clean = doc.filename.replace("_", " ").replace(".", " ")
         # Build target string: cleaned filename + first 500 chars of raw_text
         target = f"{filename_clean} {(doc.raw_text or '')[:500]}"
-        score = difflib.SequenceMatcher(None, candidate.lower(), target.lower()).ratio() * 100
+        target_lower = target.lower()
+        # Combine character-level fuzzy with token-coverage. SequenceMatcher
+        # alone misses clean matches when filenames inject extra tokens (e.g.
+        # candidate "Smith 2023. Climate" vs target "smith climate 2023 pdf
+        # climate ..." scores only 77 — one extra "pdf" token tanks below 80).
+        # Token coverage = fraction of candidate tokens present in target,
+        # gated by MIN_TOKENS so single-word candidates can't match anything.
+        seq_score = difflib.SequenceMatcher(None, candidate_lower, target_lower).ratio() * 100
+        target_tokens = _tokens(target_lower)
+        if candidate_tokens and _has_substantive_token(candidate_tokens):
+            coverage = len(candidate_tokens & target_tokens) / len(candidate_tokens) * 100
+        else:
+            coverage = 0
+        score = max(seq_score, coverage)
         if score > best_score:
             best_score = score
             best_doc_id = str(doc.id)
