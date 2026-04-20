@@ -21,8 +21,15 @@
   <!-- Section 1: Claim in Context -->
   {% call coll.collapsible("Claim in Context", default_open=True, id="ctx-" ~ claim.id | string) %}
     <div class="prose-evidence text-sm whitespace-pre-wrap">
-      {# safe: context_snippet is LLM output, not raw user input — no XSS vector #}
-      {{ context_snippet | replace(claim.claim_text, '<mark class="bg-paper-200 border-b border-ink-300 px-0.5">' + claim.claim_text + '</mark>') | safe }}
+      {#- context_snippet comes from user-uploaded PDF text. DO NOT use `| safe`.
+          Split on the claim text so Jinja autoescapes the surrounding context,
+          and the only literal HTML is our own <mark> tags. -#}
+      {%- set _parts = context_snippet.split(claim.claim_text, 1) -%}
+      {%- if _parts | length == 2 -%}
+        {{ _parts[0] }}<mark class="bg-paper-200 border-b border-ink-300 px-0.5">{{ claim.claim_text }}</mark>{{ _parts[1] }}
+      {%- else -%}
+        {{ context_snippet }}
+      {%- endif -%}
     </div>
   {% endcall %}
 

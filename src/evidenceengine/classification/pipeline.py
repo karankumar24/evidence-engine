@@ -38,11 +38,15 @@ async def classify_verdicts_for_run(
     """
     run_version_uuid = uuid.UUID(run_version_id)
 
-    # 1. Load all Claims for this run with their evidence_spans eagerly (no N+1)
+    # 1. Load all Claims for this run with evidence_spans + citation_anchors
+    # eagerly (no N+1). citation_anchors is needed for self-verify detection.
     result = await db.execute(
         select(Claim)
         .where(Claim.run_version_id == run_version_uuid)
-        .options(selectinload(Claim.evidence_spans))
+        .options(
+            selectinload(Claim.evidence_spans),
+            selectinload(Claim.citation_anchors),
+        )
     )
     claims = result.scalars().all()
 
@@ -50,6 +54,7 @@ async def classify_verdicts_for_run(
         return []
 
     all_verdicts: list[Verdict] = []
+    claim_errors_accumulator: list[dict] = []
 
     for claim in claims:
         # Idempotency: skip if verdict already exists for this claim+run
@@ -100,7 +105,41 @@ async def classify_verdicts_for_run(
             for span in claim.evidence_spans
         ]
 
-        classification = await classify_claim(claim.claim_text, evidence_span_dicts)
+        # Detect self-verify mode: evidence is from the report itself when
+        # the claim has no resolved citation anchors AND its evidence spans
+        # all came from the same doc as the claim.
+        self_verify_mode = not any(
+            a.resolution_status == "resolved" and a.target_document_id is not None
+            for a in (claim.citation_anchors or [])
+        )
+
+        # Per-claim try/except so a single LLM failure (chain exhausted,
+        # structured-output violation, etc.) doesn't kill the whole run.
+        # Records per-claim errors for the orchestrator to surface as
+        # pipeline_config["claim_errors"] (PIPE-05).
+        try:
+            classification = await classify_claim(claim.claim_text, evidence_span_dicts)
+        except Exception as exc:
+            claim_errors_accumulator.append(
+                {"claim_id": str(claim.id), "error": f"{type(exc).__name__}: {exc}"}
+            )
+            continue
+
+        # Self-verify trust guard (VERDICT-02): cap SUPPORTED confidence so
+        # weak self-referential evidence routes to needs_review via the
+        # existing threshold (default 0.7).
+        if (
+            self_verify_mode
+            and classification.verdict_type == "supported"
+            and classification.confidence_score > 0.80
+        ):
+            from evidenceengine.classification.schemas import VerdictClassificationResponse
+            classification = VerdictClassificationResponse(
+                verdict_type="supported",
+                confidence_score=0.80,
+                reasoning=f"[Self-verify cap 0.80] {classification.reasoning}",
+            )
+
         classification = apply_confidence_threshold(
             classification, settings.verdict_needs_review_threshold
         )
@@ -131,6 +170,19 @@ async def classify_verdicts_for_run(
             )
 
         all_verdicts.append(verdict)
+
+    # Surface per-claim classification errors (PIPE-05) to the run so the
+    # dashboard can show "X of Y classified — N failed".
+    if claim_errors_accumulator:
+        from evidenceengine.models.run import RunVersion  # lazy to avoid cycles
+        run = await db.get(RunVersion, run_version_uuid)
+        if run is not None:
+            existing = (run.pipeline_config or {}).get("claim_errors", [])
+            run.pipeline_config = {
+                **(run.pipeline_config or {}),
+                "claim_errors": existing + claim_errors_accumulator,
+                "failed_claim_count": len(existing) + len(claim_errors_accumulator),
+            }
 
     await db.commit()
     return all_verdicts

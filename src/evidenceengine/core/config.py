@@ -32,11 +32,11 @@ class Settings(BaseSettings):
     extraction_model: str = "gpt-4o-mini"
     retrieval_top_k_bm25: int = 10
     retrieval_top_k_final: int = 5
-    # Upper bound on claims extracted per document — safety net for over-eager
-    # LLM extraction on dense tabular PDFs (e.g. financial statements).
-    # Retrieval + classification cost grows linearly with claim count on free
-    # LLM tiers, so 50 keeps a single run inside the rate-limit window.
-    max_claims_per_document: int = 50
+    # Claim cap strategy: scale with document size so small docs aren't
+    # over-capped and large docs don't blow the free-tier LLM budget.
+    # Effective cap = min(page_count * max_claims_per_page, max_claims_absolute).
+    max_claims_per_page: int = 10
+    max_claims_absolute: int = 80
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L6-v2"
     index_dir: str = "./indexes"
     classification_model: str = "gpt-4o-mini"

@@ -99,17 +99,20 @@ async def extract_claims_for_document(
     # 5. LLM extraction — returns ClaimExtractionResponse
     extraction_result = await extract_claims_from_blocks(content_blocks)
 
-    # 5b. Safety cap — over-eager extraction on dense tabular PDFs can
-    # produce hundreds of low-value claims and exhaust the LLM quota during
-    # classification. Truncate to settings.max_claims_per_document.
-    if len(extraction_result.claims) > settings.max_claims_per_document:
+    # 5b. Scale-aware claim cap — over-eager extraction on dense tabular PDFs
+    # can produce hundreds of low-value claims and exhaust the LLM quota
+    # during classification. Cap = min(pages * per_page, absolute).
+    total_pages = max(1, report.total_pages or 1)
+    effective_cap = min(
+        total_pages * settings.max_claims_per_page,
+        settings.max_claims_absolute,
+    )
+    if len(extraction_result.claims) > effective_cap:
         logger.warning(
-            "Extraction produced %d claims for report %s — capping at %d",
-            len(extraction_result.claims),
-            report_document_id,
-            settings.max_claims_per_document,
+            "Extraction produced %d claims for %d-page report %s — capping at %d",
+            len(extraction_result.claims), total_pages, report_document_id, effective_cap,
         )
-        extraction_result.claims = extraction_result.claims[: settings.max_claims_per_document]
+        extraction_result.claims = extraction_result.claims[:effective_cap]
 
     # 6. Persist each claim and its anchors
     claims: list[Claim] = []

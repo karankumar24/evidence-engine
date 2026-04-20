@@ -55,6 +55,14 @@ Score below 0.7 for uncertain cases. Score above 0.85 only when evidence is unam
 A score below 0.7 will route to needs_review automatically — this is a feature, not a failure.
 Be honest about uncertainty rather than artificially inflating confidence.
 
+## Self-verification caveat (when evidence comes from the SAME document as the claim)
+
+If the retrieved evidence spans come from the very same document that contains the
+claim, "self-reference" is not proof. Only return **supported** when a DIFFERENT
+paragraph, in different words, independently restates the fact. If the only evidence
+is a near-duplicate of the claim's own wording, the correct label is
+**insufficient_support** — the document is not self-validating.
+
 ## Instructions
 
 Always reason step-by-step before assigning a label. Complete the reasoning field fully before choosing verdict_type."""

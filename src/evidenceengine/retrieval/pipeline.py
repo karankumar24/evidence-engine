@@ -30,6 +30,11 @@ from evidenceengine.retrieval.reranker import rerank
 logger = logging.getLogger(__name__)
 
 
+def _overlaps(a_start: int, a_end: int, b_start: int, b_end: int) -> bool:
+    """True if [a_start, a_end) and [b_start, b_end) overlap at all."""
+    return a_start < b_end and b_start < a_end
+
+
 async def retrieve_evidence_for_run(
     run_version_id: str,
     db: AsyncSession,
@@ -133,13 +138,25 @@ async def retrieve_evidence_for_run(
                 k=settings.retrieval_top_k_bm25,
             )
 
-            # In self-verification mode, exclude the claim's own paragraph from
-            # evidence (otherwise it trivially matches itself with perfect score).
+            # In self-verification mode, exclude any span that overlaps the
+            # claim's own text position in the source document. Without this
+            # filter, BM25 rank-1 is always the paragraph CONTAINING the claim
+            # (not just the exact claim text), producing circular verdicts like
+            # "SUPPORTED 95%" where the only evidence is the claim itself.
+            # We check on the span_dicts (with char_start/end) then filter
+            # bm25_texts by membership.
             if anchor is None:
-                claim_text_normalized = claim.claim_text.strip()
-                bm25_texts = [
-                    t for t in bm25_texts if t.strip() != claim_text_normalized
-                ]
+                claim_start = claim.char_start or 0
+                claim_end = claim.char_end or 0
+                overlapping_texts = {
+                    sd["text"]
+                    for sd in span_dicts
+                    if _overlaps(
+                        sd.get("char_start", 0), sd.get("char_end", 0),
+                        claim_start, claim_end,
+                    )
+                }
+                bm25_texts = [t for t in bm25_texts if t not in overlapping_texts]
 
             if not bm25_texts:
                 continue
