@@ -79,7 +79,17 @@ async def extract_claims_from_blocks(
                 base_url=settings.llm_base_url or None,
             )
 
-        message = await asyncio.to_thread(_sync_request)
+        try:
+            message = await asyncio.to_thread(_sync_request)
+        except Exception as exc:
+            # Per-batch resilience: one chain-exhausted / timeout failure
+            # must not discard claims from earlier successful batches.
+            logger.warning(
+                "Extraction batch starting at block %d failed (%s: %s) — "
+                "skipping this batch, continuing with next.",
+                chunk_start, type(exc).__name__, exc,
+            )
+            continue
 
         if message.refusal:
             logger.warning(
