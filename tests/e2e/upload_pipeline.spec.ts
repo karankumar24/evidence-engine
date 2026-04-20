@@ -18,7 +18,8 @@ const FIXTURE_PDF = path.resolve(__dirname, "../fixtures/simple_report.pdf");
 test("dashboard page loads", async ({ page }) => {
   await page.goto("/dashboard");
   await expect(page).toHaveTitle(/EvidenceEngine/i);
-  await expect(page.getByRole("link", { name: /EvidenceEngine/i }).first()).toBeVisible();
+  // Nav brand renders as generic element in a11y tree; check the page heading instead
+  await expect(page.getByRole("heading", { name: /Pipeline Runs/i })).toBeVisible();
 });
 
 test("upload page renders the form", async ({ page }) => {
