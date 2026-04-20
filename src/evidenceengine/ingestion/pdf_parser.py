@@ -8,11 +8,14 @@ The critical invariant: raw_text[block.char_start:block.char_end] == block.text
 This is enforced with a self-check after assembly — any offset drift raises ValueError.
 """
 
+import logging
 import os
 
 import fitz  # PyMuPDF
 
 from evidenceengine.ingestion.models import ParsedBlock, ParsedDocument, TextPosition
+
+logger = logging.getLogger(__name__)
 
 # Font size threshold above which a block is classified as a heading
 HEADING_FONT_SIZE_THRESHOLD = 13.0
@@ -92,8 +95,14 @@ def parse_pdf(filepath: str) -> ParsedDocument:
                     }
                 )
                 table_bboxes.append(table.bbox)
-            except Exception:
-                pass
+            except Exception as exc:
+                # Table extraction is best-effort: a malformed table on one
+                # page must not abort parsing the whole document. Log so the
+                # failure is visible but continue.
+                logger.warning(
+                    "pdf_parser: failed to extract table on page %d of %s: %s",
+                    page_num, filename, exc,
+                )
 
         # Layer 2: Structured text extraction with block/line/span hierarchy
         block_dict = page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE)

@@ -24,6 +24,11 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("LLM_BASE_URL", "OPENAI_BASE_URL"),
     )
+    # NOTE: the default string is a placeholder only — in production we set
+    # EXTRACTION_MODEL to an OpenRouter free-tier id (arcee-ai/trinity-...).
+    # Kept as "gpt-4o-mini" because openai SDK rejects empty model names; any
+    # call with this default WILL fail unless LLM_BASE_URL points to OpenAI
+    # proper and the caller has credits. Treat it as "must be overridden".
     extraction_model: str = "gpt-4o-mini"
     retrieval_top_k_bm25: int = 10
     retrieval_top_k_final: int = 5
