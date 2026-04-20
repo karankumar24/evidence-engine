@@ -10,14 +10,30 @@
      class="space-y-6">
 
   {% if run.status == "failed" %}
-    <div class="px-4 py-3 rounded-sm bg-red-50 border border-red-200 text-red-800 text-sm">
+    <div class="px-4 py-3 rounded-sm bg-red-50 border border-red-200 text-red-800 text-sm text-left">
       <p class="font-medium mb-1">Pipeline failed</p>
-      <p class="text-xs font-mono">{{ run.error_summary or "Unknown error" }}</p>
+      <p class="text-xs font-mono break-all">{{ run.error_summary or "Unknown error" }}</p>
+      {% if run.error_summary and "rate limit" in (run.error_summary|lower) %}
+        <p class="mt-2 text-xs">The free-tier LLM quota is currently exhausted. The pipeline will work again once the upstream rate limit resets (usually within minutes, or at 00:00 UTC for daily-quota errors).</p>
+      {% endif %}
       <a href="/dashboard" class="mt-3 inline-block text-xs text-red-700 underline">← Back to dashboard</a>
     </div>
   {% elif run.status == "completed" %}
     <div class="text-sm text-accent-700">Complete — redirecting…</div>
   {% else %}
+    {# Spinner + hero — render ONLY while in-flight so they disappear when status flips. #}
+    <div class="text-center pb-4">
+      <div class="flex justify-center mb-6">
+        <svg class="animate-spin w-10 h-10 text-accent-600" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
+          <path class="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+      </div>
+      <h1 class="font-serif text-2xl font-semibold text-ink-900 mb-2">Verifying your document</h1>
+      <p class="text-ink-500 text-sm">
+        The AI pipeline is running. This page will redirect when complete.
+      </p>
+    </div>
     {% set step_labels = {
       "queued": "Queued",
       "parsing": "Parsing documents",

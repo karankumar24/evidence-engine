@@ -18,20 +18,10 @@
 
   <main class="max-w-lg mx-auto px-8 py-16 text-center">
 
-    <!-- Spinner -->
-    <div class="flex justify-center mb-8">
-      <svg class="animate-spin w-10 h-10 text-accent-600" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
-        <path class="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-      </svg>
-    </div>
-
-    <h1 class="font-serif text-2xl font-semibold text-ink-900 mb-2">Verifying your document</h1>
-    <p class="text-ink-500 text-sm mb-10">
-      The AI pipeline is running. This page will automatically redirect when complete.
-    </p>
-
-    <!-- Pipeline steps + status poll (container swapped every 2s by HTMX) -->
+    <!-- Hero (spinner + title + subtitle) lives INSIDE the HTMX-swapped partial
+         so it disappears immediately on transition to completed/failed —
+         otherwise the spinner+"Verifying your document" stays visible alongside
+         the failure card, sending mixed signals (audit 2026-04-20). -->
     {% include "partials/run_status_body.html" %}
 
     <!-- Run metadata -->
