@@ -27,9 +27,14 @@ RUN groupadd --system ee && useradd --system --gid ee ee
 
 WORKDIR /app
 
-# Install Python deps from requirements.txt (regenerated via `uv export`)
+# Install Python deps from requirements.txt (regenerated via `uv export`).
+# --extra-index-url pytorch/cpu is needed because uv pins torch to the CPU-only
+# wheel (torch==2.8.0+cpu) to avoid ~2GB of CUDA/NVIDIA transitive deps on
+# Fly's CPU-only machines.
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    -r requirements.txt
 
 # Copy application source + static assets (fonts, vendor JS, etc.)
 COPY src/ ./src/
