@@ -28,6 +28,7 @@ from evidenceengine.extraction.anchor_resolver import (
     extract_references_entries,
     resolve_to_source_document,
 )
+from evidenceengine.core.config import settings
 from evidenceengine.extraction.claim_extractor import extract_claims_from_blocks
 from evidenceengine.extraction.position_recovery import recover_position
 from evidenceengine.models.claim import CitationAnchor, Claim
@@ -97,6 +98,18 @@ async def extract_claims_for_document(
 
     # 5. LLM extraction — returns ClaimExtractionResponse
     extraction_result = await extract_claims_from_blocks(content_blocks)
+
+    # 5b. Safety cap — over-eager extraction on dense tabular PDFs can
+    # produce hundreds of low-value claims and exhaust the LLM quota during
+    # classification. Truncate to settings.max_claims_per_document.
+    if len(extraction_result.claims) > settings.max_claims_per_document:
+        logger.warning(
+            "Extraction produced %d claims for report %s — capping at %d",
+            len(extraction_result.claims),
+            report_document_id,
+            settings.max_claims_per_document,
+        )
+        extraction_result.claims = extraction_result.claims[: settings.max_claims_per_document]
 
     # 6. Persist each claim and its anchors
     claims: list[Claim] = []

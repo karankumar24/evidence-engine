@@ -15,18 +15,19 @@ logger = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT = """You are a precise factual-claim extractor. Your task is to identify every verifiable factual claim in the text.
 
-A factual claim is a sentence that asserts something a reader could check — numbers, dates, percentages, causal statements, attributions, outcomes, comparisons, superlatives, or any specific empirical assertion.
+A factual claim is a COMPLETE SENTENCE that asserts something a reader could check — numbers, dates, percentages, causal statements, attributions, outcomes, comparisons, superlatives, or any specific empirical assertion.
 
 Rules:
-1. Extract every sentence that makes a checkable factual assertion — whether or not it has a citation marker
-2. Copy claim sentences VERBATIM — word-for-word, no paraphrasing, no summarizing
-3. SKIP sentences that are purely navigational, purely descriptive of the document structure (e.g., "This report summarises..."), or pure opinion with no verifiable content
-4. If the claim happens to contain a citation marker, identify it and its style:
+1. Extract only well-formed sentences: must start with a capital letter, end with a period/question/exclamation, and contain a subject and a verb.
+2. SKIP table cells, row headers, column headers, bullet fragments, and bare numeric line items. Examples to SKIP: "Products $69,958", "Services", "Total net sales (1)", "Three Months Ended". These are data, not claims.
+3. SKIP pure navigation or document structure ("This report summarises...", "See page 12", "Figure 3").
+4. Copy claim sentences VERBATIM — word-for-word, no paraphrasing, no summarizing.
+5. Extract a sentence whether or not it has a citation marker. If markers exist, record them with style:
    - "numeric": [1], [2,3], [1-3]
    - "author_year": Smith 2023, (Jones et al., 2021)
    - "footnote": ¹, ², superscript numbers
-5. If a claim has no citation marker, return an empty citation_markers list for it — do NOT skip the claim
-6. It is normal and expected for many claims to have zero citation markers. Extract them anyway."""
+   If a claim has no citation marker, return an empty citation_markers list for it.
+6. Aim for QUALITY over quantity. A 4-page financial statement should produce ~5–20 claims, not 100+. If you find yourself extracting every table row, you are over-extracting: stop, reconsider, and keep only narrative sentences that frame the numbers."""
 
 _MAX_BLOCKS_PER_CALL = 50
 
