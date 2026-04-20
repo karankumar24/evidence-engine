@@ -28,6 +28,10 @@ def build_index(spans: list[str], index_dir: str):
     retriever = bm25s.BM25()
     retriever.index(corpus_tokens)
     retriever.save(index_dir, corpus=spans)
+    # retriever.corpus is not set by index/save — only by load(load_corpus=True).
+    # Attach the spans directly so query_index can resolve hit IDs → passage text
+    # without needing a subsequent load round-trip.
+    retriever.corpus = [{"id": i, "text": s} for i, s in enumerate(spans)]
     return retriever
 
 
