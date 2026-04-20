@@ -22,8 +22,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       curl gosu libmagic1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Non-root user the app actually runs as
-RUN groupadd --system ee && useradd --system --gid ee ee
+# Non-root user the app actually runs as.
+# --no-create-home + --home-dir=/app so pwd.getpwuid() returns /app — without
+# this, libs that resolve `~` via pwd (ignoring $HOME) tried to write to
+# /home/ee which exists but is root-owned, producing PermissionError [Errno 13]
+# in ~30% of prod runs (2026-04-20).
+RUN groupadd --system ee && useradd --system --gid ee --no-create-home --home-dir /app ee
 
 WORKDIR /app
 
