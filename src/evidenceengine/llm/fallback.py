@@ -18,6 +18,19 @@ logger = logging.getLogger(__name__)
 # than abort the whole run.
 _RETRIABLE_CODES = frozenset({400, 404, 408, 429, 502, 503, 529})
 
+# Models that ADVERTISE true OpenAI structured-output support
+# (`structured_outputs` in their OpenRouter `supported_parameters`).
+# For these we set `provider.require_parameters: true` so OpenRouter only
+# routes to providers that honor `json_schema`. For OTHER models (those that
+# only have `response_format`) we DROP the flag — otherwise OpenRouter 404s
+# saying no provider supports the combination, even though the model itself
+# can usually be coaxed into producing JSON via the response-healing plugin.
+# Audit monthly against `https://openrouter.ai/api/v1/models` (filter for
+# `:free` ids whose `supported_parameters` contains `structured_outputs`).
+_STRICT_STRUCTURED_OUTPUT_MODELS = frozenset({
+    "arcee-ai/trinity-large-preview:free",
+})
+
 
 def sync_call_with_fallback(
     model_chain: list[str],
@@ -54,19 +67,23 @@ def sync_call_with_fallback(
                 timeout=timeout,
                 max_retries=0,  # we manage the retry chain ourselves
             ) as client:
+                # Only route to a provider that strictly honors json_schema for
+                # models we KNOW support it end-to-end. For models that only
+                # advertise `response_format` (looser support), drop the flag —
+                # otherwise OpenRouter 404s with "no providers". The
+                # response-healing plugin + `if message.parsed is None` fallback
+                # below catch the rare cases where a relaxed model returns junk.
+                extra_body: dict[str, Any] = {
+                    "plugins": [{"id": "response-healing"}],
+                }
+                if model in _STRICT_STRUCTURED_OUTPUT_MODELS:
+                    extra_body["provider"] = {"require_parameters": True}
+
                 completion = client.beta.chat.completions.parse(
                     model=model,
                     messages=messages,
                     response_format=response_format,
-                    extra_body={
-                        # Only route to provider endpoints that support json_schema.
-                        # Without this, OpenRouter may silently route to an endpoint
-                        # that ignores response_format, causing message.parsed = None.
-                        "provider": {"require_parameters": True},
-                        # Automatically repair near-miss JSON (trailing commas,
-                        # missing brackets, markdown wrappers) from free models.
-                        "plugins": [{"id": "response-healing"}],
-                    },
+                    extra_body=extra_body,
                 )
             message = completion.choices[0].message
 
