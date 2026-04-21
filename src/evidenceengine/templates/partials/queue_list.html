@@ -58,46 +58,5 @@
 
 <!-- Claim queue -->
 <div id="queue-list">
-  {% for claim in claims %}
-    {% set verdict = claim.verdicts[0] if claim.verdicts else None %}
-    {% set decision = claim.review_decisions[0] if claim.review_decisions else None %}
-    {% set decision_colors = {
-      "approve": "text-verdict-supported",
-      "reject": "text-verdict-contradicted",
-      "mark_insufficient": "text-verdict-insufficient"
-    } %}
-    <div id="queue-row-{{ claim.id }}"
-         class="claim-row px-4 py-3.5 border-b border-ink-100 cursor-pointer hover:bg-paper-100 transition-colors"
-         role="button"
-         tabindex="0"
-         aria-label="{{ claim.claim_text | truncate(80) }}"
-         {% if decision %}data-reviewed="true"{% endif %}
-         hx-get="/dashboard/{{ packet.id }}/{{ run.id }}/claims/{{ claim.id }}"
-         hx-target="#detail-panel"
-         hx-swap="innerHTML"
-         hx-push-url="false"
-         hx-trigger="click, keydown[key=='Enter'||key==' ']">
-      <div class="flex items-start gap-2.5">
-        {% if verdict %}
-          {{ badge.verdict_badge(verdict.verdict_type, size="xs") }}
-        {% endif %}
-        <p class="font-serif text-sm text-ink-800 line-clamp-2 flex-1 leading-snug">{{ claim.claim_text }}</p>
-      </div>
-      <div class="flex items-center justify-between mt-2 text-xs">
-        {% if verdict %}
-          <span class="font-mono text-ink-400 tabular-nums">{{ (verdict.confidence_score * 100) | round(0) | int }}%</span>
-        {% else %}
-          <span></span>
-        {% endif %}
-        <span id="queue-row-{{ claim.id }}-status"
-              class="font-medium {{ decision_colors.get(decision.action, '') if decision else 'text-ink-300' }}">
-          {{ decision.action | replace('_', ' ') | title if decision else 'Unreviewed' }}
-        </span>
-      </div>
-    </div>
-  {% else %}
-    <div class="px-6 py-12 text-center">
-      <p class="font-serif text-sm text-ink-400">No claims match the current filters.</p>
-    </div>
-  {% endfor %}
+  {% include "partials/_queue_items.html" %}
 </div>

@@ -124,19 +124,15 @@ async def queue_partial(
         except ValueError:
             pass  # Invalid UUID — ignore filter
 
+    # Return ONLY the items partial (not the full queue_list with filters) so
+    # HTMX swap into #queue-list does not duplicate the filter UI inside the list.
     return templates.TemplateResponse(
         request=request,
-        name="partials/queue_list.html",
+        name="partials/_queue_items.html",
         context={
             "packet": context["packet"],
             "run": context["run"],
             "claims": claims,
-            "source_docs": context["source_docs"],
-            "active_filters": {
-                "verdict_filter": verdict_filter,
-                "confidence": confidence,
-                "source_doc_id": source_doc_id,
-            },
         },
     )
 
