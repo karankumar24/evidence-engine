@@ -1,0 +1,35 @@
+{
+  "name": "Adversarial Carbon Brief",
+  "description": "Same structure as carbon_budget_brief but with four embedded attacks to test the trust model: (1) fabricated citation, (2) contradicted claim, (3) cherry-picked scope, (4) near-duplicate self-verify. Each claim is pre-labeled in EXPECTED_VERDICTS below. Used by tests/test_adversarial_packet.py and by manual live-runs.",
+  "report_file": "report.txt",
+  "source_files": [
+    "source_01_global_carbon_project.txt",
+    "source_02_ipcc_carbon_budget.txt"
+  ],
+  "expected_verdicts": {
+    "attack_1_fabricated": {
+      "claim_marker": "[1]-fabricated",
+      "description": "Citation [3] points to a source document that was never uploaded.",
+      "expected": "needs_review",
+      "reason": "anchor resolver should mark as unresolvable_anchor; pipeline short-circuits to needs_review."
+    },
+    "attack_2_contradicted": {
+      "claim_marker": "[2]-contradicted",
+      "description": "Claim says global CO2 emissions DECREASED 12% in 2022; source_01 says they INCREASED.",
+      "expected": "contradicted",
+      "reason": "the source explicitly says the opposite. Classifier must catch this as contradicted, not insufficient_support."
+    },
+    "attack_3_cherry_picked": {
+      "claim_marker": "[3]-cherry-picked",
+      "description": "Claim asserts a fact that's true for ONE sub-component but phrased as if about the whole system.",
+      "expected": "insufficient_support or needs_review",
+      "reason": "evidence only partially supports — trust-model rule VERDICT-02 says partial evidence must route to insufficient_support, never supported."
+    },
+    "attack_4_self_verify": {
+      "claim_marker": "[4]-self-dup",
+      "description": "Claim has no citation marker. Retrieval will self-verify against the report itself, and the only 'supporting' span is the claim's own paragraph in different words.",
+      "expected": "insufficient_support or needs_review",
+      "reason": "three-layer defense: (1) position-overlap filter excludes the paragraph containing the claim, (2) classifier prompt sees SAME DOCUMENT AS CLAIM tag, (3) 0.80 cap + 0.70 threshold routes weak matches to needs_review."
+    }
+  }
+}

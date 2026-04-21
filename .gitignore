@@ -82,9 +82,10 @@ indexes/
 *.pickle
 
 # =============================================================================
-# ML model weights (too large for git)
+# ML model weights (too large for git) — keep as repo-root only so it doesn't
+# accidentally swallow src/evidenceengine/models/ (the ORM-models Python pkg).
 # =============================================================================
-models/
+/models/
 *.bin
 *.pt
 *.pth

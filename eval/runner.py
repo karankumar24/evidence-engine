@@ -49,6 +49,7 @@ class PersistedCaseResult(BaseModel):
     source: str  # 'gold' | 'synthetic'
     status: CaseStatus
     error: str | None = None  # short error message when status != 'classified'
+    confidence: float | None = None  # model self-reported score; None for non-classified
 
     def to_benchmark_result(self) -> BenchmarkResult:
         return BenchmarkResult(
@@ -134,6 +135,7 @@ async def _evaluate_case(case: BenchmarkCase) -> PersistedCaseResult:
             evidence_span_count=len(case.evidence_spans),
             source=case.source,
             status="classified",
+            confidence=float(response.confidence_score),
         )
     except Exception as exc:  # noqa: BLE001 — runner must not crash on single-case failure
         status, short = _classify_exception(exc)
@@ -184,9 +186,27 @@ async def run_evaluation(
     all_cases = list(suite.gold) + list(suite.synthetic)
 
     persisted = _load_persisted_results(output_path) if resume else {}
+    # Retry chain_exhausted cases when resuming — a quota-exhausted run
+    # that never got an LLM verdict should NOT be treated as "done." Only
+    # 'classified' (and fatal 'auth_error') results are considered final.
+    retriable_statuses = {"chain_exhausted", "other_error"}
+    stale_ids = {
+        cid for cid, rec in persisted.items() if rec.status in retriable_statuses
+    }
+    if stale_ids:
+        logger.info(
+            "Resume: retrying %d previously %s case(s)",
+            len(stale_ids),
+            "/".join(retriable_statuses),
+        )
+        persisted = {cid: rec for cid, rec in persisted.items() if cid not in stale_ids}
+        # Rewrite the JSONL without the stale rows so re-runs append cleanly.
+        with output_path.open("w") as f:
+            for rec in persisted.values():
+                f.write(rec.model_dump_json() + "\n")
     if persisted:
         logger.info(
-            "Resume: %d cases already in %s — skipping these",
+            "Resume: %d classified/auth-error cases already in %s — skipping these",
             len(persisted), output_path,
         )
 

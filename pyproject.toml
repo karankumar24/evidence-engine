@@ -42,12 +42,15 @@ dev = [
 ]
 
 [tool.uv]
-# sentence-transformers pulls in torch, and torch's default wheels bundle ~2GB
-# of CUDA/NVIDIA libraries that are useless on Fly's CPU-only machines. Force
-# the CPU-only torch wheel index so resolution picks torch+cpu and excludes
-# the nvidia-* / cuda-* transitive deps entirely.
+# sentence-transformers pulls in torch; on Linux the default wheels bundle
+# ~2GB of CUDA/NVIDIA libraries useless on Fly's CPU-only machines, so we
+# force the CPU-only wheel there. On macOS the default PyPI wheel is already
+# CPU-only (no CUDA on Apple Silicon), and the PyTorch CPU index doesn't
+# ship Mac wheels — so the override and sources redirect apply on Linux
+# only. Without this marker, `uv pip install` fails on macOS with
+# "torch==2.8.0+cpu not available on this platform".
 override-dependencies = [
-    "torch==2.8.0+cpu",
+    "torch==2.8.0+cpu ; sys_platform == 'linux'",
 ]
 
 [[tool.uv.index]]
@@ -56,7 +59,9 @@ url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
 [tool.uv.sources]
-torch = { index = "pytorch-cpu" }
+torch = [
+    { index = "pytorch-cpu", marker = "sys_platform == 'linux'" },
+]
 
 [build-system]
 requires = ["setuptools>=70"]

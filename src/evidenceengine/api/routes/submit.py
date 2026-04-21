@@ -99,11 +99,16 @@ async def upload_submit(
 
     # Create DB records (parsing deferred to pipeline background task to keep upload fast)
     report_filename = report.filename or "report"
+    # Tag the packet with the visitor's session so the dashboard only shows
+    # THEIR uploads (plus any is_demo=True packets). Empty string fallback
+    # keeps historic tests that bypass the middleware from crashing.
+    visitor_session = getattr(request.state, "session_id", "") or ""
     packet = DocumentPacket(
         id=uuid_module.UUID(packet_id),
         status="completed",
         report_filename=report_filename,
         report_file_path=saved_paths.get(report_filename, ""),
+        session_id=visitor_session or None,
     )
     db.add(packet)
     await db.flush()
@@ -192,6 +197,7 @@ if settings.debug:
             status="completed",
             report_filename="climate_claims_sample.pdf",
             report_file_path="",
+            is_demo=True,  # visible to every visitor
         )
         db.add(packet)
         await db.flush()

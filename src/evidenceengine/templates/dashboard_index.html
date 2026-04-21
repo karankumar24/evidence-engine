@@ -6,6 +6,9 @@
   <title>EvidenceEngine — Runs</title>
   <link rel="stylesheet" href="/static/css/fonts.css?v=0.1.1">
   <link rel="stylesheet" href="/static/css/app.css?v=0.1.1">
+  <!-- HTMX is required for the delete button + any future dashboard mutations.
+       Missing this was why the delete button silently did nothing in v33. -->
+  <script src="/static/vendor/htmx.min.js"></script>
 </head>
 <body class="bg-paper-50 text-ink-800 font-sans antialiased min-h-full">
 

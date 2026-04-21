@@ -22,6 +22,14 @@ class DocumentPacket(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     status: Mapped[str] = mapped_column(String(50), default="queued", nullable=False)
     report_filename: Mapped[str] = mapped_column(Text, nullable=False)
     report_file_path: Mapped[str] = mapped_column(Text, nullable=False)
+    # Ownership: the session that uploaded this packet. Nullable so legacy rows
+    # migrate cleanly; NULL acts as "unclaimed" — invisible to every new
+    # visitor since no cookie will ever match. Indexed for dashboard queries.
+    session_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    # Demo flag: when True the packet is visible to EVERY visitor regardless
+    # of session_id. Used to ship a canned example so the dashboard isn't
+    # empty on first-visit.
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Relationships
     source_documents: Mapped[list["SourceDocument"]] = relationship(

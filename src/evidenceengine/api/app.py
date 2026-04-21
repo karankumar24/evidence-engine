@@ -52,6 +52,57 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+# ── Session-cookie middleware ──────────────────────────────────────────────────
+# Light-weight visitor scoping: every visitor gets a random session_id cookie.
+# Uploaded packets are tagged with the owning session_id; the dashboard only
+# shows packets whose session_id matches the cookie OR that are flagged
+# is_demo=True. This is NOT authentication — anyone who guesses/steals the
+# cookie owns the packet. It IS enough to stop one visitor's test PDFs from
+# showing up on another's dashboard, which is what "first-visit cleanliness"
+# actually requires. A real auth layer is tracked separately in the bug list.
+
+import secrets  # noqa: E402
+
+_SESSION_COOKIE_NAME = "ee_session"
+_SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 180  # 180 days
+
+
+class SessionCookieMiddleware(BaseHTTPMiddleware):
+    """Ensure every request has a session_id; set it on request.state and cookie."""
+
+    async def dispatch(self, request: Request, call_next: ASGIApp) -> StarletteResponse:  # type: ignore[override]
+        session_id = request.cookies.get(_SESSION_COOKIE_NAME)
+        is_new = False
+        if not session_id or len(session_id) < 20:
+            session_id = secrets.token_urlsafe(24)
+            is_new = True
+        request.state.session_id = session_id
+        response: StarletteResponse = await call_next(request)
+        if is_new:
+            # HttpOnly so JS can't read it; SameSite=Lax for CSRF posture; no
+            # Secure flag because local dev is plain HTTP. HSTS middleware above
+            # forces HTTPS in production deployments anyway.
+            response.set_cookie(
+                key=_SESSION_COOKIE_NAME,
+                value=session_id,
+                max_age=_SESSION_COOKIE_MAX_AGE,
+                httponly=True,
+                samesite="lax",
+                path="/",
+            )
+        return response
+
+
+def get_session_id(request: Request) -> str:
+    """FastAPI dependency: returns the request's session_id, or '' if missing.
+
+    The middleware ensures session_id is always populated on request.state,
+    but defensive default keeps route handlers safe in tests that bypass
+    the middleware stack.
+    """
+    return getattr(request.state, "session_id", "") or ""
+
+
 # ── Exception handlers ────────────────────────────────────────────────────────
 
 def _wants_html(request: Request) -> bool:
@@ -260,6 +311,11 @@ def create_app() -> FastAPI:
 
     # Security headers on every response
     app.add_middleware(SecurityHeadersMiddleware)
+    # Visitor scoping: assign + read the ee_session cookie so dashboard routes
+    # can filter packets to "mine or demo". Runs AFTER CORS so preflight OPTIONS
+    # don't trigger cookie issuance, and BEFORE security headers which also
+    # runs on every response.
+    app.add_middleware(SessionCookieMiddleware)
 
     register_exception_handlers(app)
 

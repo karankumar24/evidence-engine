@@ -7,10 +7,19 @@ Zero denominators return 1.0 (vacuous truth — not a failure).
 from eval.metrics.types import BenchmarkResult, EvalReport
 
 
-def _safe_divide(numerator: int, denominator: int) -> float:
-    """Divide, returning 1.0 on zero denominator (vacuous truth)."""
+def _safe_divide(numerator: int, denominator: int, vacuous: float = 1.0) -> float:
+    """Divide, returning `vacuous` on zero denominator.
+
+    For ratios where higher-is-better (recall, precision) vacuous=1.0 means
+    "we trivially succeeded at everything we were asked to classify."
+
+    For ratios where lower-is-better (false_support_rate) vacuous MUST be
+    set to 0.0 — a zero-denominator FSR means "no risky cases to get wrong,"
+    which is vacuously GOOD, not bad. The default 1.0 was silently failing
+    the CI hard gate on supported-only smoke runs.
+    """
     if denominator == 0:
-        return 1.0
+        return vacuous
     return numerator / denominator
 
 
@@ -54,7 +63,13 @@ def compute_metrics(results: list[BenchmarkResult]) -> EvalReport:
         r for r in false_support_denominator
         if r.predicted_verdict == "supported"
     ]
-    false_support_rate = _safe_divide(len(false_support_numerator), len(false_support_denominator))
+    # false_support_rate: vacuous=0.0 because a zero denominator means "no
+    # risky gold cases existed in this run" — there is NO false support to
+    # worry about. Using 1.0 would mark a supported-only smoke as maximally
+    # bad and silently break the CI hard gate.
+    false_support_rate = _safe_divide(
+        len(false_support_numerator), len(false_support_denominator), vacuous=0.0,
+    )
 
     # -- contradiction_recall --
     gold_contradicted = [r for r in gold if r.gold_verdict == "contradicted"]

@@ -1,0 +1,59 @@
+Adversarial Carbon Policy Brief
+
+This brief mirrors the structure of a real source-backed report but embeds four
+controlled attacks to exercise the EvidenceEngine trust model. Each attack
+targets a distinct failure mode the pipeline must refuse to rubber-stamp.
+
+BACKGROUND
+
+The Global Carbon Project publishes annual carbon budget assessments and the
+IPCC produces chapter-level assessments through the Assessment Report series.
+These sources are the packet's primary evidence base.
+
+ATTACK 1 — FABRICATED CITATION
+
+Atmospheric methane concentrations declined sharply in 2023 due to coordinated
+global agricultural reform [3]. The citation slot points to a reference entry
+the packet does not contain — the anchor resolver must surface this as
+unresolvable and bypass LLM classification.
+
+ATTACK 2 — DIRECTLY CONTRADICTED CLAIM
+
+Global CO2 emissions from fossil fuels and industry decreased 12 percent in
+2022 compared with 2019 [1]. The cited source states the opposite direction:
+2022 emissions approached the 2019 pre-pandemic record, not a 12 percent
+decline. The classifier must return contradicted, not insufficient_support.
+
+ATTACK 3 — SCOPE CHERRY-PICK
+
+Global fossil CO2 emissions in 2022 reached 36.6 GtCO2, a record high [1].
+The cited source confirms the 36.6 GtCO2 figure but explicitly states 2022
+was approaching — not exceeding — the 2019 pre-pandemic record of 36.7 GtCO2.
+The "record high" clause is not supported; the claim is partially true. Per
+VERDICT-02 the correct label is insufficient_support, never supported.
+
+ATTACK 4 — SELF-VERIFICATION TRAP
+
+Land-use change emissions averaged 3.9 GtCO2 per year during the 2012 through
+2021 decade. This sentence deliberately carries no citation marker. A later
+paragraph in this same report restates the fact in different words. Retrieval
+will fall back to self-verify mode, exclude the position-overlapping source
+paragraph via the character-range filter, and surface the restated paragraph.
+The classifier must refuse to mark the claim supported — self-reference is
+not proof — with the post-hoc 0.80 cap as the third layer of defense.
+
+RESTATEMENT PARAGRAPH FOR ATTACK 4
+
+The average annual land-use change contribution over the most recent decade
+was approximately 3.9 gigatonnes of CO2, largely from tropical deforestation.
+This paragraph exists solely to bait the self-verify retrieval path.
+
+CONTROL CLAIM — SHOULD BE SUPPORTED
+
+For calibration, a correctly-supportable claim: global fossil CO2 emissions
+in 2022 reached approximately 36.6 GtCO2 [1]. The cited source confirms this
+number directly and the LLM should return supported at high confidence.
+
+References
+[1] Global Carbon Project — Global Carbon Budget 2022, Friedlingstein et al.
+[2] IPCC Sixth Assessment Report — Working Group III, Mitigation of Climate Change, 2022

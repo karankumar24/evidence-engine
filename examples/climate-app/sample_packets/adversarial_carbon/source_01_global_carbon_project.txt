@@ -1,0 +1,43 @@
+Global Carbon Project — Global Carbon Budget 2022
+Friedlingstein et al., Earth System Science Data (Synthetic Excerpt for Demo)
+
+FOSSIL CO2 EMISSIONS
+
+Global fossil CO2 emissions in 2022 are estimated at 36.6 GtCO2 (range: 36.2–37.0 GtCO2),
+approaching the 2019 pre-pandemic record of 36.7 GtCO2. This represents a recovery from
+the 5.4 percent decline observed during 2020 due to COVID-19 restrictions, followed by a
+5.9 percent rebound in 2021. The 2022 value is 1 percent above the 2019 pre-pandemic peak.
+
+LAND-USE CHANGE EMISSIONS
+
+Emissions from land-use change (primarily tropical deforestation) averaged 3.9 GtCO2 per year
+over 2012–2021. Preliminary estimates for 2022 place land-use emissions at approximately
+3.9 GtCO2, consistent with the recent decade average. Total anthropogenic CO2 emissions
+for 2022 are therefore estimated at 40.5 GtCO2 (fossil 36.6 + land-use 3.9).
+
+GROWTH RATE
+
+The decadal average growth rate of fossil CO2 emissions for 2012–2021 was 1.5 percent per
+year, lower than the prior decade average of 2.9 percent per year (2002–2011). The slowdown
+reflects a combination of improving energy efficiency, the rapid deployment of renewables in
+major economies, and structural economic changes.
+
+CARBON SINKS
+
+The global carbon budget is balanced by uptake in land and ocean sinks. Over 2012–2021:
+- Oceanic sink: 2.9 GtCO2 per year (range: 2.6–3.2)
+- Land biosphere sink: 3.1 GtCO2 per year (range: 2.6–3.6)
+- Combined sink: approximately 5.6 GtCO2 per year absorbed on average
+- Atmospheric growth rate: approximately 5.2 GtCO2 per year (equivalent to ~2.5 ppm yr-1)
+
+CONCENTRATION TRAJECTORY
+
+The atmospheric CO2 concentration will continue to rise as long as global emissions remain
+positive. The cumulative anthropogenic CO2 burden in the atmosphere at the start of 2023
+is estimated at approximately 720 GtC above pre-industrial levels.
+
+REMAINING BUDGET IMPLICATIONS
+
+At 2022 fossil emission rates of 36.6 GtCO2 per year and total emissions of 40.5 GtCO2
+per year, a remaining carbon budget of 500 GtCO2 (50% probability, 1.5°C) would be
+exhausted in approximately 12 years from 2020 if emissions remain at current levels.

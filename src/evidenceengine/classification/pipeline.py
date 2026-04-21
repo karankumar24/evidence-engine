@@ -84,6 +84,7 @@ async def classify_verdicts_for_run(
     chain_exhausted_count = 0             # fallback chain gave up entirely
     model_refusal_count = 0               # model returned refusal
     bypass_unresolvable_anchor = 0        # short-circuited without LLM call
+    nli_second_opinion_overrides = 0      # NLI forced needs_review (A- : new trust layer)
 
     for claim in claims:
         # Idempotency: skip if verdict already exists for this claim+run
@@ -198,6 +199,28 @@ async def classify_verdicts_for_run(
             )
             self_verify_caps_applied += 1
 
+        # NLI second-opinion: catches high-confidence contradictions the LLM
+        # missed (downgrade SUPPORTED → needs_review) and vice versa for
+        # contradicted verdicts. Never upgrades; only downgrades to needs_review.
+        if settings.nli_second_opinion_enabled:
+            from evidenceengine.classification.nli_second_opinion import (  # noqa: PLC0415
+                nli_judgment,
+                should_force_review,
+            )
+            from evidenceengine.classification.schemas import VerdictClassificationResponse  # noqa: PLC0415
+            import asyncio as _asyncio  # noqa: PLC0415
+            nli = await _asyncio.to_thread(
+                nli_judgment, claim.claim_text, [s["span_text"] for s in evidence_span_dicts],
+            )
+            force, suffix = should_force_review(classification.verdict_type, nli)
+            if force:
+                classification = VerdictClassificationResponse(
+                    verdict_type="needs_review",
+                    confidence_score=min(classification.confidence_score, 0.50),
+                    reasoning=f"{suffix} {classification.reasoning}",
+                )
+                nli_second_opinion_overrides += 1
+
         pre_threshold_type = classification.verdict_type
         classification = apply_confidence_threshold(
             classification, settings.verdict_needs_review_threshold
@@ -252,6 +275,7 @@ async def classify_verdicts_for_run(
             "chain_exhausted_count": chain_exhausted_count,
             "model_refusal_count": model_refusal_count,
             "bypass_unresolvable_anchor": bypass_unresolvable_anchor,
+            "nli_second_opinion_overrides": nli_second_opinion_overrides,
         }
         merged_config: dict = {
             **(run.pipeline_config or {}),

@@ -30,8 +30,14 @@ async def dashboard_index(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> HTMLResponse:
-    """Index page — lists recent pipeline runs for the reviewer to select."""
-    runs = await load_runs_index(db)
+    """Index page — lists recent pipeline runs for THIS visitor (or demos).
+
+    Packets are filtered by the visitor's session cookie. Demo packets
+    (is_demo=True) are visible to every visitor so the dashboard isn't
+    empty on first load.
+    """
+    session_id = getattr(request.state, "session_id", "") or ""
+    runs = await load_runs_index(db, session_id=session_id)
     return templates.TemplateResponse(
         request=request,
         name="dashboard_index.html",
@@ -212,6 +218,7 @@ async def submit_review(
 
 @router.delete("/api/packets/{packet_id}", response_class=HTMLResponse)
 async def delete_packet(
+    request: Request,
     packet_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ) -> HTMLResponse:
@@ -222,6 +229,14 @@ async def delete_packet(
     declared relationship to Claim and the FK has no `ondelete=CASCADE`, so we must
     delete claims (and their cascading dependents) before the run rows.
 
+    Authorization: the caller's session cookie must match packet.session_id.
+    Demo packets (is_demo=True) are NEVER deletable by visitors — they're the
+    canonical public example. Missing cookie + NULL session_id on a legacy row
+    is rejected as "not yours" rather than ambiguously allowed.
+
+    File cleanup runs BEFORE commit so a crash leaves DB + disk in sync —
+    the row is still present and can be re-deleted.
+
     Returns 200 with empty body — caller's HTMX swap removes the dashboard row.
     """
     from sqlalchemy import delete as _delete, select as _select
@@ -230,10 +245,21 @@ async def delete_packet(
     from evidenceengine.models.review import ReviewDecision
     from evidenceengine.models.run import RunVersion
     from evidenceengine.models.verdict import Verdict, VerdictEvidence
+    from evidenceengine.api.dependencies import get_file_store
 
     pkt = await db.get(DocumentPacket, packet_id)
     if pkt is None:
         raise APIError(code="NOT_FOUND", message=f"Packet {packet_id} not found", status=404)
+
+    # Ownership: treat demo packets as undeletable, and require session match
+    # for everything else. Legacy rows with NULL session_id are not owned by
+    # anyone, so deletion is rejected — the correct path is a server-side
+    # cleanup script with explicit authority.
+    visitor_session = getattr(request.state, "session_id", "") or ""
+    if pkt.is_demo:
+        raise APIError(code="FORBIDDEN", message="Demo packets cannot be deleted", status=403)
+    if pkt.session_id is None or pkt.session_id != visitor_session:
+        raise APIError(code="FORBIDDEN", message="You don't own this packet", status=403)
 
     claim_ids = (await db.execute(
         _select(Claim.id).where(Claim.packet_id == packet_id)
@@ -245,7 +271,7 @@ async def delete_packet(
         _select(RunVersion.id).where(RunVersion.packet_id == packet_id)
     )).scalars().all()
 
-    # Delete leaves first
+    # Delete leaves first (DB)
     if verdict_ids:
         await db.execute(_delete(VerdictEvidence).where(VerdictEvidence.verdict_id.in_(verdict_ids)))
     if claim_ids:
@@ -257,7 +283,23 @@ async def delete_packet(
         await db.execute(_delete(RunVersion).where(RunVersion.packet_id == packet_id))
     # SourceDocument + DocumentPacket cascade declared via relationship
     await db.delete(pkt)
+
+    # Clean up files BEFORE the DB commit — if file removal fails, the
+    # transaction rolls back and the caller sees a 500 rather than the
+    # silent disk leak we'd have otherwise. The file_store delete is
+    # idempotent so a retry cleans up anything that got partially removed.
+    file_store = get_file_store()
+    try:
+        file_store.delete_packet(str(packet_id))
+    except Exception as exc:  # noqa: BLE001 — log + rollback
+        await db.rollback()
+        raise APIError(
+            code="FILE_DELETE_FAILED",
+            message=f"Could not remove packet files ({type(exc).__name__}); DB not modified",
+            status=500,
+        ) from exc
+
     await db.commit()
 
-    # Return empty body — HTMX hx-swap=delete removes the row
+    # Return empty body — HTMX hx-swap=outerHTML removes the row
     return HTMLResponse("", status_code=200)

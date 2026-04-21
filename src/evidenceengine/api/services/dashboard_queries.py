@@ -205,20 +205,31 @@ async def upsert_review_decision(
     return decision
 
 
-async def load_runs_index(db: AsyncSession, limit: int = 50) -> list[RunVersion]:
-    """Load LATEST run per packet for the dashboard index page (deduplicated).
+async def load_runs_index(
+    db: AsyncSession,
+    limit: int = 50,
+    *,
+    session_id: str | None = None,
+) -> list[RunVersion]:
+    """Load LATEST run per packet for the dashboard index page (deduplicated + scoped).
 
-    Without this dedup, the dashboard accumulates rows across every re-upload of
-    the same packet, hiding the user's most recent verdict result among historical
-    failures. Uses a window function to pick row_number=1 per partition_by(packet_id),
-    ordered by created_at DESC. Falls back gracefully if the DB has no runs.
+    Dedup: without picking latest-per-packet, the dashboard accumulates rows
+    across every re-upload of the same packet and buries the most recent
+    verdict among historical failures. A window function partitions by
+    packet_id and picks row_number=1 ordered by created_at DESC.
+
+    Visitor scoping: when `session_id` is provided, only show packets whose
+    DocumentPacket.session_id matches OR whose is_demo flag is True. This
+    keeps historic / other-user uploads from leaking onto a new visitor's
+    dashboard. When `session_id` is None, returns every packet (used by
+    admin tooling and tests that don't exercise the session stack).
     """
     rn = func.row_number().over(
         partition_by=RunVersion.packet_id,
         order_by=RunVersion.created_at.desc(),
     ).label("rn")
     latest_subq = select(RunVersion.id, rn).subquery()
-    result = await db.execute(
+    stmt = (
         select(RunVersion)
         .join(latest_subq, RunVersion.id == latest_subq.c.id)
         .where(latest_subq.c.rn == 1)
@@ -226,4 +237,9 @@ async def load_runs_index(db: AsyncSession, limit: int = 50) -> list[RunVersion]
         .order_by(RunVersion.created_at.desc())
         .limit(limit)
     )
+    if session_id is not None:
+        stmt = stmt.join(DocumentPacket, DocumentPacket.id == RunVersion.packet_id).where(
+            (DocumentPacket.session_id == session_id) | (DocumentPacket.is_demo.is_(True))
+        )
+    result = await db.execute(stmt)
     return list(result.scalars().all())

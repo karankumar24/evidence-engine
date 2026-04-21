@@ -59,6 +59,13 @@ class Settings(BaseSettings):
     verdict_needs_review_threshold: float = 0.70
     self_verify_supported_cap: float = 0.80
     verdict_prompt_version: str = "v1"
+    # Local NLI second-opinion: when True, a locally-hosted DeBERTa-v3-NLI
+    # model runs AFTER the LLM verdict. High-confidence disagreement
+    # (contradiction found by NLI but LLM said supported, or vice versa)
+    # forces the verdict to needs_review. It never upgrades. Disable in
+    # environments without transformers/torch installed — the classifier
+    # detects that and falls back cleanly either way.
+    nli_second_opinion_enabled: bool = True
     # LLM HTTP client safety rails — OpenAI SDK default timeout is 600s which
     # compounds with OpenRouter free-tier rate-limits into multi-minute hangs.
     llm_request_timeout_seconds: float = 60.0
