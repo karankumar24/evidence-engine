@@ -67,13 +67,20 @@ def extract_references_entries(parsed_blocks: list[dict]) -> list[str]:
         text_lower = block.get("text", "").strip().lower()
         block_type = block.get("block_type", "")
 
+        # Some PDF parsers don't label headings — accept a standalone paragraph
+        # whose entire text is a references-section header as the marker too.
+        is_refs_header = text_lower in _REFERENCES_HEADERS
+
         if block_type == "heading":
-            if text_lower in _REFERENCES_HEADERS:
+            if is_refs_header:
                 in_refs = True
                 continue
             elif in_refs:
                 # Next heading after references section — stop collecting
                 break
+        elif is_refs_header and not in_refs:
+            in_refs = True
+            continue
 
         if in_refs and block.get("text", "").strip():
             entries.append(block["text"].strip())

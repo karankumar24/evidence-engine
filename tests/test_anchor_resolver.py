@@ -76,6 +76,26 @@ def test_extract_references_entries_empty_when_no_section():
     assert entries == []
 
 
+def test_extract_references_entries_paragraph_header():
+    """'References' marker in a paragraph block (not heading) still starts the section.
+
+    PDF parsers that don't detect headings classify 'References' as a paragraph.
+    The extractor must still recognize it and collect subsequent entries.
+    """
+    from evidenceengine.extraction.anchor_resolver import extract_references_entries
+
+    blocks = [
+        {"text": "Body text with [1] marker.", "block_type": "paragraph", "position": {}},
+        {"text": "References", "block_type": "paragraph", "position": {}},
+        {"text": "[1] IPCC Sixth Assessment Report, 2022", "block_type": "paragraph", "position": {}},
+        {"text": "[2] Global Carbon Project, Friedlingstein et al.", "block_type": "paragraph", "position": {}},
+    ]
+    entries = extract_references_entries(blocks)
+    assert len(entries) == 2
+    assert entries[0].startswith("[1]")
+    assert entries[1].startswith("[2]")
+
+
 def test_extract_references_entries_bibliography_alias():
     """'Bibliography' heading is also recognized as a references section."""
     from evidenceengine.extraction.anchor_resolver import extract_references_entries
