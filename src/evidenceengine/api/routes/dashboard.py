@@ -241,6 +241,9 @@ async def delete_packet(
     verdict_ids = (await db.execute(
         _select(Verdict.id).where(Verdict.claim_id.in_(claim_ids))
     )).scalars().all() if claim_ids else []
+    run_ids = (await db.execute(
+        _select(RunVersion.id).where(RunVersion.packet_id == packet_id)
+    )).scalars().all()
 
     # Delete leaves first
     if verdict_ids:
