@@ -67,16 +67,20 @@ async def classify_verdicts_for_run(
         if existing_result.scalar_one_or_none() is not None:
             continue
 
-        # Edge case: zero evidence spans — no LLM call (VERDICT-02).
-        # Check evidence first: self-verification may produce spans even when
-        # citation anchors were unresolvable, and we want those to reach the LLM.
-        if not claim.evidence_spans:
-            if claim.status == "unresolvable_anchor":
-                default_verdict_type = "needs_review"
-                default_reasoning = "All citation anchors unresolvable — cited source documents could not be matched."
-            else:
-                default_verdict_type = "insufficient_support"
-                default_reasoning = "No evidence spans retrieved for this claim."
+        # Edge case: claim whose citations all failed to resolve — bypass LLM
+        # and route to needs_review per module invariant. Even if retrieval
+        # produced self-verify spans, "we couldn't match your citations" is
+        # the stronger signal and warrants human review.
+        if claim.status == "unresolvable_anchor":
+            default_verdict_type = "needs_review"
+            default_reasoning = "All citation anchors unresolvable — cited source documents could not be matched."
+        elif not claim.evidence_spans:
+            default_verdict_type = "insufficient_support"
+            default_reasoning = "No evidence spans retrieved for this claim."
+        else:
+            default_verdict_type = None
+
+        if default_verdict_type is not None:
             verdict = Verdict(
                 claim_id=claim.id,
                 run_version_id=run_version_uuid,
