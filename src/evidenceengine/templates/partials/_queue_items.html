@@ -28,7 +28,10 @@
     </div>
     <div class="flex items-center justify-between mt-2 text-xs">
       {% if verdict %}
-        <span class="font-mono text-ink-400 tabular-nums">{{ (verdict.confidence_score * 100) | round(0) | int }}%</span>
+        {% set is_capped = verdict.reasoning and "[Self-verify cap" in verdict.reasoning %}
+        <span class="font-mono text-ink-400 tabular-nums">
+          {{ (verdict.confidence_score * 100) | round(0) | int }}%{% if is_capped %}<span class="ml-1 text-[10px] text-ink-300 italic" title="Confidence capped at 80% because evidence came from the same document being verified">(capped)</span>{% endif %}
+        </span>
       {% else %}
         <span></span>
       {% endif %}
@@ -40,6 +43,13 @@
   </div>
 {% else %}
   <div class="px-6 py-12 text-center">
-    <p class="font-serif text-sm text-ink-400">No claims match the current filters.</p>
+    {% set vf = active_filters.verdict_filter if active_filters else None %}
+    {% set verdict_labels = {"contradicted": "contradicted", "needs_review": "needs review", "insufficient_support": "insufficient support", "supported": "supported"} %}
+    {% if vf and vf in verdict_labels %}
+      <p class="font-serif text-sm text-ink-500">This run has no <strong>{{ verdict_labels[vf] }}</strong> claims.</p>
+      <p class="text-xs text-ink-400 mt-2">Try a different verdict filter to see other claims.</p>
+    {% else %}
+      <p class="font-serif text-sm text-ink-400">No claims match the current filters.</p>
+    {% endif %}
   </div>
 {% endfor %}

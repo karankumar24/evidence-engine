@@ -133,6 +133,11 @@ async def queue_partial(
             "packet": context["packet"],
             "run": context["run"],
             "claims": claims,
+            "active_filters": {
+                "verdict_filter": verdict_filter,
+                "confidence": confidence,
+                "source_doc_id": source_doc_id,
+            },
         },
     )
 
@@ -203,3 +208,53 @@ async def submit_review(
             "run_id": run_id,
         },
     )
+
+
+@router.delete("/api/packets/{packet_id}", response_class=HTMLResponse)
+async def delete_packet(
+    packet_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Delete a packet and ALL its dependents (runs, claims, verdicts, decisions, sources, files).
+
+    Per-FK explicit deletion in dependency order. SQLAlchemy declared-relationship
+    cascades cover packet→source_doc and packet→run_version, but RunVersion has no
+    declared relationship to Claim and the FK has no `ondelete=CASCADE`, so we must
+    delete claims (and their cascading dependents) before the run rows.
+
+    Returns 200 with empty body — caller's HTMX swap removes the dashboard row.
+    """
+    from sqlalchemy import delete as _delete, select as _select
+    from evidenceengine.models.claim import Claim, CitationAnchor
+    from evidenceengine.models.document import DocumentPacket
+    from evidenceengine.models.review import ReviewDecision
+    from evidenceengine.models.run import RunVersion
+    from evidenceengine.models.verdict import Verdict, VerdictEvidence
+
+    pkt = await db.get(DocumentPacket, packet_id)
+    if pkt is None:
+        raise APIError(code="NOT_FOUND", message=f"Packet {packet_id} not found", status=404)
+
+    claim_ids = (await db.execute(
+        _select(Claim.id).where(Claim.packet_id == packet_id)
+    )).scalars().all()
+    verdict_ids = (await db.execute(
+        _select(Verdict.id).where(Verdict.claim_id.in_(claim_ids))
+    )).scalars().all() if claim_ids else []
+
+    # Delete leaves first
+    if verdict_ids:
+        await db.execute(_delete(VerdictEvidence).where(VerdictEvidence.verdict_id.in_(verdict_ids)))
+    if claim_ids:
+        await db.execute(_delete(Verdict).where(Verdict.claim_id.in_(claim_ids)))
+        await db.execute(_delete(CitationAnchor).where(CitationAnchor.claim_id.in_(claim_ids)))
+        await db.execute(_delete(ReviewDecision).where(ReviewDecision.claim_id.in_(claim_ids)))
+        await db.execute(_delete(Claim).where(Claim.packet_id == packet_id))
+    if run_ids:
+        await db.execute(_delete(RunVersion).where(RunVersion.packet_id == packet_id))
+    # SourceDocument + DocumentPacket cascade declared via relationship
+    await db.delete(pkt)
+    await db.commit()
+
+    # Return empty body — HTMX hx-swap=delete removes the row
+    return HTMLResponse("", status_code=200)

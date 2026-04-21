@@ -52,11 +52,21 @@
 
   <!-- Section 3: Verdict & Confidence -->
   {% if verdict %}
+    {% set is_capped = verdict.reasoning and "[Self-verify cap" in verdict.reasoning %}
     {% call coll.collapsible("Verdict & Confidence", default_open=True, id="verd-" ~ claim.id | string) %}
-      <div class="flex items-center gap-4 mb-3">
+      <div class="flex items-center gap-4 mb-3 flex-wrap">
         {{ badge.verdict_badge(verdict.verdict_type, size="md") }}
         {{ conf.confidence_display(verdict.confidence_score) }}
+        {% if is_capped %}
+          <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide bg-verdict-insufficient/10 text-verdict-insufficient rounded-sm border border-verdict-insufficient/30"
+                title="Confidence was capped at 80% because the only available evidence came from the same document being verified. Upload the cited source documents alongside the report for an honest verdict.">
+            Capped @ 80%
+          </span>
+        {% endif %}
       </div>
+      {% if is_capped %}
+        <p class="mb-2 text-xs text-ink-500 italic">Self-verify mode: evidence came from the report itself. Upload the cited source documents alongside the report to get a higher-confidence verdict.</p>
+      {% endif %}
       <p class="font-serif text-sm text-ink-700 leading-relaxed">{{ verdict.reasoning }}</p>
       <p class="mt-2 text-xs font-mono text-ink-400">Model: {{ verdict.model_name }}</p>
     {% endcall %}
