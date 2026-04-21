@@ -40,7 +40,24 @@ class Settings(BaseSettings):
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L6-v2"
     index_dir: str = "./indexes"
     classification_model: str = "gpt-4o-mini"
-    verdict_needs_review_threshold: float = 0.7
+    # Trust-model thresholds — the interaction between these two numbers is
+    # the heart of v1.2.6's self-verify defense. DO NOT change one without
+    # updating the other and the regression test that locks their band.
+    #
+    #   * verdict_needs_review_threshold (0.70): any predicted verdict below
+    #     this gets overridden to needs_review. Calibration instructions in
+    #     the SYSTEM_PROMPT teach the model to keep uncertain claims < 0.70.
+    #
+    #   * self_verify_supported_cap (0.80): when ALL evidence came from the
+    #     same document as the claim (self-verify mode), SUPPORTED verdicts
+    #     are hard-capped at 0.80. This leaves exactly 0.10 of headroom above
+    #     the threshold so high-quality self-corroboration CAN still pass,
+    #     but anything the model was overconfident about gets squeezed
+    #     through the needs_review safety net.
+    #
+    # Invariant: 0 < verdict_needs_review_threshold < self_verify_supported_cap < 1
+    verdict_needs_review_threshold: float = 0.70
+    self_verify_supported_cap: float = 0.80
     verdict_prompt_version: str = "v1"
     # LLM HTTP client safety rails — OpenAI SDK default timeout is 600s which
     # compounds with OpenRouter free-tier rate-limits into multi-minute hangs.
@@ -52,11 +69,15 @@ class Settings(BaseSettings):
     # Default is the same live chain shipped in fly.toml so local dev gets the
     # same resilience as prod. Audit monthly against /api/v1/models.
     model_fallback_chain: Annotated[list[str], NoDecode] = Field(
+        # Audited against OpenRouter /api/v1/models + live 200/429 probes on
+        # 2026-04-21. Diversity across providers so a single provider's daily
+        # cap doesn't kill the whole chain. Strict-structured-output models
+        # (arcee, nvidia) lead; gemma at the tail as a recovery slot.
         default_factory=lambda: [
-            "qwen/qwen3-next-80b-a3b-instruct:free",
-            "meta-llama/llama-3.3-70b-instruct:free",
-            "google/gemma-4-26b-a4b-it:free",
             "arcee-ai/trinity-large-preview:free",
+            "nvidia/nemotron-3-super-120b-a12b:free",
+            "minimax/minimax-m2.5:free",
+            "google/gemma-4-31b-it:free",
         ]
     )
     # Per-model timeout when the fallback chain has >1 model — shorter so failures

@@ -191,9 +191,46 @@ class TestClassifyClaimFunction:
 
         user_msg = next(m for m in captured_messages if m["role"] == "user")
         content = user_msg["content"]
-        assert "[Evidence 1 (relevance: 0.95)]" in content
-        assert "[Evidence 2 (relevance: 0.82)]" in content
+        assert "[Evidence 1 | relevance: 0.95]" in content
+        assert "[Evidence 2 | relevance: 0.82]" in content
         assert "Revenue grew by 12% year over year." in content
+
+    def test_format_evidence_block_tags_source_and_same_document(self):
+        """_format_evidence_block renders source filename + SAME/EXTERNAL tag when available."""
+        from evidenceengine.classification.classifier import _format_evidence_block
+
+        same_doc_span = {
+            "span_text": "body text",
+            "relevance_score": 0.91,
+            "source_filename": "report.pdf",
+            "is_same_doc_as_claim": True,
+        }
+        external_span = {
+            "span_text": "foo",
+            "relevance_score": 0.70,
+            "source_filename": "source_02_ipcc.pdf",
+            "is_same_doc_as_claim": False,
+        }
+        same = _format_evidence_block(0, same_doc_span)
+        ext = _format_evidence_block(1, external_span)
+
+        assert "source: report.pdf" in same
+        assert "SAME DOCUMENT AS CLAIM" in same
+        assert "relevance: 0.91" in same
+
+        assert "source: source_02_ipcc.pdf" in ext
+        assert "EXTERNAL SOURCE" in ext
+        assert "relevance: 0.70" in ext
+
+    def test_format_evidence_block_backward_compat_without_source_metadata(self):
+        """Spans without source_filename render the same compact format as pre-A1."""
+        from evidenceengine.classification.classifier import _format_evidence_block
+
+        result = _format_evidence_block(0, {"span_text": "text", "relevance_score": 0.5})
+        # No source, no SAME/EXTERNAL tag — just relevance.
+        assert result.startswith("[Evidence 1 | relevance: 0.50]")
+        assert "SAME" not in result
+        assert "EXTERNAL" not in result
 
 
 # ---------------------------------------------------------------------------

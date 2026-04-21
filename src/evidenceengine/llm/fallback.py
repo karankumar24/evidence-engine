@@ -33,7 +33,13 @@ _RETRIABLE_CODES = frozenset({400, 404, 408, 429, 502, 503, 529})
 # Audit monthly against `https://openrouter.ai/api/v1/models` (filter for
 # `:free` ids whose `supported_parameters` contains `structured_outputs`).
 _STRICT_STRUCTURED_OUTPUT_MODELS = frozenset({
+    # Audited against OpenRouter /api/v1/models on 2026-04-21 — these carry
+    # `structured_outputs` in their supported_parameters (not just
+    # `response_format`). Setting provider.require_parameters:true here keeps
+    # OpenRouter from routing to providers that silently drop the strict mode.
     "arcee-ai/trinity-large-preview:free",
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "qwen/qwen3-next-80b-a3b-instruct:free",
 })
 
 # Chain-level retry: when an entire pass returns "every model 429'd",

@@ -449,3 +449,32 @@ async def test_classify_endpoint_sets_run_version_fields(async_client, db_sessio
     assert updated_rv.model_versions is not None
     from evidenceengine.core.config import settings
     assert updated_rv.model_versions.get("classification_model") == settings.classification_model
+
+
+def test_self_verify_threshold_band_invariant():
+    """Lock the 0 < needs_review_threshold < self_verify_supported_cap < 1 band.
+
+    These two numbers are deliberately co-designed. A change that swaps them
+    (e.g. cap=0.70, threshold=0.80) would silently break the self-verify
+    safety net: every uncapped SUPPORTED would pass the threshold even if
+    the model was overconfident. Lock the invariant before anyone 'cleans
+    up' the magic numbers.
+    """
+    from evidenceengine.core.config import settings
+
+    threshold = settings.verdict_needs_review_threshold
+    cap = settings.self_verify_supported_cap
+
+    assert 0.0 < threshold, f"threshold must be > 0, got {threshold}"
+    assert threshold < cap, (
+        f"needs_review_threshold ({threshold}) must be strictly less than "
+        f"self_verify_supported_cap ({cap}). See core/config.py band docstring."
+    )
+    assert cap < 1.0, f"cap must be < 1.0, got {cap}"
+    # Floor the band-width: without at least 0.05 headroom between threshold
+    # and cap, high-quality self-corroboration can never pass. If someone
+    # tightens this, they're effectively disabling self-verify SUPPORTED.
+    assert (cap - threshold) >= 0.05, (
+        f"Self-verify band width is {cap - threshold:.3f}; need >=0.05 "
+        "headroom for genuine corroboration to pass."
+    )

@@ -53,8 +53,37 @@ async def classify_verdicts_for_run(
     if not claims:
         return []
 
+    # Collect every source_document_id referenced by the claims and their
+    # evidence spans, then resolve to {id: filename} in one query. The
+    # classifier uses these filenames + a "same doc vs external" flag to
+    # distinguish self-verify mode deterministically (VERDICT-02 layer 2).
+    from evidenceengine.models.document import SourceDocument  # noqa: PLC0415
+    source_doc_ids: set[uuid.UUID] = set()
+    for c in claims:
+        if c.source_document_id is not None:
+            source_doc_ids.add(c.source_document_id)
+        for s in c.evidence_spans:
+            if s.source_document_id is not None:
+                source_doc_ids.add(s.source_document_id)
+    doc_filename_by_id: dict[uuid.UUID, str] = {}
+    if source_doc_ids:
+        doc_rows = (await db.execute(
+            select(SourceDocument.id, SourceDocument.filename)
+            .where(SourceDocument.id.in_(source_doc_ids))
+        )).all()
+        doc_filename_by_id = {r[0]: r[1] for r in doc_rows}
+
     all_verdicts: list[Verdict] = []
     claim_errors_accumulator: list[dict] = []
+    # Telemetry accumulators — surfaced in pipeline_config["telemetry"] below.
+    # These are ADDITIVE observability, not control-flow — removing them never
+    # changes verdicts. The point is making silent-failure modes visible.
+    self_verify_claims = 0                # claims whose anchors all unresolved
+    self_verify_caps_applied = 0          # SUPPORTED verdicts hard-capped by cap
+    threshold_overrides_to_review = 0     # below-threshold -> needs_review
+    chain_exhausted_count = 0             # fallback chain gave up entirely
+    model_refusal_count = 0               # model returned refusal
+    bypass_unresolvable_anchor = 0        # short-circuited without LLM call
 
     for claim in claims:
         # Idempotency: skip if verdict already exists for this claim+run
@@ -74,6 +103,7 @@ async def classify_verdicts_for_run(
         if claim.status == "unresolvable_anchor":
             default_verdict_type = "needs_review"
             default_reasoning = "All citation anchors unresolvable — cited source documents could not be matched."
+            bypass_unresolvable_anchor += 1
         elif not claim.evidence_spans:
             default_verdict_type = "insufficient_support"
             default_reasoning = "No evidence spans retrieved for this claim."
@@ -99,12 +129,20 @@ async def classify_verdicts_for_run(
             all_verdicts.append(verdict)
             continue
 
-        # Normal case: classify with LLM
+        # Normal case: classify with LLM. Pass per-span source metadata so
+        # the classifier prompt can tag each span with its source filename
+        # and a SAME/EXTERNAL flag — makes self-verify reasoning structural
+        # (the model sees the tag directly) instead of inferential.
         evidence_span_dicts = [
             {
                 "span_text": span.span_text,
                 "relevance_score": span.relevance_score or 0.0,
                 "rank": span.retrieval_rank or 0,
+                "source_filename": doc_filename_by_id.get(span.source_document_id),
+                "is_same_doc_as_claim": (
+                    span.source_document_id is not None
+                    and span.source_document_id == claim.source_document_id
+                ),
             }
             for span in claim.evidence_spans
         ]
@@ -116,6 +154,8 @@ async def classify_verdicts_for_run(
             a.resolution_status == "resolved" and a.target_document_id is not None
             for a in (claim.citation_anchors or [])
         )
+        if self_verify_mode:
+            self_verify_claims += 1
 
         # Per-claim try/except so a single LLM failure (chain exhausted,
         # structured-output violation, etc.) doesn't kill the whole run.
@@ -124,29 +164,49 @@ async def classify_verdicts_for_run(
         try:
             classification = await classify_claim(claim.claim_text, evidence_span_dicts)
         except Exception as exc:
+            msg = str(exc)
+            if "exhausted" in msg.lower() or "chain" in msg.lower():
+                chain_exhausted_count += 1
             claim_errors_accumulator.append(
                 {"claim_id": str(claim.id), "error": f"{type(exc).__name__}: {exc}"}
             )
             continue
 
+        # Model refusal — classify_claim returns needs_review @ 0.0.
+        if (
+            classification.verdict_type == "needs_review"
+            and classification.confidence_score == 0.0
+            and "refused" in (classification.reasoning or "").lower()
+        ):
+            model_refusal_count += 1
+
         # Self-verify trust guard (VERDICT-02): cap SUPPORTED confidence so
         # weak self-referential evidence routes to needs_review via the
-        # existing threshold (default 0.7).
+        # existing threshold. The cap AND threshold are co-designed — see
+        # core/config.py for the band invariant.
+        cap = settings.self_verify_supported_cap
         if (
             self_verify_mode
             and classification.verdict_type == "supported"
-            and classification.confidence_score > 0.80
+            and classification.confidence_score > cap
         ):
             from evidenceengine.classification.schemas import VerdictClassificationResponse
             classification = VerdictClassificationResponse(
                 verdict_type="supported",
-                confidence_score=0.80,
-                reasoning=f"[Self-verify cap 0.80] {classification.reasoning}",
+                confidence_score=cap,
+                reasoning=f"[Self-verify cap {cap:.2f}] {classification.reasoning}",
             )
+            self_verify_caps_applied += 1
 
+        pre_threshold_type = classification.verdict_type
         classification = apply_confidence_threshold(
             classification, settings.verdict_needs_review_threshold
         )
+        if (
+            pre_threshold_type != "needs_review"
+            and classification.verdict_type == "needs_review"
+        ):
+            threshold_overrides_to_review += 1
 
         verdict = Verdict(
             claim_id=claim.id,
@@ -175,18 +235,33 @@ async def classify_verdicts_for_run(
 
         all_verdicts.append(verdict)
 
-    # Surface per-claim classification errors (PIPE-05) to the run so the
-    # dashboard can show "X of Y classified — N failed".
-    if claim_errors_accumulator:
-        from evidenceengine.models.run import RunVersion  # lazy to avoid cycles
-        run = await db.get(RunVersion, run_version_uuid)
-        if run is not None:
+    # Surface per-claim classification errors (PIPE-05) + trust-model
+    # telemetry to the run. The dashboard can show "X of Y classified — N
+    # failed"; operators can monitor self_verify_rate and chain_exhausted_rate
+    # to detect pipeline regressions without reading logs.
+    from evidenceengine.models.run import RunVersion  # lazy to avoid cycles
+    run = await db.get(RunVersion, run_version_uuid)
+    if run is not None:
+        telemetry = {
+            "claims_total": len(claims),
+            "verdicts_produced": len(all_verdicts),
+            "self_verify_claims": self_verify_claims,
+            "self_verify_rate": round(self_verify_claims / len(claims), 3) if claims else 0.0,
+            "self_verify_caps_applied": self_verify_caps_applied,
+            "threshold_overrides_to_review": threshold_overrides_to_review,
+            "chain_exhausted_count": chain_exhausted_count,
+            "model_refusal_count": model_refusal_count,
+            "bypass_unresolvable_anchor": bypass_unresolvable_anchor,
+        }
+        merged_config: dict = {
+            **(run.pipeline_config or {}),
+            "classification_telemetry": telemetry,
+        }
+        if claim_errors_accumulator:
             existing = (run.pipeline_config or {}).get("claim_errors", [])
-            run.pipeline_config = {
-                **(run.pipeline_config or {}),
-                "claim_errors": existing + claim_errors_accumulator,
-                "failed_claim_count": len(existing) + len(claim_errors_accumulator),
-            }
+            merged_config["claim_errors"] = existing + claim_errors_accumulator
+            merged_config["failed_claim_count"] = len(existing) + len(claim_errors_accumulator)
+        run.pipeline_config = merged_config
 
     await db.commit()
     return all_verdicts

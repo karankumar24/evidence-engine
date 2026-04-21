@@ -57,15 +57,53 @@ Be honest about uncertainty rather than artificially inflating confidence.
 
 ## Self-verification caveat (when evidence comes from the SAME document as the claim)
 
-If the retrieved evidence spans come from the very same document that contains the
-claim, "self-reference" is not proof. Only return **supported** when a DIFFERENT
-paragraph, in different words, independently restates the fact. If the only evidence
-is a near-duplicate of the claim's own wording, the correct label is
-**insufficient_support** — the document is not self-validating.
+Each evidence span is tagged with its source: `SAME DOCUMENT AS CLAIM` means the span came
+from the very same document the claim appears in; `EXTERNAL SOURCE` means the span came
+from a different (cited) document. Treat these tags as ground truth — not as hints.
+
+- If ALL evidence spans are tagged `SAME DOCUMENT AS CLAIM`, you are in self-verification
+  mode. "Self-reference" is not proof. Only return **supported** when a DIFFERENT
+  paragraph, in different words, independently restates the fact. If the only evidence
+  is a near-duplicate of the claim's own wording, return **insufficient_support** — the
+  document is not self-validating.
+- If at least one span is `EXTERNAL SOURCE`, rely primarily on the external spans for
+  a **supported** verdict; SAME-DOC spans can corroborate but never carry the verdict
+  alone.
 
 ## Instructions
 
 Always reason step-by-step before assigning a label. Complete the reasoning field fully before choosing verdict_type."""
+
+
+def _format_evidence_block(i: int, span: dict) -> str:
+    """Render one evidence span with optional source-attribution tags.
+
+    The evidence dict may carry:
+      - span_text (required)
+      - relevance_score (required)
+      - source_filename (optional): the filename of the document the span
+        came from. Rendered as `source: <filename>` when provided.
+      - is_same_doc_as_claim (optional, bool): True when the span came from
+        the same document the claim appears in. Rendered as an explicit
+        `SAME DOCUMENT AS CLAIM` vs `EXTERNAL SOURCE` tag so the classifier
+        can reason about self-verify mode deterministically instead of
+        having to infer from context.
+
+    Backward-compatible: callers that don't populate source metadata get the
+    same compact format as before.
+    """
+    parts = [f"Evidence {i + 1}"]
+    src = span.get("source_filename")
+    same_doc = span.get("is_same_doc_as_claim")
+    if src:
+        parts.append(f"source: {src}")
+    if same_doc is True:
+        parts.append("SAME DOCUMENT AS CLAIM")
+    elif same_doc is False:
+        parts.append("EXTERNAL SOURCE")
+    parts.append(f"relevance: {span['relevance_score']:.2f}")
+    header = "[" + " | ".join(parts) + "]"
+    return f"{header}\n{span['span_text']}"
 
 
 async def classify_claim(
@@ -87,8 +125,7 @@ async def classify_claim(
     """
     if evidence_spans:
         evidence_blocks = "\n\n".join(
-            f"[Evidence {i + 1} (relevance: {span['relevance_score']:.2f})]\n{span['span_text']}"
-            for i, span in enumerate(evidence_spans)
+            _format_evidence_block(i, span) for i, span in enumerate(evidence_spans)
         )
     else:
         evidence_blocks = "No evidence spans available."
