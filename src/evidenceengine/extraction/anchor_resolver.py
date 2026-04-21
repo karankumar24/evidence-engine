@@ -11,12 +11,23 @@ resolution_status='unresolvable' to DB. This is enforced by the caller
 import difflib
 import re
 
-# Minimum fuzzy match score (0-100) to consider a citation resolved.
-# Calibrated at 80 to balance precision/recall for author-year citations
-# against document filenames and raw text snippets. The score is the max of
-# (a) char-level SequenceMatcher ratio and (b) token-coverage of candidate
-# tokens within target tokens — see resolve_to_source_document().
+# Minimum fuzzy match score (0-100) to consider a citation resolved on raw
+# score alone. Calibrated at 80 to balance precision/recall for author-year
+# citations against document filenames and raw text snippets. The score is the
+# max of (a) char-level SequenceMatcher ratio and (b) token-coverage of
+# candidate tokens within target tokens — see resolve_to_source_document().
 RESOLUTION_THRESHOLD = 80
+
+# Secondary pathway: when the top candidate scores above MARGIN_THRESHOLD and
+# beats the runner-up by MARGIN_LEAD points, we treat it as resolved. This
+# handles the common case where a reference title uses words the source
+# excerpt doesn't literally repeat (e.g. "Climate Change, 2022" as a journal
+# title, vs. an excerpt that only discusses the specific chapter). If ONE
+# source is a much closer match than any other, that's a strong signal even
+# below 80. False-positive risk is low because we require BOTH a decent
+# absolute score AND a clear lead over alternatives.
+MARGIN_THRESHOLD = 65
+MARGIN_LEAD = 20
 
 # Token-coverage substantive-token guard: a candidate must contain at least
 # one token of length >= 4 to qualify for token-coverage scoring. Prevents
@@ -28,10 +39,25 @@ _MIN_SUBSTANTIVE_TOKEN_LEN = 4
 # Token splitter: word characters of length 2+ (drops punctuation, single chars).
 _TOKEN_RE = re.compile(r"[a-z0-9]{2,}")
 
+# Stopwords stripped from candidates before token-coverage scoring. These
+# otherwise drag coverage down when the source document doesn't repeat function
+# words present in the reference entry (e.g. candidate "IPCC Sixth Assessment
+# Report — Working Group III, Mitigation of Climate Change, 2022" contains
+# "of" which source_02_ipcc_carbon_budget.pdf's excerpt doesn't, knocking
+# coverage below the 80% threshold even though every substantive proper noun
+# matches). Keep this list tight — we only drop true English function words
+# plus bibliography-specific noise ("et", "al", "pp", "vol", "eds", "ed").
+_STOPWORDS: frozenset[str] = frozenset({
+    "the", "and", "of", "in", "on", "at", "to", "for", "by", "with",
+    "from", "as", "an", "is", "it", "its", "be", "are", "was", "were",
+    "or", "but", "not", "no", "do", "does", "has", "have", "had",
+    "et", "al", "pp", "vol", "eds", "ed", "no", "ser", "issn", "isbn",
+})
+
 
 def _tokens(text: str) -> set[str]:
-    """Lowercase token set, length >= 2, alphanumeric only."""
-    return set(_TOKEN_RE.findall(text.lower()))
+    """Lowercase token set, length >= 2, alphanumeric only, stopwords removed."""
+    return {t for t in _TOKEN_RE.findall(text.lower()) if t not in _STOPWORDS}
 
 
 def _has_substantive_token(tokens: set[str]) -> bool:
@@ -126,7 +152,8 @@ def resolve_to_source_document(
     if not candidate:
         return None, "unresolvable"
 
-    best_score = 0
+    best_score = 0.0
+    second_score = 0.0
     best_doc_id: str | None = None
 
     candidate_lower = candidate.lower()
@@ -135,8 +162,11 @@ def resolve_to_source_document(
     for doc in non_report_docs:
         # Clean filename: replace underscores/dots with spaces for better token matching
         filename_clean = doc.filename.replace("_", " ").replace(".", " ")
-        # Build target string: cleaned filename + first 500 chars of raw_text
-        target = f"{filename_clean} {(doc.raw_text or '')[:500]}"
+        # Build target string: cleaned filename + first 2000 chars of raw_text.
+        # 2000 covers a typical source excerpt's introductory + first body pages
+        # where authors/dates/section titles tend to live, without incurring the
+        # O(n^2) SequenceMatcher cost of scanning full documents.
+        target = f"{filename_clean} {(doc.raw_text or '')[:2000]}"
         target_lower = target.lower()
         # Combine character-level fuzzy with token-coverage. SequenceMatcher
         # alone misses clean matches when filenames inject extra tokens (e.g.
@@ -152,10 +182,18 @@ def resolve_to_source_document(
             coverage = 0
         score = max(seq_score, coverage)
         if score > best_score:
+            second_score = best_score
             best_score = score
             best_doc_id = str(doc.id)
+        elif score > second_score:
+            second_score = score
 
     if best_score >= RESOLUTION_THRESHOLD:
+        return best_doc_id, "resolved"
+    # Margin-of-separation path: top candidate has a decent score and leaves
+    # the runner-up far behind. Typical false-positive shape (two docs scoring
+    # similarly both below threshold) is rejected by the LEAD requirement.
+    if best_score >= MARGIN_THRESHOLD and (best_score - second_score) >= MARGIN_LEAD:
         return best_doc_id, "resolved"
     return None, "unresolvable"
 

@@ -165,6 +165,53 @@ def test_unresolvable_when_no_match():
     assert doc_id is None
 
 
+def test_margin_path_resolves_clear_winner_below_threshold():
+    """Below the 80 threshold but ≥65 with ≥20pt lead → resolved (disambiguation signal)."""
+    from evidenceengine.extraction.anchor_resolver import resolve_to_source_document
+
+    # Candidate mentions IPCC explicitly; source_02 filename matches IPCC but
+    # its excerpt doesn't repeat "climate/change/2022" — a common real-world
+    # mismatch where the title-level reference exceeds the excerpt's vocabulary.
+    references_entries = [
+        "IPCC Sixth Assessment Report, Working Group III, Mitigation of Climate Change, 2022"
+    ]
+    ipcc_doc = make_source_doc(
+        filename="source_02_ipcc_carbon_budget.pdf",
+        raw_text="IPCC Sixth Assessment Report Working Group III Chapter 3 Mitigation Pathways",
+    )
+    other_doc = make_source_doc(
+        filename="source_01_unrelated_topic.pdf",
+        raw_text="Totally different content about fisheries and aquaculture.",
+    )
+    doc_id, status = resolve_to_source_document(
+        raw_marker="[1]",
+        citation_style="numeric",
+        source_documents=[ipcc_doc, other_doc],
+        references_entries=references_entries,
+    )
+    assert status == "resolved"
+    assert doc_id == str(ipcc_doc.id)
+
+
+def test_margin_path_rejects_when_two_candidates_tie():
+    """Two source docs score similarly below threshold → unresolvable (ambiguous)."""
+    from evidenceengine.extraction.anchor_resolver import resolve_to_source_document
+
+    # Both docs contain overlapping tokens with the candidate; neither stands out.
+    references_entries = ["Generic Research Paper, Smith et al., 2023"]
+    doc_a = make_source_doc(filename="paper.pdf", raw_text="Generic research paper content.")
+    doc_b = make_source_doc(filename="article.pdf", raw_text="Generic research paper content.")
+    doc_id, status = resolve_to_source_document(
+        raw_marker="[1]",
+        citation_style="numeric",
+        source_documents=[doc_a, doc_b],
+        references_entries=references_entries,
+    )
+    # Near-identical targets → best - second < MARGIN_LEAD → reject
+    assert status == "unresolvable"
+    assert doc_id is None
+
+
 def test_skips_report_document():
     """Source docs with is_report=True are never returned as resolution targets."""
     from evidenceengine.extraction.anchor_resolver import resolve_to_source_document

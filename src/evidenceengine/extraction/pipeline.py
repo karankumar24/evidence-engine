@@ -107,16 +107,38 @@ async def extract_claims_for_document(
         total_pages * settings.max_claims_per_page,
         settings.max_claims_absolute,
     )
-    if len(extraction_result.claims) > effective_cap:
+    extracted_count = len(extraction_result.claims)
+    discarded_count = max(0, extracted_count - effective_cap)
+    if discarded_count > 0:
         logger.warning(
-            "Extraction produced %d claims for %d-page report %s — capping at %d",
-            len(extraction_result.claims), total_pages, report_document_id, effective_cap,
+            "Extraction produced %d claims for %d-page report %s — capping at %d (discarded %d)",
+            extracted_count, total_pages, report_document_id, effective_cap, discarded_count,
         )
         extraction_result.claims = extraction_result.claims[:effective_cap]
-
     # 6. Persist each claim and its anchors
     claims: list[Claim] = []
     run_version_uuid = _uuid.UUID(run_version_id)
+
+    # Persist extraction telemetry to RunVersion.pipeline_config. Visibility of
+    # over-extraction is a trust-model signal: if the LLM routinely extracts
+    # 3x the cap for short reports, verdicts may be skewed toward early pages.
+    if extracted_count > 0:
+        from evidenceengine.models.run import RunVersion  # noqa: PLC0415
+        run_row = (await db.execute(
+            select(RunVersion).where(RunVersion.id == run_version_uuid)
+        )).scalar_one_or_none()
+        if run_row is not None:
+            extraction_telemetry = {
+                "extracted_count": extracted_count,
+                "effective_cap": effective_cap,
+                "discarded_count": discarded_count,
+                "discard_ratio": round(discarded_count / extracted_count, 3),
+                "total_pages": total_pages,
+            }
+            run_row.pipeline_config = {
+                **(run_row.pipeline_config or {}),
+                "extraction_telemetry": extraction_telemetry,
+            }
 
     for extracted_claim in extraction_result.claims:
         # Recover position from raw_text

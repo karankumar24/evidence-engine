@@ -227,6 +227,41 @@ def test_position_recovery_normalized_char_end_uses_norm_length():
     )
 
 
+def test_position_recovery_not_found_does_not_match_block_zero():
+    """When claim_text can't be located in raw_text, char_start=0 must NOT match block[0].
+
+    Regression: the char_start=0 sentinel-on-failure would match the first block whose
+    range starts at 0, lying about page_number / section_header.
+    """
+    from evidenceengine.extraction.position_recovery import recover_position
+
+    raw_text = "Executive summary paragraph here.  Body follows."
+    claim_text = "This claim does not appear in raw text at all."
+    blocks = [
+        {
+            "text": "Executive summary paragraph here.",
+            "block_type": "paragraph",
+            "position": {
+                "page": 1,
+                "paragraph": 0,
+                "char_start": 0,
+                "char_end": 33,
+                "section_header": "Introduction",
+            },
+        }
+    ]
+
+    result = recover_position(claim_text, raw_text, blocks)
+
+    assert result["char_start"] == 0
+    assert result["char_end"] == 0
+    assert result["position_exact"] is False
+    # Must NOT falsely attribute the not-found claim to block[0].
+    assert result["page_number"] is None
+    assert result["paragraph_index"] is None
+    assert result["section_header"] is None
+
+
 def test_position_recovery_page_and_section():
     """Matching block found — page_number and section_header populated from block."""
     from evidenceengine.extraction.position_recovery import recover_position

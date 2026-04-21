@@ -95,6 +95,9 @@ async def retrieve_evidence_for_run(
             )
 
         claim_has_spans = False
+        # Rank across ALL searched documents for this claim, so downstream
+        # ordering is meaningful when a claim cites multiple sources.
+        claim_global_rank = 0
 
         for doc_id_str, anchor in search_targets:
 
@@ -180,6 +183,7 @@ async def retrieve_evidence_for_run(
                         claim.id, rank_idx,
                     )
                     meta = {}
+                claim_global_rank += 1
                 span = EvidenceSpan(
                     claim_id=claim.id,
                     source_document_id=target_doc_uuid,
@@ -192,7 +196,7 @@ async def retrieve_evidence_for_run(
                     section_header=meta.get("section_header"),
                     relevance_score=item["score"],
                     retrieval_method="cross_encoder",
-                    retrieval_rank=rank_idx + 1,
+                    retrieval_rank=claim_global_rank,
                 )
                 db.add(span)
                 all_spans.append(span)

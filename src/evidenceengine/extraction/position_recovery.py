@@ -58,14 +58,17 @@ def recover_position(
         char_end = char_start + len(claim_text)
 
     # --- Find matching block by char_start offset ---
+    # Only match when we actually located the claim; when idx == -1 the
+    # char_start=0 sentinel would spuriously match the first block starting at 0.
     matched_block: dict | None = None
-    for block in parsed_blocks:
-        pos = block.get("position", {})
-        block_start = pos.get("char_start", -1)
-        block_end = pos.get("char_end", -1)
-        if block_start <= char_start < block_end:
-            matched_block = block
-            break
+    if idx != -1:
+        for block in parsed_blocks:
+            pos = block.get("position", {})
+            block_start = pos.get("char_start", -1)
+            block_end = pos.get("char_end", -1)
+            if block_start <= char_start < block_end:
+                matched_block = block
+                break
 
     page_number: int | None = None
     paragraph_index: int | None = None
