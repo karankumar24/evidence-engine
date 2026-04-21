@@ -20,7 +20,9 @@ MANIFEST
 # Virtual environments (uv / venv)
 # =============================================================================
 .venv/
+.venv.*/
 venv/
+venv.*/
 env/
 ENV/
 
@@ -130,6 +132,7 @@ docker-compose.override.yml
 # =============================================================================
 # Benchmark / eval outputs (generated artifacts, not source)
 # =============================================================================
+eval/results/
 eval_results/
 benchmark_output/
 
@@ -139,7 +142,16 @@ benchmark_output/
 node_modules/
 
 # =============================================================================
-# Claude Code local state (shouldn't be committed)
+# Stray PDFs at repo root (test fixtures under tests/ are whitelisted above)
+# =============================================================================
+/*.pdf
+
+# =============================================================================
+# Claude Code / AI tool local state (shouldn't be committed)
 # =============================================================================
 .claude/
 .gstack/
+.cursor/
+.antigravity/
+.aider*/
+.aider.*
