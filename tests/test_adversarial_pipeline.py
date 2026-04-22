@@ -3,16 +3,25 @@
 Tests the four attack classes embedded in
 examples/climate-app/sample_packets/adversarial_carbon/ by exercising the
 classification pipeline with realistic inputs for each attack, mocking only
-the LLM call so failures here point at our pipeline — not free-tier flakiness.
+the underlying model calls so failures here point at our pipeline — not
+free-tier flakiness.
 
 Attack catalogue:
   1. Fabricated citation   → anchor_resolver unresolvable → needs_review
-  2. Directly contradicted → LLM-returned "contradicted" must be persisted
-  3. Cherry-picked scope   → LLM returns partial support below threshold;
-                             threshold routing sends it to needs_review.
-  4. Self-verification trap → LLM overconfident supported is hard-capped at
+  2. Directly contradicted → classifier-returned "contradicted" must be persisted
+  3. Cherry-picked scope   → low-confidence supported; threshold routing sends
+                             it to needs_review.
+  4. Self-verification trap → overconfident supported is hard-capped at
                               self_verify_supported_cap (0.80) and the source
                               label reaches the prompt as SAME DOCUMENT AS CLAIM.
+
+Phase 02 Plan 03: every adversarial test is parametrized over
+``classifier_backend_param`` (from ``tests/conftest.py``) so each attack runs
+once under ``nli_primary`` AND once under ``llm_primary`` — 14 total
+invocations from 7 vectors. The LLM path mocks ``classifier.asyncio.to_thread``;
+the NLI path uses the ``mock_nli_probs`` fixture to pin the NLI verdict and
+patches ``generate_explanation`` to None so explanation HTTP doesn't leak
+into these offline tests.
 
 Run: pytest tests/test_adversarial_pipeline.py -v
 """
@@ -57,6 +66,27 @@ def mock_llm_message(verdict_type: str, confidence: float, reasoning: str = ".")
     return msg
 
 
+# ---------------------------------------------------------------------------
+# NLI-path helper: probs that map to a specific verdict.
+# ---------------------------------------------------------------------------
+
+
+def _nli_probs_for(verdict: str) -> tuple[float, float, float]:
+    """Return (entail, neutral, contra) tuples that map deterministically to
+    the target verdict under the Plan 02 thresholds
+    (entail >= 0.80 → supported, contra >= 0.80 → contradicted, max < 0.50
+    → needs_review, else insufficient_support)."""
+    if verdict == "supported":
+        return (0.92, 0.05, 0.03)
+    if verdict == "contradicted":
+        return (0.05, 0.05, 0.92)
+    if verdict == "needs_review":
+        # max < 0.50 — NLI isn't confident in any class.
+        return (0.40, 0.35, 0.25)
+    # Default: insufficient_support (neutral-ish, all <0.80, max >=0.50)
+    return (0.55, 0.40, 0.05)
+
+
 async def build_attack_run(
     db: AsyncSession,
     *,
@@ -65,16 +95,7 @@ async def build_attack_run(
     evidence_specs: list[dict] | None = None,
     anchor_statuses: list[str] | None = None,
 ):
-    """Create packet + report + (optional external source) + run + claim + anchors + spans.
-
-    evidence_specs: list of {"text": ..., "relevance": ..., "from_report": bool}.
-      If from_report=True the span is persisted against the report SourceDocument;
-      otherwise a distinct external SourceDocument is created and the span points
-      there. This is what drives the self-verify vs external distinction in the
-      classifier prompt tags.
-    anchor_statuses: list of "resolved" | "unresolvable" strings — one CitationAnchor
-      per element is attached to the claim. Empty list means zero anchors.
-    """
+    """Create packet + report + (optional external source) + run + claim + anchors + spans."""
     from evidenceengine.models.document import DocumentPacket, SourceDocument
     from evidenceengine.models.run import RunVersion
     from evidenceengine.models.claim import Claim, CitationAnchor
@@ -142,18 +163,23 @@ async def build_attack_run(
 
 
 # ---------------------------------------------------------------------------
-# Attack 1 — fabricated citation
+# Attack 1 — fabricated citation (runs WITHOUT calling any model; works for both backends)
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_attack_1_fabricated_citation_routes_to_needs_review(db_session):
-    """Claim status=unresolvable_anchor bypasses the LLM and lands in needs_review.
+async def test_attack_1_fabricated_citation_routes_to_needs_review(
+    db_session, classifier_backend_param, mock_nli_probs,
+):
+    """Claim status=unresolvable_anchor bypasses classifier entirely and lands in needs_review.
 
-    The pipeline upstream marks claim.status='unresolvable_anchor' when all anchors
-    fail to resolve. Classification must not pretend to verify it.
+    Runs identically under both backends — the short-circuit lives upstream of
+    the backend dispatch. Parametrization confirms no regression when
+    classifier_backend flips.
     """
     from evidenceengine.classification.pipeline import classify_verdicts_for_run
-    from evidenceengine.models.verdict import Verdict
+    from evidenceengine.core.config import settings
+
+    assert settings.classifier_backend == classifier_backend_param
 
     _, _, run, _ = await build_attack_run(
         db_session,
@@ -164,7 +190,9 @@ async def test_attack_1_fabricated_citation_routes_to_needs_review(db_session):
     )
 
     with patch("evidenceengine.classification.classifier.asyncio.to_thread",
-               new_callable=AsyncMock) as mock_thread:
+               new_callable=AsyncMock) as mock_thread, \
+         patch("evidenceengine.classification.pipeline.generate_explanation",
+               new_callable=AsyncMock, return_value=None):
         verdicts = await classify_verdicts_for_run(str(run.id), db_session)
 
     assert len(verdicts) == 1
@@ -172,7 +200,7 @@ async def test_attack_1_fabricated_citation_routes_to_needs_review(db_session):
     assert v.verdict_type == "needs_review"
     assert v.confidence_score == 0.0
     assert "unresolvable" in v.reasoning.lower()
-    # Critical — no LLM call happens for fabricated citations.
+    # No backend call happens for fabricated citations under EITHER backend.
     mock_thread.assert_not_called()
 
 
@@ -181,11 +209,14 @@ async def test_attack_1_fabricated_citation_routes_to_needs_review(db_session):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_attack_2_contradicted_verdict_is_persisted_as_contradicted(db_session):
-    """When the LLM flags contradiction, the pipeline must NOT downgrade it.
+async def test_attack_2_contradicted_verdict_is_persisted_as_contradicted(
+    db_session, classifier_backend_param, mock_nli_probs,
+):
+    """Contradicted verdicts from either backend are NOT downgraded.
 
     VERDICT-03 rule: contradictions are a distinct class, never collapsed.
-    Confidence above threshold → verdict_type stays 'contradicted'.
+    Confidence above threshold → verdict_type stays 'contradicted' regardless
+    of which backend produced it.
     """
     from evidenceengine.classification.pipeline import classify_verdicts_for_run
 
@@ -199,13 +230,22 @@ async def test_attack_2_contradicted_verdict_is_persisted_as_contradicted(db_ses
         anchor_statuses=["resolved"],
     )
 
-    with patch("evidenceengine.classification.classifier.asyncio.to_thread",
-               new_callable=AsyncMock) as mock_thread:
-        mock_thread.return_value = mock_llm_message(
-            "contradicted", 0.92,
-            "Source states emissions approached the 2019 record; claim asserts a decrease.",
-        )
-        verdicts = await classify_verdicts_for_run(str(run.id), db_session)
+    if classifier_backend_param == "nli_primary":
+        # Pin NLI to produce a high-confidence contradicted verdict.
+        mock_nli_probs([_nli_probs_for("contradicted")])
+        with patch("evidenceengine.classification.pipeline.generate_explanation",
+                   new_callable=AsyncMock, return_value=None):
+            verdicts = await classify_verdicts_for_run(str(run.id), db_session)
+    else:
+        with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+                   new_callable=AsyncMock) as mock_thread, \
+             patch("evidenceengine.classification.pipeline.generate_explanation",
+                   new_callable=AsyncMock, return_value=None):
+            mock_thread.return_value = mock_llm_message(
+                "contradicted", 0.92,
+                "Source states emissions approached the 2019 record; claim asserts a decrease.",
+            )
+            verdicts = await classify_verdicts_for_run(str(run.id), db_session)
 
     assert len(verdicts) == 1
     assert verdicts[0].verdict_type == "contradicted"
@@ -217,11 +257,17 @@ async def test_attack_2_contradicted_verdict_is_persisted_as_contradicted(db_ses
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_attack_3_low_confidence_supported_routes_to_needs_review(db_session):
-    """Below-threshold SUPPORTED must be overridden to needs_review.
+async def test_attack_3_low_confidence_supported_routes_to_needs_review(
+    db_session, classifier_backend_param, mock_nli_probs,
+):
+    """Below-threshold SUPPORTED must NOT persist as supported under either backend.
 
-    When the classifier honestly reports low confidence on partially-supported
-    claims, the threshold safety net (0.70) routes them away from supported.
+    LLM-primary: honest classifier reports low confidence (insufficient_support
+    @ 0.55 in the test); 0.70 override routes to needs_review.
+
+    NLI-primary: NLI returns low max prob — mapped to needs_review by the 0.50
+    floor OR the tiebreaker path. Either way, we assert the verdict is NOT
+    supported — the band invariant the attack class requires.
     """
     from evidenceengine.classification.pipeline import classify_verdicts_for_run
 
@@ -235,18 +281,38 @@ async def test_attack_3_low_confidence_supported_routes_to_needs_review(db_sessi
         anchor_statuses=["resolved"],
     )
 
-    with patch("evidenceengine.classification.classifier.asyncio.to_thread",
-               new_callable=AsyncMock) as mock_thread:
-        # Honest calibration — model confirms the number but flags "record high" is unsupported
-        mock_thread.return_value = mock_llm_message(
-            "insufficient_support", 0.55,
-            "The 36.6 GtCO2 figure is confirmed but the 'record high' clause is not supported — 2019 was the record.",
-        )
-        verdicts = await classify_verdicts_for_run(str(run.id), db_session)
+    if classifier_backend_param == "nli_primary":
+        # NLI returns low max — triggers tiebreaker (conf < 0.65). Pin the
+        # tiebreaker LLMClassifier to also return low-confidence insufficient
+        # so the final verdict is explicitly NOT supported.
+        mock_nli_probs([_nli_probs_for("needs_review")])  # max < 0.50
+        tb_inst = MagicMock()
+        tb_inst.classify = AsyncMock(return_value=__import__(
+            "evidenceengine.classification.schemas", fromlist=["VerdictClassificationResponse"],
+        ).VerdictClassificationResponse(
+            reasoning="tiebreaker — not supported",
+            verdict_type="insufficient_support",
+            confidence_score=0.55,
+        ))
+        with patch("evidenceengine.classification.pipeline.generate_explanation",
+                   new_callable=AsyncMock, return_value=None), \
+             patch("evidenceengine.classification.llm_classifier.LLMClassifier",
+                   return_value=tb_inst):
+            verdicts = await classify_verdicts_for_run(str(run.id), db_session)
+    else:
+        with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+                   new_callable=AsyncMock) as mock_thread, \
+             patch("evidenceengine.classification.pipeline.generate_explanation",
+                   new_callable=AsyncMock, return_value=None):
+            mock_thread.return_value = mock_llm_message(
+                "insufficient_support", 0.55,
+                "The 36.6 GtCO2 figure is confirmed but the 'record high' clause is not supported — 2019 was the record.",
+            )
+            verdicts = await classify_verdicts_for_run(str(run.id), db_session)
 
     assert len(verdicts) == 1
-    # insufficient_support OR needs_review (threshold override) is acceptable.
-    # What MUST NOT happen: supported.
+    # The class-level invariant under attack 3: must NOT persist as supported
+    # regardless of which backend classified it.
     assert verdicts[0].verdict_type != "supported"
 
 
@@ -255,12 +321,14 @@ async def test_attack_3_low_confidence_supported_routes_to_needs_review(db_sessi
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_attack_4_self_verify_caps_overconfident_supported(db_session):
-    """When all evidence comes from the same doc as the claim, SUPPORTED is capped.
+async def test_attack_4_self_verify_caps_overconfident_supported(
+    db_session, classifier_backend_param, mock_nli_probs,
+):
+    """Self-verify cap fires on overconfident SUPPORTED under EITHER backend.
 
-    Even if the LLM returns supported @ 0.95, the self-verify guard hard-caps
-    confidence at self_verify_supported_cap (default 0.80). The band design
-    keeps 0.70–0.80 as the "self-corroboration can pass" window.
+    The cap lives downstream of backend dispatch — same guard applies to NLI's
+    supported verdicts as to the LLM's. Both paths must clamp confidence to
+    ``self_verify_supported_cap`` (0.80).
     """
     from evidenceengine.classification.pipeline import classify_verdicts_for_run
     from evidenceengine.core.config import settings
@@ -276,12 +344,21 @@ async def test_attack_4_self_verify_caps_overconfident_supported(db_session):
         anchor_statuses=[],  # no citation = no resolved anchor = self-verify mode
     )
 
-    with patch("evidenceengine.classification.classifier.asyncio.to_thread",
-               new_callable=AsyncMock) as mock_thread:
-        mock_thread.return_value = mock_llm_message(
-            "supported", 0.95, "Different paragraph restates the claim verbatim.",
-        )
-        verdicts = await classify_verdicts_for_run(str(run.id), db_session)
+    if classifier_backend_param == "nli_primary":
+        # NLI-primary returns high-confidence entail (>=0.80 → supported @ 0.92).
+        mock_nli_probs([_nli_probs_for("supported")])  # entail=0.92 → supported
+        with patch("evidenceengine.classification.pipeline.generate_explanation",
+                   new_callable=AsyncMock, return_value=None):
+            verdicts = await classify_verdicts_for_run(str(run.id), db_session)
+    else:
+        with patch("evidenceengine.classification.classifier.asyncio.to_thread",
+                   new_callable=AsyncMock) as mock_thread, \
+             patch("evidenceengine.classification.pipeline.generate_explanation",
+                   new_callable=AsyncMock, return_value=None):
+            mock_thread.return_value = mock_llm_message(
+                "supported", 0.95, "Different paragraph restates the claim verbatim.",
+            )
+            verdicts = await classify_verdicts_for_run(str(run.id), db_session)
 
     assert len(verdicts) == 1
     v = verdicts[0]
@@ -293,12 +370,17 @@ async def test_attack_4_self_verify_caps_overconfident_supported(db_session):
 
 
 @pytest.mark.asyncio
-async def test_attack_4_same_document_tag_reaches_classifier_prompt(db_session):
-    """Verify the deterministic SAME DOCUMENT AS CLAIM tag actually reaches the prompt.
+async def test_attack_4_same_document_tag_reaches_classifier_prompt(
+    db_session, classifier_backend_param, mock_nli_probs,
+):
+    """The deterministic SAME DOCUMENT AS CLAIM tag reaches the classifier prompt.
 
-    The v1.2.6 self-verify defense relied on the LLM inferring self-reference from
-    text content (it couldn't — spans had no attribution). v1.2.8 A1 made this
-    structural. This test guards the wire-through.
+    Under ``llm_primary`` this is the verdict prompt sent to the LLM
+    classifier. Under ``nli_primary`` the VERDICT call goes through NLI
+    (no prompt wire-through is meaningful there), so we pin NLI and instead
+    verify the SAME-DOC flag is preserved in the evidence dict reaching the
+    backend.classify call. Net-net: the structural tag flows the same way
+    through both paths.
     """
     from evidenceengine.classification.pipeline import classify_verdicts_for_run
     from evidenceengine.classification.schemas import VerdictClassificationResponse
@@ -313,6 +395,34 @@ async def test_attack_4_same_document_tag_reaches_classifier_prompt(db_session):
         anchor_statuses=[],
     )
 
+    if classifier_backend_param == "nli_primary":
+        # Under NLI, the "prompt" equivalent is the evidence_spans dict passed
+        # to backend.classify. Spy on it and assert SAME-DOC flag was preserved.
+        from evidenceengine.classification import pipeline as pm
+        captured_spans: list[list[dict]] = []
+
+        class SpyBackend:
+            async def classify(self, claim_text, evidence_spans):
+                captured_spans.append(evidence_spans)
+                return VerdictClassificationResponse(
+                    reasoning=".", verdict_type="insufficient_support",
+                    confidence_score=0.50,
+                )
+
+        with patch.object(pm, "get_backend", return_value=SpyBackend()), \
+             patch.object(pm, "generate_explanation",
+                          new=AsyncMock(return_value=None)):
+            await classify_verdicts_for_run(str(run.id), db_session)
+
+        assert captured_spans, "backend.classify not called"
+        spans = captured_spans[0]
+        assert any(s.get("is_same_doc_as_claim") is True for s in spans), (
+            f"Expected SAME-DOC flag in NLI evidence spans; got: {spans}"
+        )
+        assert any(s.get("source_filename") == "report.pdf" for s in spans)
+        return
+
+    # llm_primary: preserve the original wire-through assertion.
     captured_messages: list[dict] = []
 
     def fake_parse(**kwargs):
@@ -323,7 +433,9 @@ async def test_attack_4_same_document_tag_reaches_classifier_prompt(db_session):
         )
         return MagicMock(choices=[MagicMock(message=result_msg)])
 
-    with patch("openai.OpenAI") as mock_openai_cls:
+    with patch("openai.OpenAI") as mock_openai_cls, \
+         patch("evidenceengine.classification.pipeline.generate_explanation",
+               new_callable=AsyncMock, return_value=None):
         mock_client = mock_openai_cls.return_value.__enter__.return_value
         mock_client.beta.chat.completions.parse = fake_parse
         await classify_verdicts_for_run(str(run.id), db_session)
@@ -338,8 +450,16 @@ async def test_attack_4_same_document_tag_reaches_classifier_prompt(db_session):
 
 
 @pytest.mark.asyncio
-async def test_attack_4_external_source_produces_external_tag(db_session):
-    """Evidence from a different document must render as EXTERNAL SOURCE in the prompt."""
+async def test_attack_4_external_source_produces_external_tag(
+    db_session, classifier_backend_param, mock_nli_probs,
+):
+    """Evidence from a different document renders as EXTERNAL SOURCE for both backends.
+
+    Mirrors ``test_attack_4_same_document_tag_reaches_classifier_prompt`` for
+    the external case. Under NLI, we assert the is_same_doc_as_claim flag is
+    False on the span dicts; under LLM, the prompt tag "EXTERNAL SOURCE"
+    appears verbatim.
+    """
     from evidenceengine.classification.pipeline import classify_verdicts_for_run
     from evidenceengine.classification.schemas import VerdictClassificationResponse
 
@@ -353,6 +473,31 @@ async def test_attack_4_external_source_produces_external_tag(db_session):
         anchor_statuses=["resolved"],
     )
 
+    if classifier_backend_param == "nli_primary":
+        from evidenceengine.classification import pipeline as pm
+        captured_spans: list[list[dict]] = []
+
+        class SpyBackend:
+            async def classify(self, claim_text, evidence_spans):
+                captured_spans.append(evidence_spans)
+                return VerdictClassificationResponse(
+                    reasoning=".", verdict_type="supported", confidence_score=0.92,
+                )
+
+        with patch.object(pm, "get_backend", return_value=SpyBackend()), \
+             patch.object(pm, "generate_explanation",
+                          new=AsyncMock(return_value=None)):
+            await classify_verdicts_for_run(str(run.id), db_session)
+
+        assert captured_spans
+        spans = captured_spans[0]
+        assert any(s.get("is_same_doc_as_claim") is False for s in spans)
+        assert any(s.get("source_filename") == "source_01_external.pdf" for s in spans)
+        # Must NOT tag any span as same-doc here.
+        assert not any(s.get("is_same_doc_as_claim") is True for s in spans)
+        return
+
+    # llm_primary preserves the original prompt-level wire-through assertion.
     captured: list[dict] = []
 
     def fake_parse(**kwargs):
@@ -363,7 +508,9 @@ async def test_attack_4_external_source_produces_external_tag(db_session):
         )
         return MagicMock(choices=[MagicMock(message=result_msg)])
 
-    with patch("openai.OpenAI") as mock_openai_cls:
+    with patch("openai.OpenAI") as mock_openai_cls, \
+         patch("evidenceengine.classification.pipeline.generate_explanation",
+               new_callable=AsyncMock, return_value=None):
         mock_client = mock_openai_cls.return_value.__enter__.return_value
         mock_client.beta.chat.completions.parse = fake_parse
         await classify_verdicts_for_run(str(run.id), db_session)
@@ -382,8 +529,10 @@ async def test_attack_4_external_source_produces_external_tag(db_session):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_adversarial_run_records_telemetry(db_session):
-    """After classifying adversarial claims, run.pipeline_config carries trust-model telemetry."""
+async def test_adversarial_run_records_telemetry(
+    db_session, classifier_backend_param, mock_nli_probs,
+):
+    """After classifying adversarial claims, pipeline_config carries telemetry for BOTH backends."""
     from evidenceengine.classification.pipeline import classify_verdicts_for_run
     from evidenceengine.models.run import RunVersion
 
@@ -395,8 +544,12 @@ async def test_adversarial_run_records_telemetry(db_session):
         anchor_statuses=["unresolvable"],
     )
 
+    # Short-circuit attack (unresolvable_anchor) never calls backend or
+    # explanation, but we still patch to keep offline.
     with patch("evidenceengine.classification.classifier.asyncio.to_thread",
-               new_callable=AsyncMock):
+               new_callable=AsyncMock), \
+         patch("evidenceengine.classification.pipeline.generate_explanation",
+               new_callable=AsyncMock, return_value=None):
         await classify_verdicts_for_run(str(run.id), db_session)
 
     refreshed = (await db_session.execute(
@@ -407,3 +560,9 @@ async def test_adversarial_run_records_telemetry(db_session):
     assert telemetry is not None, "classification_telemetry missing from pipeline_config"
     assert telemetry["bypass_unresolvable_anchor"] == 1
     assert telemetry["claims_total"] == 1
+    # Plan 03 additive keys present regardless of backend.
+    assert telemetry["classifier_backend"] == classifier_backend_param
+    assert "llm_tiebreaker_fired" in telemetry
+    assert "explanation_generated" in telemetry
+    assert "explanation_failed" in telemetry
+    assert "nli_verdict_counts" in telemetry
