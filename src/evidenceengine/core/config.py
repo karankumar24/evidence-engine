@@ -13,9 +13,12 @@ class Settings(BaseSettings):
     upload_dir: str = "./uploads"
     max_file_size_mb: int = 50
     debug: bool = False
-    # LLM provider is OpenRouter by default; any OpenAI-compatible endpoint works
-    # (Azure, local vLLM, real OpenAI). Accepts either LLM_API_KEY (preferred) or
-    # legacy OPENAI_API_KEY — LLM_API_KEY wins when both are set.
+    # LLM provider defaults to Google AI Studio (Gemini 2.0 Flash) as of v1.2.9.
+    # Any OpenAI-compatible endpoint works (Gemini OpenAI-compat, Groq, Azure,
+    # local vLLM, real OpenAI). `llm_api_key` + `llm_base_url` are authoritative
+    # for HTTP routing. `llm_provider` is an informational routing hint used by
+    # telemetry and tests. Accepts either LLM_API_KEY (preferred) or legacy
+    # OPENAI_API_KEY — LLM_API_KEY wins when both are set.
     llm_api_key: str = Field(
         default="",
         validation_alias=AliasChoices("LLM_API_KEY", "OPENAI_API_KEY"),
@@ -24,12 +27,19 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("LLM_BASE_URL", "OPENAI_BASE_URL"),
     )
-    # NOTE: the default string is a placeholder only — in production we set
-    # EXTRACTION_MODEL to an OpenRouter free-tier id (arcee-ai/trinity-...).
-    # Kept as "gpt-4o-mini" because openai SDK rejects empty model names; any
-    # call with this default WILL fail unless LLM_BASE_URL points to OpenAI
-    # proper and the caller has credits. Treat it as "must be overridden".
-    extraction_model: str = "gpt-4o-mini"
+    # Routing hint (informational) + provider-specific credentials for the
+    # forward-looking live-test + telemetry layers. `llm_api_key` above is what
+    # `sync_call_with_fallback` actually uses today; these fields let callers
+    # pick the right key per provider without env-var gymnastics.
+    llm_provider: str = "gemini"
+    gemini_api_key: str = Field(default="", validation_alias="GEMINI_API_KEY")
+    groq_api_key: str = Field(default="", validation_alias="GROQ_API_KEY")
+    # Default extraction/classification models target Gemini 2.0 Flash (free
+    # tier: 1,500 req/day). Override via EXTRACTION_MODEL / CLASSIFICATION_MODEL
+    # env vars; openai SDK rejects empty model names so a sensible default is
+    # required. If you point LLM_BASE_URL at real OpenAI, set these to e.g.
+    # "gpt-4o-mini" and LLM_API_KEY to an sk-... key.
+    extraction_model: str = "gemini-2.0-flash"
     retrieval_top_k_bm25: int = 10
     retrieval_top_k_final: int = 5
     # Claim cap strategy: scale with document size so small docs aren't
@@ -39,7 +49,7 @@ class Settings(BaseSettings):
     max_claims_absolute: int = 80
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L6-v2"
     index_dir: str = "./indexes"
-    classification_model: str = "gpt-4o-mini"
+    classification_model: str = "gemini-2.0-flash"
     # Trust-model thresholds — the interaction between these two numbers is
     # the heart of v1.2.6's self-verify defense. DO NOT change one without
     # updating the other and the regression test that locks their band.
@@ -76,15 +86,13 @@ class Settings(BaseSettings):
     # Default is the same live chain shipped in fly.toml so local dev gets the
     # same resilience as prod. Audit monthly against /api/v1/models.
     model_fallback_chain: Annotated[list[str], NoDecode] = Field(
-        # Audited against OpenRouter /api/v1/models + live 200/429 probes on
-        # 2026-04-21. Diversity across providers so a single provider's daily
-        # cap doesn't kill the whole chain. Strict-structured-output models
-        # (arcee, nvidia) lead; gemma at the tail as a recovery slot.
+        # v1.2.9 default: Gemini Flash primary (1,500 req/day free) → Groq Llama
+        # 3.3 70B fallback (14,400 req/day free). Both speak OpenAI-compat wire
+        # so the same sync_call_with_fallback path handles both without
+        # branching. Override via MODEL_FALLBACK_CHAIN env var (CSV) if needed.
         default_factory=lambda: [
-            "arcee-ai/trinity-large-preview:free",
-            "nvidia/nemotron-3-super-120b-a12b:free",
-            "minimax/minimax-m2.5:free",
-            "google/gemma-4-31b-it:free",
+            "gemini-2.0-flash",
+            "llama-3.3-70b-versatile",
         ]
     )
     # Per-model timeout when the fallback chain has >1 model — shorter so failures

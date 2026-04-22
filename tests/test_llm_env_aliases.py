@@ -49,3 +49,45 @@ def test_defaults_are_empty(monkeypatch):
     assert s.llm_base_url == ""
     assert s.openai_api_key == ""
     assert s.openai_base_url == ""
+
+
+# ── v1.2.9 provider-migration additions (PRV-01) ─────────────────────────────
+
+def test_llm_provider_default_is_gemini(monkeypatch):
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    s = Settings(_env_file=None)
+    assert s.llm_provider == "gemini"
+
+
+def test_llm_provider_override_persists(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "groq")
+    s = Settings(_env_file=None)
+    assert s.llm_provider == "groq"
+
+
+def test_gemini_api_key_from_env(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "xxx")
+    s = Settings(_env_file=None)
+    assert s.gemini_api_key == "xxx"
+
+
+def test_groq_api_key_from_env(monkeypatch):
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.setenv("GROQ_API_KEY", "yyy")
+    s = Settings(_env_file=None)
+    assert s.groq_api_key == "yyy"
+
+
+def test_default_fallback_chain_is_gemini_then_groq(monkeypatch):
+    monkeypatch.delenv("MODEL_FALLBACK_CHAIN", raising=False)
+    s = Settings(_env_file=None)
+    assert s.model_fallback_chain == ["gemini-2.0-flash", "llama-3.3-70b-versatile"]
+
+
+def test_model_fallback_chain_env_override_still_parses(monkeypatch):
+    # Regression: comma-separated override via env must still parse to a list
+    # (parse_model_chain validator must remain intact after default change).
+    monkeypatch.setenv("MODEL_FALLBACK_CHAIN", "a-model,b-model , c-model")
+    s = Settings(_env_file=None)
+    assert s.model_fallback_chain == ["a-model", "b-model", "c-model"]
