@@ -93,8 +93,10 @@ with `status='unresolvable_anchor'` — it is never silently dropped.
 evidence from the cited `SourceDocument` only (not all documents). Builds a
 disk-backed BM25 index per source document, queries it with the claim text,
 then re-ranks the top candidates with a `sentence-transformers` cross-encoder
-model. The top-N scoring spans become `EvidenceSpan` rows, each carrying
-`char_start`, `char_end`, and `relevance_score`.
+(`BAAI/bge-reranker-v2-m3`, 568M params, pinned to HF revision
+`953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e`). The top-N scoring spans become
+`EvidenceSpan` rows, each carrying `char_start`, `char_end`, and
+`relevance_score`.
 
 **Classification Pipeline** — Classifies each claim against its retrieved
 evidence spans. The LLM receives the claim text, all evidence spans, and an
@@ -195,8 +197,11 @@ specific `SourceDocument` rows.
 1. For each resolved `CitationAnchor`, build (or load from disk) a BM25 index
    of the cited `SourceDocument`'s text blocks.
 2. Query the BM25 index with the claim text to retrieve top-K candidates.
-3. A `sentence-transformers` cross-encoder reranker re-scores the candidates
-   against the claim text.
+3. A `sentence-transformers` cross-encoder reranker (`BAAI/bge-reranker-v2-m3`,
+   568M params, pinned revision `953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e`,
+   `max_length=512`, first-run download ~1.1 GB to `~/.cache/huggingface`)
+   re-scores the candidates against the claim text. On Apple Silicon the model
+   runs on MPS; CPU fallback otherwise.
 4. Top-N spans by reranker score are selected as evidence.
 
 **Output:** `EvidenceSpan` rows, each recording `char_start`, `char_end`,
@@ -338,11 +343,30 @@ handles the full lifecycle including `RunVersion` tracking.
 | ORM | SQLAlchemy (async) | Complex FK chains in provenance model; async session management |
 | Database | PostgreSQL 16 | JSONB for `parsed_content`; reliable FK enforcement; Docker-composable |
 | BM25 retrieval | bm25s | Disk-backed index; no vector DB required in v1; fast keyword matching |
-| Reranking | sentence-transformers cross-encoder | Re-scores BM25 candidates with semantic similarity; improves recall@K |
+| Reranking | sentence-transformers cross-encoder (`BAAI/bge-reranker-v2-m3`, pinned) | Re-scores BM25 candidates with semantic similarity; improves recall@K |
 | LLM | OpenRouter (any OpenAI-compatible provider) | Default: `arcee-ai/trinity-large-preview:free`. Structured output via `beta.chat.completions.parse` |
 | Dashboard | HTMX + Alpine.js + Jinja2 | Progressive enhancement; no JS build step; CDN-served Tailwind |
 | Package manager | uv | Fast, lockfile-based; compatible with setuptools; reproducible installs |
 | Evaluation | Pure Python CLI (`eval.runner`) | No web server dependency; CI-runnable quality gate |
+
+---
+
+## Memory Footprint
+
+Per-process resident memory during a typical classification request on an
+8 GB Apple Silicon M1 Air:
+
+| Model | Params | Resident (fp32) | First-run download |
+|-------|--------|-----------------|---------------------|
+| DeBERTa-v3-large NLI (`MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli`) | 435M | ~870 MB | ~870 MB |
+| bge-reranker-v2-m3 (`BAAI/bge-reranker-v2-m3`) | 568M | ~1.1 GB | ~1.1 GB |
+| Python + FastAPI + OS overhead | — | ~1.5 GB | — |
+| BM25 index (typical packet) | — | ~few hundred MB | — |
+| **Peak resident (typical request)** | | **~3.5 GB** | |
+
+On 8 GB M1 Air the ~3.5 GB peak fits with margin, but running additional
+memory-heavy processes concurrently (e.g., browser with 50+ tabs) can trigger
+macOS RAM compression and MPS `Insufficient memory` errors mid-inference.
 
 ---
 
