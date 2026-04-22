@@ -15,7 +15,12 @@ from unittest.mock import MagicMock, patch
 import openai
 import pytest
 
-from evidenceengine.llm.fallback import sync_call_with_fallback
+from evidenceengine.llm.fallback import (
+    _GEMINI_BASE_URL,
+    _GROQ_BASE_URL,
+    _resolve_base_url,
+    sync_call_with_fallback,
+)
 
 
 def _rate_limit_response(model_id: str) -> openai.RateLimitError:
@@ -175,3 +180,124 @@ def test_first_successful_model_wins_chain_stops():
     assert calls == ["a", "b"], (
         f"chain should stop on first success — expected 2 calls, got {len(calls)}: {calls}"
     )
+
+
+# ── v1.2.9 provider-dispatch tests (PRV-02) ──────────────────────────────────
+
+def test_resolve_base_url_gemini_prefix_overrides_caller():
+    """Gemini model IDs route to Google AI Studio regardless of caller base_url."""
+    assert _resolve_base_url("gemini-2.0-flash", "https://openrouter.ai/api/v1") == _GEMINI_BASE_URL
+    assert _resolve_base_url("gemma-2-9b-it", None) == _GEMINI_BASE_URL
+
+
+def test_resolve_base_url_groq_prefix_overrides_caller():
+    """Groq-hosted model IDs route to Groq regardless of caller base_url."""
+    assert _resolve_base_url("llama-3.3-70b-versatile", "https://openrouter.ai/api/v1") == _GROQ_BASE_URL
+    assert _resolve_base_url("mixtral-8x7b-32768", None) == _GROQ_BASE_URL
+    assert _resolve_base_url("deepseek-r1-distill-llama-70b", None) == _GROQ_BASE_URL
+
+
+def test_resolve_base_url_other_models_use_caller_value():
+    """OpenRouter / OpenAI / local model IDs use the caller-provided base_url."""
+    assert _resolve_base_url("arcee-ai/trinity:free", "https://openrouter.ai/api/v1") == "https://openrouter.ai/api/v1"
+    assert _resolve_base_url("gpt-4o-mini", None) is None
+    assert _resolve_base_url("gpt-4o-mini", "") is None
+
+
+class _CaptureClientCall:
+    """Captures base_url passed to OpenAI() + extra_body passed to parse()."""
+
+    captured_base_url: str | None = None
+    captured_extra_body: dict | None = None
+    captured_kwargs_keys: list[str] = []
+
+    def __init__(self, model_id: str = "dummy"):
+        self.beta = MagicMock()
+        self.beta.chat.completions.parse = self._parse
+
+    def _parse(self, **kwargs):
+        _CaptureClientCall.captured_extra_body = kwargs.get("extra_body")
+        _CaptureClientCall.captured_kwargs_keys = list(kwargs.keys())
+        result_msg = MagicMock(refusal=None, parsed=MagicMock(verdict_type="supported"))
+        return MagicMock(choices=[MagicMock(message=result_msg)])
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def _run_capture(model: str, caller_base_url: str | None) -> None:
+    _CaptureClientCall.captured_base_url = None
+    _CaptureClientCall.captured_extra_body = None
+
+    def factory(**kw):
+        _CaptureClientCall.captured_base_url = kw.get("base_url")
+        return _CaptureClientCall(model)
+
+    with patch("openai.OpenAI") as mock_cls:
+        mock_cls.side_effect = factory
+        sync_call_with_fallback(
+            model_chain=[model],
+            messages=[{"role": "user", "content": "x"}],
+            response_format=MagicMock(),
+            timeout=1.0,
+            api_key="sk-test",
+            base_url=caller_base_url,
+        )
+
+
+def test_gemini_model_id_uses_gemini_base_url_and_omits_openrouter_extras():
+    """Gemini model → Gemini base URL, no response-healing / require_parameters flags."""
+    _run_capture("gemini-2.0-flash", "https://openrouter.ai/api/v1")
+    assert _CaptureClientCall.captured_base_url == _GEMINI_BASE_URL
+    # OpenRouter-only extras must NOT be sent to Gemini — either extra_body absent
+    # or an empty dict (both are fine; openai SDK normalizes).
+    assert "extra_body" not in _CaptureClientCall.captured_kwargs_keys or \
+           _CaptureClientCall.captured_extra_body in (None, {})
+
+
+def test_groq_model_id_uses_groq_base_url_and_omits_openrouter_extras():
+    """Groq model → Groq base URL, no OpenRouter extras."""
+    _run_capture("llama-3.3-70b-versatile", "https://openrouter.ai/api/v1")
+    assert _CaptureClientCall.captured_base_url == _GROQ_BASE_URL
+    assert "extra_body" not in _CaptureClientCall.captured_kwargs_keys or \
+           _CaptureClientCall.captured_extra_body in (None, {})
+
+
+def test_openrouter_model_retains_response_healing_plugin():
+    """OpenRouter model path keeps the response-healing plugin in extra_body."""
+    _run_capture("arcee-ai/trinity-large-preview:free", "https://openrouter.ai/api/v1")
+    assert _CaptureClientCall.captured_base_url == "https://openrouter.ai/api/v1"
+    eb = _CaptureClientCall.captured_extra_body
+    assert eb is not None, "OpenRouter path must send extra_body"
+    assert eb.get("plugins") == [{"id": "response-healing"}]
+    # This model IS in _STRICT_STRUCTURED_OUTPUT_MODELS → require_parameters must fire
+    assert eb.get("provider", {}).get("require_parameters") is True
+
+
+def test_new_default_chain_exhaustion_names_both_providers():
+    """Mixed Gemini+Groq chain: exhaustion error string references the last failure."""
+    calls: list[str] = []
+
+    with patch("openai.OpenAI") as mock_cls, \
+         patch("evidenceengine.llm.fallback.time.sleep"):
+        mock_cls.side_effect = lambda **kw: _AllRateLimited(calls)
+
+        with pytest.raises(RuntimeError) as ei:
+            sync_call_with_fallback(
+                model_chain=["gemini-2.0-flash", "llama-3.3-70b-versatile"],
+                messages=[{"role": "user", "content": "x"}],
+                response_format=MagicMock(),
+                timeout=1.0,
+                api_key="sk-test",
+                base_url=None,  # Gemini + Groq auto-dispatch; caller base_url ignored
+            )
+    err_msg = str(ei.value)
+    assert "exhausted" in err_msg.lower()
+    # Last failure should name one of the two new-chain models
+    assert "gemini-2.0-flash" in err_msg or "llama-3.3-70b-versatile" in err_msg
+    # Both models should have been attempted at least once each
+    assert "gemini-2.0-flash" in calls
+    assert "llama-3.3-70b-versatile" in calls

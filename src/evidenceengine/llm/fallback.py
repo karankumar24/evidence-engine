@@ -6,6 +6,17 @@ the next on timeout, HTTP error, null parse, or refusal. After a full
 chain pass, if at least one model returned 429 (upstream rate limit) and
 none succeeded, sleep with exponential backoff and retry the chain — gives
 :free providers time to recover.
+
+Provider dispatch (v1.2.9+): model-id prefix determines the base URL used
+for the HTTP call, so a mixed chain like
+``["gemini-2.0-flash", "llama-3.3-70b-versatile"]`` routes each model to its
+own OpenAI-compat endpoint without caller intervention. Gemini prefixes
+(``gemini-``, ``gemma-``) → Google AI Studio. Groq prefixes (``llama-``,
+``mixtral-``, ``deepseek-``) → Groq. Everything else uses the caller-provided
+``base_url`` (OpenAI / OpenRouter / Azure / local vLLM). OpenRouter-specific
+extras (``plugins: response-healing``, ``provider.require_parameters``) are
+sent ONLY when the resolved base URL is actually OpenRouter — other providers
+400 on those keys.
 """
 
 import logging
@@ -47,6 +58,29 @@ _STRICT_STRUCTURED_OUTPUT_MODELS = frozenset({
 # retry the whole chain a few times — most rate-limits recover in 5-15s.
 # Total worst-case wallclock per call ≈ sum(_RETRY_BACKOFFS) seconds + jitter.
 _RETRY_BACKOFFS = (5.0, 15.0, 30.0)  # 3 extra rounds = ~50s extra wait
+
+# Provider dispatch (v1.2.9+). Model-id prefix routes the OpenAI client to
+# the right OpenAI-compat endpoint without caller involvement.
+_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+_GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+
+# Gemma 2+ is also served by Google AI Studio via the OpenAI-compat path.
+_GEMINI_PREFIXES = ("gemini-", "gemma-")
+# Groq hosts Meta Llama, Mistral, and DeepSeek-distill families. Note the
+# multiple llama-* prefix variants — Groq's model IDs differ slightly across
+# generations (e.g. "llama-3.3-70b-versatile", "llama3-70b-8192").
+_GROQ_PREFIXES = ("llama-", "llama3-", "mixtral-", "deepseek-")
+
+
+def _resolve_base_url(model: str, default_base_url: str | None) -> str | None:
+    """Dispatch per provider. Gemini + Groq model-id prefixes override the
+    caller's base_url; every other model (OpenAI, OpenRouter, local vLLM,
+    Azure) uses the caller's value unchanged."""
+    if any(model.startswith(p) for p in _GEMINI_PREFIXES):
+        return _GEMINI_BASE_URL
+    if any(model.startswith(p) for p in _GROQ_PREFIXES):
+        return _GROQ_BASE_URL
+    return default_base_url or None
 
 
 def sync_call_with_fallback(
@@ -98,24 +132,35 @@ def sync_call_with_fallback(
 
         for model in model_chain:
             try:
+                effective_base_url = _resolve_base_url(model, base_url)
+                is_openrouter = (
+                    effective_base_url is not None
+                    and "openrouter.ai" in effective_base_url
+                )
                 with _SyncOpenAI(
                     api_key=api_key,
-                    base_url=base_url or None,
+                    base_url=effective_base_url,
                     timeout=timeout,
                     max_retries=0,  # we manage the retry chain ourselves
                 ) as client:
-                    extra_body: dict[str, Any] = {
-                        "plugins": [{"id": "response-healing"}],
-                    }
-                    if model in _STRICT_STRUCTURED_OUTPUT_MODELS:
-                        extra_body["provider"] = {"require_parameters": True}
+                    # OpenRouter-only quirks. Both keys 400 on Gemini/Groq/OpenAI.
+                    # response-healing plugin coerces malformed JSON back into schema;
+                    # provider.require_parameters forces strict structured-output routing.
+                    extra_body: dict[str, Any] = {}
+                    if is_openrouter:
+                        extra_body["plugins"] = [{"id": "response-healing"}]
+                        if model in _STRICT_STRUCTURED_OUTPUT_MODELS:
+                            extra_body["provider"] = {"require_parameters": True}
 
-                    completion = client.beta.chat.completions.parse(
-                        model=model,
-                        messages=messages,
-                        response_format=response_format,
-                        extra_body=extra_body,
-                    )
+                    parse_kwargs: dict[str, Any] = {
+                        "model": model,
+                        "messages": messages,
+                        "response_format": response_format,
+                    }
+                    if extra_body:
+                        parse_kwargs["extra_body"] = extra_body
+
+                    completion = client.beta.chat.completions.parse(**parse_kwargs)
                 message = completion.choices[0].message
 
             except openai.APITimeoutError:
