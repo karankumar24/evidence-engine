@@ -83,3 +83,9 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 pythonpath = ["src"]
+# `live` marks tests that hit real LLM endpoints — require GEMINI_API_KEY and
+# network. Default pytest runs exclude them; invoke explicitly with `-m live`.
+markers = [
+    "live: hits real LLM endpoints; requires GEMINI_API_KEY and network; skipped by default",
+]
+addopts = "-m 'not live'"
