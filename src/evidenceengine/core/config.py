@@ -1,6 +1,6 @@
 """Application configuration via Pydantic Settings."""
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -76,6 +76,33 @@ class Settings(BaseSettings):
     # environments without transformers/torch installed — the classifier
     # detects that and falls back cleanly either way.
     nli_second_opinion_enabled: bool = True
+    # ─── v1.2.9 NLI-primary classifier (Plan 02-01) ──────────────────────────
+    # classifier_backend selects which ClassifierBackend implementation the
+    # pipeline dispatches to. "nli_primary" runs the local DeBERTa-NLI model
+    # as the primary verdict source (Plan 02); "llm_primary" keeps the
+    # historical LLM path (pre-v1.2.9 behavior). Rollback is a single env var
+    # flip — no code change needed.
+    classifier_backend: Literal["nli_primary", "llm_primary"] = "nli_primary"
+    # NLI threshold band. Band invariant (locked by test_config.py):
+    #   0 < nli_min_confidence_for_verdict
+    #     < nli_tiebreaker_threshold
+    #     < nli_entailment_supported_threshold
+    #   0 < nli_tiebreaker_threshold
+    #     < nli_contradiction_contradicted_threshold
+    #
+    #   * nli_min_confidence_for_verdict (0.50): below this the NLI head has
+    #     no signal — verdict defaults to insufficient_support / needs_review.
+    #   * nli_tiebreaker_threshold (0.65): when entailment and contradiction
+    #     are both > 0 but neither clears its top threshold, this is the
+    #     margin one must beat the other by to win. Below this → needs_review.
+    #   * nli_entailment_supported_threshold (0.80): entailment score must
+    #     clear this to emit a `supported` verdict on its own.
+    #   * nli_contradiction_contradicted_threshold (0.80): symmetric for
+    #     `contradicted`.
+    nli_tiebreaker_threshold: float = 0.65
+    nli_entailment_supported_threshold: float = 0.80
+    nli_contradiction_contradicted_threshold: float = 0.80
+    nli_min_confidence_for_verdict: float = 0.50
     # LLM HTTP client safety rails — OpenAI SDK default timeout is 600s which
     # compounds with OpenRouter free-tier rate-limits into multi-minute hangs.
     llm_request_timeout_seconds: float = 60.0

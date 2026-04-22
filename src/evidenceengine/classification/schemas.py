@@ -44,3 +44,18 @@ class VerdictClassificationResponse(BaseModel):
             "A score below 0.7 will route to needs_review automatically — this is a feature, not a failure."
         ),
     )
+    # Optional post-verdict explanation surfaced to reviewers. Populated by
+    # Plan 03's explanation.py (ExplanationResponse -> persisted here). May
+    # remain None when generation fails or when the backend doesn't produce
+    # an explanation (e.g. the pre-Plan-03 LLM path). We intentionally keep
+    # this tolerant on the response schema — length enforcement lives on the
+    # generation-side ExplanationResponse, not here, so we don't reject
+    # historical or third-party payloads at load time.
+    explanation: str | None = Field(
+        default=None,
+        description=(
+            "Post-verdict human-readable explanation of why the verdict was "
+            "assigned. May be None if explanation generation was skipped or "
+            "failed. Populated by Plan 03's explanation.py."
+        ),
+    )
