@@ -267,10 +267,16 @@ async def test_pipeline_unresolvable_anchor_produces_needs_review(db_session):
 
 
 @pytest.mark.asyncio
-async def test_pipeline_low_confidence_overridden_to_needs_review(db_session):
-    """Low confidence (0.4 < 0.7 threshold): verdict_type overridden to needs_review."""
-    from evidenceengine.classification.pipeline import classify_verdicts_for_run
+async def test_pipeline_low_confidence_overridden_to_needs_review(db_session, monkeypatch):
+    """Low confidence (0.4 < 0.7 threshold): verdict_type overridden to needs_review.
 
+    Threshold-override is LLMClassifier-only behavior; nli_primary path skips it
+    (Plan 03 gating). Pin the legacy backend explicitly.
+    """
+    from evidenceengine.classification.pipeline import classify_verdicts_for_run
+    from evidenceengine.core.config import settings
+
+    monkeypatch.setattr(settings, "classifier_backend", "llm_primary")
     _, _, run_version, _, _ = await make_packet_with_claim(db_session, n_claims=1, evidence_per_claim=2)
 
     with patch("evidenceengine.classification.classifier.asyncio.to_thread",
@@ -565,9 +571,11 @@ async def test_pipeline_nli_primary_tiebreaker_fires_below_threshold(db_session,
         verdicts = await classify_verdicts_for_run(str(run_version.id), db_session)
 
     assert len(verdicts) == 1
-    # Persisted verdict is the tiebreaker's.
+    # Persisted verdict is the tiebreaker's verdict_type.
+    # Confidence is bounded by the pre-existing self-verify cap (0.80) when evidence
+    # comes from the same packet as the claim, which is the case in this fixture.
     assert verdicts[0].verdict_type == "supported"
-    assert abs(verdicts[0].confidence_score - 0.88) < 1e-9
+    assert verdicts[0].confidence_score == pytest.approx(min(0.88, settings.self_verify_supported_cap))
     # Tiebreaker was constructed + called.
     assert llm_cls.call_count == 1
     assert tiebreaker_instance.classify.await_count == 1
@@ -699,9 +707,11 @@ async def test_pipeline_explanation_failure_does_not_block_verdict(db_session, m
         verdicts = await classify_verdicts_for_run(str(run_version.id), db_session)
 
     assert len(verdicts) == 1
-    # Reasoning is unchanged from backend output — no [explanation: …] suffix.
+    # Reasoning has no [explanation: …] suffix and ends with the backend's text
+    # (a pre-existing [Self-verify cap …] prefix may apply when evidence shares the
+    # claim's packet — this fixture triggers that path).
     assert "[explanation:" not in verdicts[0].reasoning
-    assert verdicts[0].reasoning == "nli reasoning"
+    assert verdicts[0].reasoning.endswith("nli reasoning")
 
     refreshed = (await db_session.execute(
         select(RunVersion).where(RunVersion.id == run_version.id)
