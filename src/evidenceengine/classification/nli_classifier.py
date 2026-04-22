@@ -1,8 +1,7 @@
 """NLI-primary classifier — Phase 02 Plan 02.
 
-Lazy, thread-safe singleton wrapping
-``MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli`` loaded onto MPS
-(or CPU fallback). Per-span NLI inference (premise=evidence, hypothesis=claim)
+Lazy, thread-safe singleton wrapping the DeBERTa-v3-large NLI model
+(``NLI_MODEL_NAME`` below) loaded onto MPS (or CPU fallback). Per-span NLI inference (premise=evidence, hypothesis=claim)
 is aggregated by element-wise MAX across spans, then mapped to the 4-way
 VerdictClassificationResponse schema via settings-driven thresholds.
 
