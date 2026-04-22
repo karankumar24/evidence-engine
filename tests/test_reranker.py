@@ -86,6 +86,80 @@ def test_reranker_not_instantiated_without_call(monkeypatch):
     assert reranker_mod._reranker is None
 
 
+# ── Phase 03 Plan 01: device selection + revision pinning + max_length ──────
+
+
+def _install_torch_stub(monkeypatch, mps_available: bool) -> None:
+    """Install a stub ``torch`` module in sys.modules with a configurable
+    ``torch.backends.mps.is_available()``.
+
+    Required because the v1.2.9 macOS dev venv (off-iCloud) may not have torch
+    installed (pyproject pins torch to linux-only via markers). Device-selection
+    logic must still be unit-testable without the 2 GB torch wheel.
+    """
+    import sys
+    import types
+
+    torch_mod = types.ModuleType("torch")
+    backends = types.ModuleType("torch.backends")
+    mps = types.ModuleType("torch.backends.mps")
+    mps.is_available = lambda: mps_available  # type: ignore[attr-defined]
+    backends.mps = mps  # type: ignore[attr-defined]
+    torch_mod.backends = backends  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "torch", torch_mod)
+    monkeypatch.setitem(sys.modules, "torch.backends", backends)
+    monkeypatch.setitem(sys.modules, "torch.backends.mps", mps)
+
+
+def _install_cross_encoder_stub(monkeypatch) -> MagicMock:
+    """Install a stub sentence_transformers.CrossEncoder. Returns the mock so
+    tests can inspect call_args. Stubs the module so the lazy import inside
+    get_reranker() finds it even when sentence_transformers isn't installed.
+    """
+    import sys
+    import types
+
+    ce_mock = MagicMock()
+    st_mod = types.ModuleType("sentence_transformers")
+    st_mod.CrossEncoder = ce_mock  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "sentence_transformers", st_mod)
+    return ce_mock
+
+
+def test_get_reranker_uses_mps_when_available(monkeypatch):
+    """RET-02: get_reranker() selects MPS when torch.backends.mps.is_available() is True.
+    Also asserts RET-03 revision pinning + max_length=512 (bge-reranker-v2-m3 supports 512).
+    """
+    import evidenceengine.retrieval.reranker as reranker_mod
+    monkeypatch.setattr(reranker_mod, "_reranker", None)
+    _install_torch_stub(monkeypatch, mps_available=True)
+    ce_mock = _install_cross_encoder_stub(monkeypatch)
+
+    reranker_mod.get_reranker()
+
+    _, kwargs = ce_mock.call_args
+    assert kwargs.get("device") == "mps", kwargs
+    assert kwargs.get("revision") == "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e", kwargs
+    assert kwargs.get("max_length") == 512, kwargs
+
+
+def test_get_reranker_falls_back_to_cpu(monkeypatch):
+    """RET-02: get_reranker() falls back to CPU when MPS unavailable.
+    Also asserts RET-03 revision pinning + max_length=512.
+    """
+    import evidenceengine.retrieval.reranker as reranker_mod
+    monkeypatch.setattr(reranker_mod, "_reranker", None)
+    _install_torch_stub(monkeypatch, mps_available=False)
+    ce_mock = _install_cross_encoder_stub(monkeypatch)
+
+    reranker_mod.get_reranker()
+
+    _, kwargs = ce_mock.call_args
+    assert kwargs.get("device") == "cpu", kwargs
+    assert kwargs.get("revision") == "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e", kwargs
+    assert kwargs.get("max_length") == 512, kwargs
+
+
 def test_rerank_runs_in_executor(monkeypatch, mock_cross_encoder):
     """rerank() uses run_in_executor, not direct synchronous call."""
     import evidenceengine.retrieval.reranker as reranker_mod

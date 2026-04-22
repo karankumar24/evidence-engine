@@ -1,7 +1,9 @@
 """Cross-encoder reranker: lazy singleton + async thread pool wrapper.
 
-The CrossEncoder model (22.7M params) takes 2-5 seconds to load from disk.
-We load it once (lazy singleton) and reuse across requests.
+The CrossEncoder model (568M params, BAAI/bge-reranker-v2-m3 as of v1.2.9)
+takes ~5-10 seconds to load from disk; first run downloads ~1.1 GB to
+``~/.cache/huggingface``. We load it once (lazy singleton) and reuse across
+requests.
 
 Inference is synchronous PyTorch. Running it directly in an async function
 would block the FastAPI event loop. We use a single-worker ThreadPoolExecutor
@@ -13,7 +15,8 @@ import asyncio
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
-# sentence_transformers imported lazily inside get_reranker() to avoid blocking startup
+# sentence_transformers + torch imported lazily inside get_reranker() to avoid
+# blocking server startup (cold-boot bottleneck documented in STATE 4306/3778).
 from evidenceengine.core.config import settings
 
 _reranker = None
@@ -21,8 +24,27 @@ _reranker_lock = threading.Lock()
 _executor = ThreadPoolExecutor(max_workers=1)
 
 
+def _select_device() -> str:
+    """Return 'mps' on Apple Silicon when available, else 'cpu'.
+
+    Mirrors the device-selection pattern in
+    ``evidenceengine.classification.nli_classifier._ensure_loaded`` (line 79-81).
+    Lazy torch import matches sentence_transformers' own internal pattern.
+    """
+    import torch  # noqa: PLC0415 — lazy to avoid blocking startup
+
+    return "mps" if torch.backends.mps.is_available() else "cpu"
+
+
 def get_reranker():
-    """Lazy singleton — loads model once, reuses across all requests."""
+    """Lazy singleton — loads model once, reuses across all requests.
+
+    Uses double-checked locking so the 5-10 s load happens exactly once even
+    under concurrent first-requests. Pins the HuggingFace revision for
+    reproducibility (RET-03) and caps max_length at 512 because
+    bge-reranker-v2-m3 supports 512 but sentence_transformers' default is 128
+    (silent truncation of long spans).
+    """
     global _reranker
     if _reranker is None:
         with _reranker_lock:
@@ -30,7 +52,13 @@ def get_reranker():
                 from sentence_transformers import (
                     CrossEncoder,  # noqa: PLC0415 — lazy to avoid blocking startup
                 )
-                _reranker = CrossEncoder(settings.reranker_model)
+
+                _reranker = CrossEncoder(
+                    settings.reranker_model,
+                    revision=settings.reranker_model_revision,
+                    device=_select_device(),
+                    max_length=512,
+                )
     return _reranker
 
 

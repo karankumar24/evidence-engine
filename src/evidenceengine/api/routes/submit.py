@@ -223,7 +223,7 @@ if settings.debug:
             status="completed",
             started_at=now,
             completed_at=now,
-            model_versions={"classification_model": "gpt-4o-mini", "reranker": "cross-encoder/ms-marco-MiniLM-L6-v2"},
+            model_versions={"classification_model": "gpt-4o-mini", "reranker": settings.reranker_model},
         )
         db.add(run)
         await db.flush()

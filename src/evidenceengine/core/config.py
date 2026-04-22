@@ -50,9 +50,9 @@ class Settings(BaseSettings):
     # Phase 03 Plan 01: default swapped to BAAI/bge-reranker-v2-m3 (568M, 2024
     # SOTA multilingual cross-encoder). Pin to an exact HF commit SHA for
     # reproducibility — CrossEncoder(..., revision=...) routes through
-    # huggingface_hub snapshot_download. Rollback = set RERANKER_MODEL env var
-    # back to "cross-encoder/ms-marco-MiniLM-L6-v2" and RERANKER_MODEL_REVISION
-    # to "" or the matching SHA for that model.
+    # huggingface_hub snapshot_download. Rollback = override RERANKER_MODEL env
+    # var to the prior cross-encoder identifier and set RERANKER_MODEL_REVISION
+    # to the matching SHA.
     reranker_model: str = "BAAI/bge-reranker-v2-m3"
     reranker_model_revision: str = "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"
     index_dir: str = "./indexes"
