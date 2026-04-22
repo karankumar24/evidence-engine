@@ -58,6 +58,32 @@ def test_nli_min_confidence_for_verdict_default(monkeypatch):
     assert s.nli_min_confidence_for_verdict == 0.50
 
 
+# ── Reranker config (Phase 03 Plan 01) ────────────────────────────────────────
+
+
+def test_reranker_model_default(monkeypatch):
+    """RET-01: reranker_model defaults to BAAI/bge-reranker-v2-m3."""
+    monkeypatch.delenv("RERANKER_MODEL", raising=False)
+    s = _fresh()
+    assert s.reranker_model == "BAAI/bge-reranker-v2-m3"
+
+
+def test_reranker_revision_default(monkeypatch):
+    """RET-03: reranker_model_revision defaults to the pinned HF commit SHA."""
+    monkeypatch.delenv("RERANKER_MODEL_REVISION", raising=False)
+    s = _fresh()
+    assert s.reranker_model_revision == "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"
+
+
+def test_reranker_model_setting_override():
+    """RET-01 override: constructor-supplied reranker_model overrides the default."""
+    s = Settings(
+        _env_file=None,  # type: ignore[call-arg]
+        reranker_model="cross-encoder/ms-marco-MiniLM-L6-v2",
+    )
+    assert s.reranker_model == "cross-encoder/ms-marco-MiniLM-L6-v2"
+
+
 def test_threshold_band_invariant():
     """Locks the ordering 0.50 < 0.65 < 0.80 (and 0.65 < 0.80 for contradiction).
 

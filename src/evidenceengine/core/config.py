@@ -47,7 +47,14 @@ class Settings(BaseSettings):
     # Effective cap = min(page_count * max_claims_per_page, max_claims_absolute).
     max_claims_per_page: int = 10
     max_claims_absolute: int = 80
-    reranker_model: str = "cross-encoder/ms-marco-MiniLM-L6-v2"
+    # Phase 03 Plan 01: default swapped to BAAI/bge-reranker-v2-m3 (568M, 2024
+    # SOTA multilingual cross-encoder). Pin to an exact HF commit SHA for
+    # reproducibility — CrossEncoder(..., revision=...) routes through
+    # huggingface_hub snapshot_download. Rollback = set RERANKER_MODEL env var
+    # back to "cross-encoder/ms-marco-MiniLM-L6-v2" and RERANKER_MODEL_REVISION
+    # to "" or the matching SHA for that model.
+    reranker_model: str = "BAAI/bge-reranker-v2-m3"
+    reranker_model_revision: str = "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"
     index_dir: str = "./indexes"
     classification_model: str = "gemini-2.0-flash"
     # Trust-model thresholds — the interaction between these two numbers is
