@@ -38,6 +38,22 @@ def mock_nli_probs(monkeypatch):
 
     return set_probs
 
+
+@pytest.fixture(params=["nli_primary", "llm_primary"])
+def classifier_backend_param(request, monkeypatch):
+    """Parametrize over both classifier backends for one test invocation.
+
+    Monkeypatches ``settings.classifier_backend`` to each value in
+    ``["nli_primary", "llm_primary"]``. Any test taking this fixture as an
+    argument runs twice — once per backend. Added for Phase 02 Plan 03 so the
+    v1.2.8 adversarial suite exercises both paths with one pytest run.
+    """
+    from evidenceengine.core.config import settings
+
+    monkeypatch.setattr(settings, "classifier_backend", request.param)
+    return request.param
+
+
 # Use test database URL from environment or default to the dev database
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL",

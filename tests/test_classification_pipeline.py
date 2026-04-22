@@ -478,3 +478,410 @@ def test_self_verify_threshold_band_invariant():
         f"Self-verify band width is {cap - threshold:.3f}; need >=0.05 "
         "headroom for genuine corroboration to pass."
     )
+
+
+# =============================================================================
+# Phase 02 Plan 03: NLI-primary pipeline wiring tests.
+# =============================================================================
+#
+# These tests exercise the new dispatch/tiebreaker/explanation/gating logic
+# added to ``classify_verdicts_for_run``. They patch at the
+# ``evidenceengine.classification.pipeline.*`` module level because Python
+# import semantics bind the imported names inside the pipeline module — the
+# place we control. Every test is hermetic (no real LLM, no real NLI) —
+# failures here point at pipeline wiring, not flaky live services.
+
+
+def _mock_verdict(
+    verdict_type: str = "supported",
+    confidence: float = 0.90,
+    reasoning: str = "mocked verdict",
+):
+    from evidenceengine.classification.schemas import VerdictClassificationResponse
+
+    return VerdictClassificationResponse(
+        reasoning=reasoning,
+        verdict_type=verdict_type,
+        confidence_score=confidence,
+    )
+
+
+def _mock_backend(verdict):
+    """Build a MagicMock whose async .classify returns ``verdict``."""
+    mock = MagicMock()
+    mock.classify = AsyncMock(return_value=verdict)
+    return mock
+
+
+@pytest.mark.asyncio
+async def test_pipeline_dispatches_via_get_backend(db_session, monkeypatch):
+    """get_backend() called ONCE per run, backend.classify ONCE per claim."""
+    from evidenceengine.classification import pipeline as pipeline_mod
+    from evidenceengine.classification.pipeline import classify_verdicts_for_run
+    from evidenceengine.core.config import settings
+
+    monkeypatch.setattr(settings, "classifier_backend", "llm_primary")
+    _, _, run_version, claims, _ = await make_packet_with_claim(
+        db_session, n_claims=3, evidence_per_claim=2,
+    )
+
+    backend = _mock_backend(_mock_verdict("supported", 0.85))
+    with patch.object(pipeline_mod, "get_backend", return_value=backend) as gb_spy, \
+         patch.object(pipeline_mod, "generate_explanation", new=AsyncMock(return_value=None)):
+        verdicts = await classify_verdicts_for_run(str(run_version.id), db_session)
+
+    assert len(verdicts) == 3
+    # get_backend called exactly once per run (NOT per claim).
+    assert gb_spy.call_count == 1
+    # backend.classify called exactly once per claim.
+    assert backend.classify.await_count == 3
+
+
+@pytest.mark.asyncio
+async def test_pipeline_nli_primary_tiebreaker_fires_below_threshold(db_session, monkeypatch):
+    """NLI confidence 0.60 < 0.65 threshold → tiebreaker fires; telemetry ticks."""
+    from evidenceengine.classification import pipeline as pipeline_mod
+    from evidenceengine.classification.pipeline import classify_verdicts_for_run
+    from evidenceengine.core.config import settings
+    from evidenceengine.models.run import RunVersion
+
+    monkeypatch.setattr(settings, "classifier_backend", "nli_primary")
+    monkeypatch.setattr(settings, "nli_tiebreaker_threshold", 0.65)
+
+    _, _, run_version, _, _ = await make_packet_with_claim(
+        db_session, n_claims=1, evidence_per_claim=2,
+    )
+
+    nli_backend = _mock_backend(_mock_verdict("insufficient_support", 0.60))
+    # Tiebreaker path imports LLMClassifier inside pipeline and calls .classify;
+    # we patch LLMClassifier there to a higher-confidence stand-in.
+    tiebreaker_verdict = _mock_verdict("supported", 0.88, "tiebreaker wins")
+    tiebreaker_instance = _mock_backend(tiebreaker_verdict)
+
+    with patch.object(pipeline_mod, "get_backend", return_value=nli_backend), \
+         patch.object(pipeline_mod, "generate_explanation", new=AsyncMock(return_value=None)), \
+         patch("evidenceengine.classification.llm_classifier.LLMClassifier",
+               return_value=tiebreaker_instance) as llm_cls:
+        verdicts = await classify_verdicts_for_run(str(run_version.id), db_session)
+
+    assert len(verdicts) == 1
+    # Persisted verdict is the tiebreaker's.
+    assert verdicts[0].verdict_type == "supported"
+    assert abs(verdicts[0].confidence_score - 0.88) < 1e-9
+    # Tiebreaker was constructed + called.
+    assert llm_cls.call_count == 1
+    assert tiebreaker_instance.classify.await_count == 1
+
+    # Telemetry records the tiebreaker firing.
+    refreshed = (await db_session.execute(
+        select(RunVersion).where(RunVersion.id == run_version.id)
+    )).scalar_one()
+    telem = refreshed.pipeline_config["classification_telemetry"]
+    assert telem["llm_tiebreaker_fired"] == 1
+    assert telem["classifier_backend"] == "nli_primary"
+
+
+@pytest.mark.asyncio
+async def test_pipeline_nli_primary_tiebreaker_not_fired_above_threshold(db_session, monkeypatch):
+    """NLI confidence 0.85 >= 0.65 → no tiebreaker; counter stays 0."""
+    from evidenceengine.classification import pipeline as pipeline_mod
+    from evidenceengine.classification.pipeline import classify_verdicts_for_run
+    from evidenceengine.core.config import settings
+    from evidenceengine.models.run import RunVersion
+
+    monkeypatch.setattr(settings, "classifier_backend", "nli_primary")
+    _, _, run_version, _, _ = await make_packet_with_claim(
+        db_session, n_claims=1, evidence_per_claim=2,
+    )
+
+    nli_backend = _mock_backend(_mock_verdict("supported", 0.85))
+    tiebreaker_instance = _mock_backend(_mock_verdict("contradicted", 0.99))
+
+    with patch.object(pipeline_mod, "get_backend", return_value=nli_backend), \
+         patch.object(pipeline_mod, "generate_explanation", new=AsyncMock(return_value=None)), \
+         patch("evidenceengine.classification.llm_classifier.LLMClassifier",
+               return_value=tiebreaker_instance) as llm_cls:
+        await classify_verdicts_for_run(str(run_version.id), db_session)
+
+    # Tiebreaker class must NOT have been constructed.
+    assert llm_cls.call_count == 0
+    assert tiebreaker_instance.classify.await_count == 0
+
+    refreshed = (await db_session.execute(
+        select(RunVersion).where(RunVersion.id == run_version.id)
+    )).scalar_one()
+    telem = refreshed.pipeline_config["classification_telemetry"]
+    assert telem["llm_tiebreaker_fired"] == 0
+
+
+@pytest.mark.asyncio
+async def test_pipeline_nli_primary_tiebreaker_fail_open_on_chain_exhaustion(db_session, monkeypatch):
+    """Tiebreaker raises RuntimeError → fail-open to needs_review (no exception)."""
+    from evidenceengine.classification import pipeline as pipeline_mod
+    from evidenceengine.classification.pipeline import classify_verdicts_for_run
+    from evidenceengine.core.config import settings
+    from evidenceengine.models.run import RunVersion
+
+    monkeypatch.setattr(settings, "classifier_backend", "nli_primary")
+    _, _, run_version, _, _ = await make_packet_with_claim(
+        db_session, n_claims=1, evidence_per_claim=2,
+    )
+
+    nli_backend = _mock_backend(_mock_verdict("insufficient_support", 0.50))
+    tiebreaker_instance = MagicMock()
+    tiebreaker_instance.classify = AsyncMock(
+        side_effect=RuntimeError("All models in fallback chain exhausted"),
+    )
+
+    with patch.object(pipeline_mod, "get_backend", return_value=nli_backend), \
+         patch.object(pipeline_mod, "generate_explanation", new=AsyncMock(return_value=None)), \
+         patch("evidenceengine.classification.llm_classifier.LLMClassifier",
+               return_value=tiebreaker_instance):
+        verdicts = await classify_verdicts_for_run(str(run_version.id), db_session)
+
+    assert len(verdicts) == 1
+    assert verdicts[0].verdict_type == "needs_review"
+    assert abs(verdicts[0].confidence_score - 0.50) < 1e-9
+
+    # llm_tiebreaker_fired STILL ticks to 1 (attempt counts per Pattern 4).
+    refreshed = (await db_session.execute(
+        select(RunVersion).where(RunVersion.id == run_version.id)
+    )).scalar_one()
+    telem = refreshed.pipeline_config["classification_telemetry"]
+    assert telem["llm_tiebreaker_fired"] == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("backend_name", ["nli_primary", "llm_primary"])
+async def test_pipeline_explanation_fires_for_both_backends(
+    db_session, monkeypatch, backend_name,
+):
+    """Explanation runs on BOTH backends; the string ends up in reasoning."""
+    from evidenceengine.classification import pipeline as pipeline_mod
+    from evidenceengine.classification.pipeline import classify_verdicts_for_run
+    from evidenceengine.core.config import settings
+
+    monkeypatch.setattr(settings, "classifier_backend", backend_name)
+    _, _, run_version, _, _ = await make_packet_with_claim(
+        db_session, n_claims=1, evidence_per_claim=2,
+    )
+
+    # Use a verdict that WILL NOT trigger the tiebreaker (nli_primary) and
+    # WILL NOT trigger the 0.70 override (llm_primary) — 0.85 clears both.
+    backend = _mock_backend(_mock_verdict("supported", 0.85, "base reasoning"))
+
+    with patch.object(pipeline_mod, "get_backend", return_value=backend), \
+         patch.object(pipeline_mod, "generate_explanation",
+                      new=AsyncMock(return_value="explanation text")):
+        verdicts = await classify_verdicts_for_run(str(run_version.id), db_session)
+
+    assert len(verdicts) == 1
+    assert "[explanation: explanation text]" in verdicts[0].reasoning
+
+
+@pytest.mark.asyncio
+async def test_pipeline_explanation_failure_does_not_block_verdict(db_session, monkeypatch):
+    """generate_explanation returning None → verdict still persisted; counter ticks."""
+    from evidenceengine.classification import pipeline as pipeline_mod
+    from evidenceengine.classification.pipeline import classify_verdicts_for_run
+    from evidenceengine.core.config import settings
+    from evidenceengine.models.run import RunVersion
+
+    monkeypatch.setattr(settings, "classifier_backend", "nli_primary")
+    _, _, run_version, _, _ = await make_packet_with_claim(
+        db_session, n_claims=1, evidence_per_claim=2,
+    )
+
+    backend = _mock_backend(_mock_verdict("supported", 0.85, "nli reasoning"))
+    with patch.object(pipeline_mod, "get_backend", return_value=backend), \
+         patch.object(pipeline_mod, "generate_explanation",
+                      new=AsyncMock(return_value=None)):
+        verdicts = await classify_verdicts_for_run(str(run_version.id), db_session)
+
+    assert len(verdicts) == 1
+    # Reasoning is unchanged from backend output — no [explanation: …] suffix.
+    assert "[explanation:" not in verdicts[0].reasoning
+    assert verdicts[0].reasoning == "nli reasoning"
+
+    refreshed = (await db_session.execute(
+        select(RunVersion).where(RunVersion.id == run_version.id)
+    )).scalar_one()
+    telem = refreshed.pipeline_config["classification_telemetry"]
+    assert telem["explanation_failed"] == 1
+    assert telem["explanation_generated"] == 0
+
+
+@pytest.mark.asyncio
+async def test_pipeline_nli_primary_skips_nli_second_opinion(db_session, monkeypatch):
+    """classifier_backend=nli_primary → legacy nli_second_opinion.nli_judgment NOT called."""
+    from evidenceengine.classification import pipeline as pipeline_mod
+    from evidenceengine.classification.pipeline import classify_verdicts_for_run
+    from evidenceengine.core.config import settings
+
+    monkeypatch.setattr(settings, "classifier_backend", "nli_primary")
+    monkeypatch.setattr(settings, "nli_second_opinion_enabled", True)
+
+    _, _, run_version, _, _ = await make_packet_with_claim(
+        db_session, n_claims=1, evidence_per_claim=2,
+    )
+
+    backend = _mock_backend(_mock_verdict("supported", 0.85))
+    with patch.object(pipeline_mod, "get_backend", return_value=backend), \
+         patch.object(pipeline_mod, "generate_explanation", new=AsyncMock(return_value=None)), \
+         patch("evidenceengine.classification.nli_second_opinion.nli_judgment") as nli_spy:
+        await classify_verdicts_for_run(str(run_version.id), db_session)
+
+    assert nli_spy.call_count == 0
+
+
+@pytest.mark.asyncio
+async def test_pipeline_llm_primary_still_runs_nli_second_opinion(db_session, monkeypatch):
+    """classifier_backend=llm_primary → legacy nli_second_opinion.nli_judgment IS called per claim."""
+    from evidenceengine.classification import pipeline as pipeline_mod
+    from evidenceengine.classification.pipeline import classify_verdicts_for_run
+    from evidenceengine.core.config import settings
+
+    monkeypatch.setattr(settings, "classifier_backend", "llm_primary")
+    monkeypatch.setattr(settings, "nli_second_opinion_enabled", True)
+
+    _, _, run_version, _, _ = await make_packet_with_claim(
+        db_session, n_claims=2, evidence_per_claim=2,
+    )
+
+    backend = _mock_backend(_mock_verdict("supported", 0.90))
+    with patch.object(pipeline_mod, "get_backend", return_value=backend), \
+         patch.object(pipeline_mod, "generate_explanation", new=AsyncMock(return_value=None)), \
+         patch("evidenceengine.classification.nli_second_opinion.nli_judgment",
+               return_value=None) as nli_spy:
+        await classify_verdicts_for_run(str(run_version.id), db_session)
+
+    assert nli_spy.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_pipeline_nli_primary_skips_apply_confidence_threshold(db_session, monkeypatch):
+    """nli_primary + 0.66 confidence → verdict NOT forced to needs_review. llm_primary IS."""
+    from evidenceengine.classification import pipeline as pipeline_mod
+    from evidenceengine.classification.pipeline import classify_verdicts_for_run
+    from evidenceengine.core.config import settings
+
+    # Use 0.66: above tiebreaker (0.65) so tiebreaker does NOT fire; below
+    # legacy 0.70 override so llm_primary WOULD demote to needs_review.
+    backend = _mock_backend(_mock_verdict("supported", 0.66))
+
+    # --- nli_primary path ---
+    monkeypatch.setattr(settings, "classifier_backend", "nli_primary")
+    monkeypatch.setattr(settings, "nli_tiebreaker_threshold", 0.65)
+    _, _, run_a, _, _ = await make_packet_with_claim(
+        db_session, n_claims=1, evidence_per_claim=2,
+    )
+    with patch.object(pipeline_mod, "get_backend", return_value=backend), \
+         patch.object(pipeline_mod, "generate_explanation", new=AsyncMock(return_value=None)):
+        vs_a = await classify_verdicts_for_run(str(run_a.id), db_session)
+    assert vs_a[0].verdict_type == "supported"
+
+    # --- llm_primary path (same scenario) ---
+    monkeypatch.setattr(settings, "classifier_backend", "llm_primary")
+    _, _, run_b, _, _ = await make_packet_with_claim(
+        db_session, n_claims=1, evidence_per_claim=2,
+    )
+    with patch.object(pipeline_mod, "get_backend", return_value=backend), \
+         patch.object(pipeline_mod, "generate_explanation", new=AsyncMock(return_value=None)), \
+         patch("evidenceengine.classification.nli_second_opinion.nli_judgment",
+               return_value=None):
+        vs_b = await classify_verdicts_for_run(str(run_b.id), db_session)
+    assert vs_b[0].verdict_type == "needs_review"
+
+
+@pytest.mark.asyncio
+async def test_pipeline_idempotency_preserved_nli_primary(db_session, monkeypatch):
+    """Re-run skips existing verdicts — backend.classify / tiebreaker / explanation unchanged."""
+    from evidenceengine.classification import pipeline as pipeline_mod
+    from evidenceengine.classification.pipeline import classify_verdicts_for_run
+    from evidenceengine.core.config import settings
+    from evidenceengine.models.run import RunVersion
+
+    monkeypatch.setattr(settings, "classifier_backend", "nli_primary")
+    _, _, run_version, _, _ = await make_packet_with_claim(
+        db_session, n_claims=1, evidence_per_claim=2,
+    )
+
+    # Low-confidence NLI → tiebreaker fires on FIRST run; must NOT fire on rerun.
+    backend = _mock_backend(_mock_verdict("insufficient_support", 0.50))
+    tiebreaker_instance = _mock_backend(_mock_verdict("supported", 0.85))
+    explanation_spy = AsyncMock(return_value="exp text")
+
+    with patch.object(pipeline_mod, "get_backend", return_value=backend), \
+         patch.object(pipeline_mod, "generate_explanation", new=explanation_spy), \
+         patch("evidenceengine.classification.llm_classifier.LLMClassifier",
+               return_value=tiebreaker_instance):
+        first = await classify_verdicts_for_run(str(run_version.id), db_session)
+        second = await classify_verdicts_for_run(str(run_version.id), db_session)
+
+    assert len(first) == 1
+    assert len(second) == 0
+    # backend.classify called ONLY during the first run.
+    assert backend.classify.await_count == 1
+    # Tiebreaker called ONLY during the first run.
+    assert tiebreaker_instance.classify.await_count == 1
+    # Explanation called ONLY during the first run.
+    assert explanation_spy.await_count == 1
+
+    refreshed = (await db_session.execute(
+        select(RunVersion).where(RunVersion.id == run_version.id)
+    )).scalar_one()
+    telem = refreshed.pipeline_config["classification_telemetry"]
+    assert telem["llm_tiebreaker_fired"] == 0  # second run recomputed telem from scratch
+
+
+@pytest.mark.asyncio
+async def test_pipeline_telemetry_keys_nli_primary(db_session, monkeypatch):
+    """classification_telemetry carries ALL additive keys alongside every pre-existing key."""
+    from evidenceengine.classification import pipeline as pipeline_mod
+    from evidenceengine.classification.pipeline import classify_verdicts_for_run
+    from evidenceengine.core.config import settings
+    from evidenceengine.models.run import RunVersion
+
+    monkeypatch.setattr(settings, "classifier_backend", "nli_primary")
+    _, _, run_version, _, _ = await make_packet_with_claim(
+        db_session, n_claims=1, evidence_per_claim=2,
+    )
+
+    backend = _mock_backend(_mock_verdict("supported", 0.85))
+    with patch.object(pipeline_mod, "get_backend", return_value=backend), \
+         patch.object(pipeline_mod, "generate_explanation",
+                      new=AsyncMock(return_value="exp")):
+        await classify_verdicts_for_run(str(run_version.id), db_session)
+
+    refreshed = (await db_session.execute(
+        select(RunVersion).where(RunVersion.id == run_version.id)
+    )).scalar_one()
+    telem = refreshed.pipeline_config["classification_telemetry"]
+
+    # Additive new keys (CLF-08).
+    for k in (
+        "classifier_backend",
+        "nli_verdict_counts",
+        "llm_tiebreaker_fired",
+        "explanation_generated",
+        "explanation_failed",
+    ):
+        assert k in telem, f"missing new telemetry key: {k}"
+    # Pre-existing keys must ALL still be present (not renamed, not removed).
+    for k in (
+        "claims_total",
+        "verdicts_produced",
+        "self_verify_claims",
+        "self_verify_rate",
+        "self_verify_caps_applied",
+        "threshold_overrides_to_review",
+        "chain_exhausted_count",
+        "model_refusal_count",
+        "bypass_unresolvable_anchor",
+        "nli_second_opinion_overrides",
+    ):
+        assert k in telem, f"existing telemetry key disappeared: {k}"
+    # Types sanity.
+    assert isinstance(telem["nli_verdict_counts"], dict)
+    assert telem["classifier_backend"] == "nli_primary"
+    assert telem["explanation_generated"] == 1
