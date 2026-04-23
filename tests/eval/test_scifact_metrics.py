@@ -39,13 +39,13 @@ def test_all_wrong_yields_macro_f1_0():
 
 
 # ---------------------------------------------------------------------------
-# Test 3: mixed predictions → computed macro_f1 matches hand-calculated value
-# Hand-calc:
-#   SUPPORT gold: [0,1,2] — predicted SUPPORT: rows 0,1 → TP=2, FN=1, FP=0
-#   CONTRADICT gold: [3,4] — predicted CONTRADICT: row 3 only → TP=1, FN=1, FP=1
-#   P(SUP)=2/2=1.0, R(SUP)=2/3≈0.667 → F1(SUP)=0.800
-#   P(CON)=1/2=0.5, R(CON)=1/2=0.5 → F1(CON)=0.500
-#   macro_f1 = (0.800+0.500)/2 = 0.650
+# Test 3: mixed predictions → computed macro_f1 matches sklearn value
+# sklearn calculation:
+#   gold: SUP SUP SUP CON CON
+#   pred: SUP SUP CON CON SUP
+#   SUPPORT:    TP=2, FP=1, FN=1  → P=0.667, R=0.667, F1=0.667
+#   CONTRADICT: TP=1, FP=1, FN=1  → P=0.500, R=0.500, F1=0.500
+#   macro_f1 = (0.667 + 0.500) / 2 = 0.5833
 # ---------------------------------------------------------------------------
 
 def test_mixed_predictions_macro_f1():
@@ -57,7 +57,7 @@ def test_mixed_predictions_macro_f1():
         {"gold_label": "CONTRADICT", "predicted_label": "supported"},      # FN CON / FP SUP
     ]
     out = compute_macro_f1(results)
-    assert out["macro_f1"] == pytest.approx(0.65, abs=1e-3)
+    assert out["macro_f1"] == pytest.approx(0.5833, abs=1e-3)
     assert out["n_scored"] == 5
     assert out["n_nei"] == 0
     assert out["n_total"] == 5
