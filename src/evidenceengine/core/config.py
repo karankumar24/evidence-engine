@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     llm_provider: str = "gemini"
     gemini_api_key: str = Field(default="", validation_alias="GEMINI_API_KEY")
     groq_api_key: str = Field(default="", validation_alias="GROQ_API_KEY")
+    cerebras_api_key: str = Field(default="", validation_alias="CEREBRAS_API_KEY")
+    sambanova_api_key: str = Field(default="", validation_alias="SAMBANOVA_API_KEY")
     # Default extraction/classification models target Gemini 2.0 Flash (free
     # tier: 1,500 req/day). Override via EXTRACTION_MODEL / CLASSIFICATION_MODEL
     # env vars; openai SDK rejects empty model names so a sensible default is

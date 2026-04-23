@@ -59,25 +59,31 @@ _STRICT_STRUCTURED_OUTPUT_MODELS = frozenset({
 # Total worst-case wallclock per call ≈ sum(_RETRY_BACKOFFS) seconds + jitter.
 _RETRY_BACKOFFS = (5.0, 15.0, 30.0)  # 3 extra rounds = ~50s extra wait
 
-# Provider dispatch (v1.2.9+). Model-id prefix routes the OpenAI client to
-# the right OpenAI-compat endpoint without caller involvement.
+# Provider dispatch. Model-id prefix (or namespace) routes the OpenAI client
+# to the right OpenAI-compat endpoint without caller involvement.
+# Namespaced models (e.g. "cerebras/llama3.3-70b") have the prefix stripped
+# before the API call via _resolve_model_id().
 _GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 _GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+_CEREBRAS_BASE_URL = "https://api.cerebras.ai/v1"
+_SAMBANOVA_BASE_URL = "https://api.sambanova.ai/v1"
 
-# Gemma 2+ is also served by Google AI Studio via the OpenAI-compat path.
 _GEMINI_PREFIXES = ("gemini-", "gemma-")
-# Groq hosts Meta Llama, Mistral, and DeepSeek-distill families. Note the
-# multiple llama-* prefix variants — Groq's model IDs differ slightly across
-# generations (e.g. "llama-3.3-70b-versatile", "meta-llama/llama-4-scout-*").
 _GROQ_PREFIXES = ("llama-", "llama3-", "mixtral-", "deepseek-", "meta-llama/")
+# Namespaced prefixes — stripped before the API call so the provider receives
+# only the bare model id (e.g. "cerebras/llama3.3-70b" → "llama3.3-70b").
+_CEREBRAS_PREFIXES = ("cerebras/",)
+_SAMBANOVA_PREFIXES = ("sambanova/",)
 
 
 def _resolve_base_url(model: str, default_base_url: str | None) -> str | None:
-    """Dispatch per provider. Gemini + Groq model-id prefixes override the
-    caller's base_url; every other model (OpenAI, OpenRouter, local vLLM,
-    Azure) uses the caller's value unchanged."""
+    """Dispatch per provider based on model-id prefix or namespace."""
     if any(model.startswith(p) for p in _GEMINI_PREFIXES):
         return _GEMINI_BASE_URL
+    if any(model.startswith(p) for p in _CEREBRAS_PREFIXES):
+        return _CEREBRAS_BASE_URL
+    if any(model.startswith(p) for p in _SAMBANOVA_PREFIXES):
+        return _SAMBANOVA_BASE_URL
     if any(model.startswith(p) for p in _GROQ_PREFIXES):
         return _GROQ_BASE_URL
     return default_base_url or None
@@ -88,18 +94,32 @@ def _resolve_api_key(
     default_api_key: str,
     gemini_api_key: str,
     groq_api_key: str,
+    cerebras_api_key: str = "",
+    sambanova_api_key: str = "",
 ) -> str:
-    """Return the correct API key for the model's provider.
-
-    Gemini and Groq each require their own key. All other providers
-    (OpenAI, OpenRouter, Azure, local vLLM) use the caller-supplied default.
-    Falls back to default_api_key when the provider-specific key is empty.
-    """
+    """Return the correct API key for the model's provider."""
     if any(model.startswith(p) for p in _GEMINI_PREFIXES):
         return gemini_api_key or default_api_key
+    if any(model.startswith(p) for p in _CEREBRAS_PREFIXES):
+        return cerebras_api_key or default_api_key
+    if any(model.startswith(p) for p in _SAMBANOVA_PREFIXES):
+        return sambanova_api_key or default_api_key
     if any(model.startswith(p) for p in _GROQ_PREFIXES):
         return groq_api_key or default_api_key
     return default_api_key
+
+
+def _resolve_model_id(model: str) -> str:
+    """Strip provider namespace prefix before the API call.
+
+    Namespaced model IDs (e.g. 'cerebras/llama3.3-70b') are used in the
+    fallback chain for unambiguous routing but the provider's API expects
+    only the bare model name ('llama3.3-70b').
+    """
+    for p in (*_CEREBRAS_PREFIXES, *_SAMBANOVA_PREFIXES):
+        if model.startswith(p):
+            return model[len(p):]
+    return model
 
 
 def sync_call_with_fallback(
@@ -111,6 +131,8 @@ def sync_call_with_fallback(
     base_url: str | None,
     gemini_api_key: str = "",
     groq_api_key: str = "",
+    cerebras_api_key: str = "",
+    sambanova_api_key: str = "",
 ) -> Any:
     """Try each model in model_chain. Return first successful parsed message.
 
@@ -155,8 +177,10 @@ def sync_call_with_fallback(
             try:
                 effective_base_url = _resolve_base_url(model, base_url)
                 effective_api_key = _resolve_api_key(
-                    model, api_key, gemini_api_key, groq_api_key
+                    model, api_key, gemini_api_key, groq_api_key,
+                    cerebras_api_key, sambanova_api_key,
                 )
+                effective_model_id = _resolve_model_id(model)
                 is_openrouter = (
                     effective_base_url is not None
                     and "openrouter.ai" in effective_base_url
@@ -177,7 +201,7 @@ def sync_call_with_fallback(
                             extra_body["provider"] = {"require_parameters": True}
 
                     parse_kwargs: dict[str, Any] = {
-                        "model": model,
+                        "model": effective_model_id,
                         "messages": messages,
                         "response_format": response_format,
                     }

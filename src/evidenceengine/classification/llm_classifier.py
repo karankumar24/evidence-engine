@@ -171,6 +171,8 @@ async def classify_claim(
             base_url=settings.llm_base_url or None,
             gemini_api_key=settings.gemini_api_key,
             groq_api_key=settings.groq_api_key,
+            cerebras_api_key=settings.cerebras_api_key,
+            sambanova_api_key=settings.sambanova_api_key,
         )
 
     message = await asyncio.to_thread(_sync_request)

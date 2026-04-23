@@ -79,6 +79,8 @@ async def extract_claims_from_blocks(
                 base_url=settings.llm_base_url or None,
                 gemini_api_key=settings.gemini_api_key,
                 groq_api_key=settings.groq_api_key,
+                cerebras_api_key=settings.cerebras_api_key,
+                sambanova_api_key=settings.sambanova_api_key,
             )
 
         try:
