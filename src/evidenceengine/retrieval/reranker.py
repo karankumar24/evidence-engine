@@ -55,7 +55,7 @@ def get_reranker():
 
                 _reranker = CrossEncoder(
                     settings.reranker_model,
-                    revision=settings.reranker_model_revision,
+                    revision=settings.reranker_model_revision or None,
                     device=_select_device(),
                     max_length=512,
                 )

@@ -8,7 +8,7 @@ set -eu
 
 # /data is the Fly volume mount point (see fly.toml [mounts]).
 if [ -d /data ]; then
-    mkdir -p /data/uploads /data/indexes /data/.cache/huggingface
+    mkdir -p /data/uploads /data/indexes
     chown -R ee:ee /data
 fi
 
