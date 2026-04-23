@@ -59,7 +59,7 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 # reranker download; NLTK data dir is needed for punkt_tab tokenizer. Without
 # HF_HOME/NLTK_DATA set these default to $HOME which resolves to /home/ee on
 # Fly (that dir does not exist — PermissionError).
-RUN mkdir -p /app/uploads /app/indexes /app/.cache/huggingface /app/nltk_data \
+RUN mkdir -p /app/uploads /app/indexes /app/nltk_data \
     && chown -R ee:ee /app
 
 # Pre-download NLTK punkt_tab at build time so first-use retrieval does not
@@ -75,8 +75,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV UPLOAD_DIR=/app/uploads
 ENV INDEX_DIR=/app/indexes
-ENV HF_HOME=/app/.cache/huggingface
-ENV TRANSFORMERS_CACHE=/app/.cache/huggingface
+ENV HF_HOME=/data/.cache/huggingface
+ENV TRANSFORMERS_CACHE=/data/.cache/huggingface
 ENV NLTK_DATA=/app/nltk_data
 ENV HOME=/app
 
