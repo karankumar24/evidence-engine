@@ -20,14 +20,6 @@ primary_region = "sjc"   # San Jose — closest to the default user; change if n
   UPLOAD_DIR = "/data/uploads"
   INDEX_DIR  = "/data/indexes"
   PYTHONPATH = "/app/src"
-  # LLM_BASE_URL points at OpenRouter by default; override via `fly secrets`
-  # if you switch providers.
-  LLM_BASE_URL = "https://openrouter.ai/api/v1"
-  # Fallback chain tried in order on timeout/error/refusal (comma-separated).
-  # Audit against https://openrouter.ai/api/v1/models monthly — :free models
-  # rotate weekly. Last refreshed 2026-04-20: prior chain had 3/4 dead models
-  # (gemini-2.0-flash-exp, qwen3-30b-a3b, llama-4-maverick all 404).
-  MODEL_FALLBACK_CHAIN = "qwen/qwen3-next-80b-a3b-instruct:free,meta-llama/llama-3.3-70b-instruct:free,google/gemma-4-26b-a4b-it:free,arcee-ai/trinity-large-preview:free"
 
 [http_service]
   internal_port = 8000
@@ -57,4 +49,4 @@ primary_region = "sjc"   # San Jose — closest to the default user; change if n
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "1gb"          # BM25 + embeddings reranker need a bit; bump if OOM
+  memory = "2gb"          # reranker ~1.1GB + DeBERTa ~870MB + app ~500MB ≈ 2.5GB peak
