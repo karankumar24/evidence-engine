@@ -20,6 +20,7 @@
     </div>
   {% elif run.status == "completed" %}
     <div class="text-sm text-accent-700">Complete — redirecting…</div>
+    <script>window.location.replace('/dashboard/{{ run.packet_id }}/{{ run.id }}');</script>
   {% else %}
     {# Spinner + hero — render ONLY while in-flight so they disappear when status flips. #}
     <div class="text-center pb-4">

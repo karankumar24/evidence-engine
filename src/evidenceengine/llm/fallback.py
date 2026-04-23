@@ -83,6 +83,25 @@ def _resolve_base_url(model: str, default_base_url: str | None) -> str | None:
     return default_base_url or None
 
 
+def _resolve_api_key(
+    model: str,
+    default_api_key: str,
+    gemini_api_key: str,
+    groq_api_key: str,
+) -> str:
+    """Return the correct API key for the model's provider.
+
+    Gemini and Groq each require their own key. All other providers
+    (OpenAI, OpenRouter, Azure, local vLLM) use the caller-supplied default.
+    Falls back to default_api_key when the provider-specific key is empty.
+    """
+    if any(model.startswith(p) for p in _GEMINI_PREFIXES):
+        return gemini_api_key or default_api_key
+    if any(model.startswith(p) for p in _GROQ_PREFIXES):
+        return groq_api_key or default_api_key
+    return default_api_key
+
+
 def sync_call_with_fallback(
     model_chain: list[str],
     messages: list[dict],
@@ -90,6 +109,8 @@ def sync_call_with_fallback(
     timeout: float,
     api_key: str,
     base_url: str | None,
+    gemini_api_key: str = "",
+    groq_api_key: str = "",
 ) -> Any:
     """Try each model in model_chain. Return first successful parsed message.
 
@@ -133,12 +154,15 @@ def sync_call_with_fallback(
         for model in model_chain:
             try:
                 effective_base_url = _resolve_base_url(model, base_url)
+                effective_api_key = _resolve_api_key(
+                    model, api_key, gemini_api_key, groq_api_key
+                )
                 is_openrouter = (
                     effective_base_url is not None
                     and "openrouter.ai" in effective_base_url
                 )
                 with _SyncOpenAI(
-                    api_key=api_key,
+                    api_key=effective_api_key,
                     base_url=effective_base_url,
                     timeout=timeout,
                     max_retries=0,  # we manage the retry chain ourselves

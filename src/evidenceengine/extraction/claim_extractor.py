@@ -77,6 +77,8 @@ async def extract_claims_from_blocks(
                 timeout=timeout,
                 api_key=settings.llm_api_key,
                 base_url=settings.llm_base_url or None,
+                gemini_api_key=settings.gemini_api_key,
+                groq_api_key=settings.groq_api_key,
             )
 
         try:

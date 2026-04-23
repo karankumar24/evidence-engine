@@ -22,7 +22,7 @@
           The pipeline completed without producing verdicts. Most common causes, in order:
         </p>
         <ol class="mt-3 ml-5 text-sm text-ink-500 list-decimal space-y-1">
-          <li><strong>Free-tier LLM was rate-limited</strong> during extraction. Free OpenRouter providers cap at ~50 req/day per account; check the run-status page for batch-failure warnings or wait until 00:00 UTC reset and re-upload.</li>
+          <li><strong>LLM extraction failed or was rate-limited.</strong> Check the run-status page for batch-failure warnings. If you see "Invalid API Key" errors, contact support. Daily quota resets at 00:00 UTC — re-upload to retry.</li>
           <li>The report has no <strong>complete factual sentences</strong> (extraction skips table cells, headers, and bullet fragments — by design).</li>
           <li>The report is <strong>very short</strong> (under ~200 words of narrative).</li>
         </ol>
