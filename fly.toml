@@ -48,5 +48,5 @@ primary_region = "sjc"   # San Jose — closest to the default user; change if n
   destination = "/data"
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "2gb"          # reranker ~1.1GB + DeBERTa ~870MB + app ~500MB ≈ 2.5GB peak
+  size = "shared-cpu-2x"
+  memory = "4gb"          # bge-reranker-v2-m3 = 2.27GB on disk; needs 4GB to mmap + DeBERTa + app
