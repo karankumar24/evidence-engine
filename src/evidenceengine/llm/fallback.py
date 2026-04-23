@@ -68,8 +68,8 @@ _GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 _GEMINI_PREFIXES = ("gemini-", "gemma-")
 # Groq hosts Meta Llama, Mistral, and DeepSeek-distill families. Note the
 # multiple llama-* prefix variants — Groq's model IDs differ slightly across
-# generations (e.g. "llama-3.3-70b-versatile", "llama3-70b-8192").
-_GROQ_PREFIXES = ("llama-", "llama3-", "mixtral-", "deepseek-")
+# generations (e.g. "llama-3.3-70b-versatile", "meta-llama/llama-4-scout-*").
+_GROQ_PREFIXES = ("llama-", "llama3-", "mixtral-", "deepseek-", "meta-llama/")
 
 
 def _resolve_base_url(model: str, default_base_url: str | None) -> str | None:
