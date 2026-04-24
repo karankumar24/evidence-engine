@@ -65,6 +65,28 @@ _KNOWN_JOINS: dict[str, str] = {
     # where the second line starts with lowercase drops the leading space)
     "Thefeature": "The feature",
     "Themodel": "The model",
+    # ML paper compound joins seen in BERT/Attention papers
+    "layerto": "layer to",
+    "widerange": "wide range",
+    "andlanguage": "and language",
+    "initializemodels": "initialize models",
+    "isfeature": "is feature",
+    "outputlayer": "output layer",
+    "taskspecific": "task specific",
+    "downstreamtasks": "downstream tasks",
+    "languagemodel": "language model",
+    "trainingdata": "training data",
+    "machinelearning": "machine learning",
+    "deeplearning": "deep learning",
+    "neuralnetwork": "neural network",
+    # Hyphenation artifacts from PDF line-break extraction
+    "re-sult": "result",
+    "representa-tion": "representation",
+    "informa-tion": "information",
+    "pre-sented": "presented",
+    "pre-diction": "prediction",
+    "evalu-ation": "evaluation",
+    "classi-fication": "classification",
 }
 
 
