@@ -69,7 +69,9 @@ _KNOWN_JOINS: dict[str, str] = {
     # where the second line starts with lowercase drops the leading space)
     "Thefeature": "The feature",
     "Themodel": "The model",
-    # ML paper compound joins seen in BERT/Attention papers
+    # ML paper compound joins seen in BERT/Attention papers (no hyphen, just
+    # two words fused by a PyMuPDF line-break that dropped the space)
+    "empiricallypowerful": "empirically powerful",
     "layerto": "layer to",
     "widerange": "wide range",
     "andlanguage": "and language",
@@ -97,15 +99,39 @@ _KNOWN_JOINS: dict[str, str] = {
 def _fix_word_boundaries(text: str) -> str:
     """Restore spaces lost to PDF line-break extraction artifacts.
 
-    Two passes:
+    Three passes:
     1. Regex: split at lowercase→Uppercase boundary ("Thefeature" → "The feature").
        Does NOT split all-caps acronyms (BERT, NLP) — regex requires a lowercase
        char before the uppercase char.
-    2. Lookup: replace known common joins from ML papers ("beenused" → "been used").
+    2. Hyphen removal: delete mid-word hyphens before common word suffixes that
+       appear only from line-break hyphenation, never in real compound words
+       (e.g. "repre-sentation" → "representation", "classi-fied" → "classified").
+       Leaves legitimate hyphens ("state-of-the-art", "fine-tuned") untouched.
+    3. Lookup: case-insensitive replace of known common joins from ML papers
+       ("beenused" → "been used", "Inthe" → "In the"). Preserves leading
+       capitalisation so sentence-start joins stay capitalised.
     """
+    # Pass 0: sentence boundary — period/comma touching a capital letter with no space
+    # "powerful.It" → "powerful. It", "result,The" → "result, The"
+    text = re.sub(r'([a-z])([.,])([A-Z])', r'\1\2 \3', text)
+    # Pass 1: camelCase boundary split
     text = re.sub(r'([a-z])([A-Z])', r'\1 \2', text)
+    # Pass 1.5: proper-noun line-break hyphenation ("Rad-ford" → "Radford").
+    # Guard excludes function words ("State-of" stays "State-of") and long parts
+    # (> 5 chars after hyphen are likely real compound word halves, not name fragments).
+    _keep_after = {'of', 'in', 'to', 'by', 'at', 'an', 'the', 'a', 'is', 'or', 'as', 'on'}
+    def _dehyphenate_proper(m: re.Match) -> str:
+        return m.group(0) if m.group(2).lower() in _keep_after else m.group(1) + m.group(2)
+    text = re.sub(r'([A-Z][a-z]{2,})-([a-z]{2,5})\b', _dehyphenate_proper, text)
+    # Pass 2: remove hyphens before suffixes that are never real compound parts
+    # Suffixes: -tion, -sion, -ation, -ization, -ment, -ness, -ful, -tion, -ance
+    text = re.sub(r'([a-z]{3,})-(sentation|tion|sion|ation|ization|ment|ness|ful|ance|ence|ture|ive|ary|ory|able|ible|ly)\b',
+                  r'\1\2', text, flags=re.IGNORECASE)
+    # Pass 3: case-insensitive lookup replacements
     for bad, good in _KNOWN_JOINS.items():
-        text = text.replace(bad, good)
+        def _replace(m: re.Match, _good: str = good) -> str:
+            return _good[0].upper() + _good[1:] if m.group(0)[0].isupper() else _good
+        text = re.sub(re.escape(bad), _replace, text, flags=re.IGNORECASE)
     return text
 
 
@@ -179,38 +205,116 @@ def _detect_citation_markers(text: str) -> list[ExtractedCitationMarker]:
     return markers
 
 
-def _is_likely_claim(sentence: str) -> bool:
-    """Return True if the sentence looks like a verifiable factual claim."""
+_MIN_CLAIM_WORDS = 3    # lowered from 5 — catches short metric claims
+_MAX_CLAIM_WORDS = 150  # raised from 120 — captures long technical sentences
+_MIN_NOPUNCT_WORDS = 8  # min words to accept a sentence lacking terminal punctuation
+
+_VERB_RE = re.compile(
+    r"\b(is|are|was|were|has|have|had|shows?|demonstrates?|"
+    r"achieves?|reduces?|increases?|decreases?|improves?|"
+    r"suggests?|indicates?|contains?|provides?|results?|found|"
+    r"\w+ed|\w+ing)\b"
+)
+_METRIC_RE = re.compile(r":\s*[\d\.\-\+]")  # "Accuracy: 95%." style
+
+
+def _is_likely_claim(sentence: str, _counts: dict | None = None) -> bool:
+    """Return True if the sentence looks like a verifiable factual claim.
+
+    _counts: optional mutable dict tracking per-reason rejection counts
+             for diagnostic generation when 0 claims are extracted.
+    """
+    def reject(reason: str) -> bool:
+        if _counts is not None:
+            _counts[reason] = _counts.get(reason, 0) + 1
+        return False
+
     s = sentence.strip()
     if not s:
-        return False
+        return reject("empty")
     words = s.split()
-    if len(words) < 5 or len(words) > 120:
-        return False
+    if len(words) < _MIN_CLAIM_WORDS or len(words) > _MAX_CLAIM_WORDS:
+        return reject("length")
     if not s[0].isupper():
-        return False
-    if not s[-1] in ".!?":
-        return False
+        return reject("lowercase_start")
     lower = s.lower()
     if any(lower.startswith(pfx) for pfx in _SKIP_PREFIXES):
-        return False
+        return reject("skip_prefix")
     if _STRUCTURAL_RE.match(s):
-        return False
+        return reject("structural")
     if _ACK_RE.search(s):
-        return False
+        return reject("acknowledgement")
     if _META_RE.match(s):
-        return False
-    # Must contain at least one verb-like token (ends in -s, -ed, -ing, or "is", "are", "was")
-    verb_like = re.search(
-        r"\b(is|are|was|were|has|have|had|shows?|demonstrates?|"
-        r"achieves?|reduces?|increases?|decreases?|improves?|"
-        r"suggests?|indicates?|contains?|provides?|results?|found|"
-        r"\w+ed|\w+ing)\b",
-        lower,
-    )
-    if not verb_like:
-        return False
+        return reject("meta")
+
+    has_punct = s[-1] in ".!?"
+    has_verb = bool(_VERB_RE.search(lower))
+
+    if not has_punct:
+        # Slide/bullet-point style: accept if long enough AND has a verb.
+        # Handles PowerPoint PDFs, Beamer slides, docs without terminal periods.
+        if len(words) >= _MIN_NOPUNCT_WORDS and has_verb:
+            return True
+        return reject("no_terminal_punct")
+
+    if not has_verb:
+        # Metric/data-sheet style: accept "Accuracy: 95%." patterns.
+        if _METRIC_RE.search(s):
+            return True
+        return reject("no_verb")
+
     return True
+
+
+_ZERO_CLAIM_MESSAGES: dict[str, str] = {
+    "no_terminal_punct": (
+        "Most sentences lack terminal punctuation. "
+        "This PDF may be a slide deck, use heavy bullet-point formatting, "
+        "or was exported from a format that strips sentence endings."
+    ),
+    "no_verb": (
+        "Most sentences lack a verb. "
+        "Common in data-heavy documents, spreadsheets exported to PDF, "
+        "or files dominated by numeric tables and captions."
+    ),
+    "length": (
+        "Sentences are either too short (under 3 words) or very long (over 150 words). "
+        "The document may consist mostly of headings, footnotes, or run-on text blocks."
+    ),
+    "structural": (
+        "Content appears to be mostly structural: numbered lists, bullet markers, "
+        "or ALL-CAPS headings that don't read as factual claims."
+    ),
+    "skip_prefix": (
+        "Content is dominated by figures, tables, references, or acknowledgements — "
+        "all filtered out as non-claim content by design."
+    ),
+    "lowercase_start": (
+        "Many text fragments start with lowercase letters, which usually indicates "
+        "parsing artifacts or incomplete sentences from PDF extraction."
+    ),
+    "meta": (
+        "Content is mostly self-referential commentary (\"In this paper...\") "
+        "rather than verifiable factual claims."
+    ),
+    "acknowledgement": "Content is mostly acknowledgements or funding statements.",
+}
+
+
+def _make_zero_claims_diagnostic(counts: dict[str, int], total_candidates: int) -> str:
+    """Build a user-readable explanation for why 0 claims were extracted."""
+    if total_candidates == 0:
+        return (
+            "The document produced no text blocks. "
+            "It may be a scanned image-only PDF with no embedded text, "
+            "or the file may be empty or corrupt. "
+            "Try re-exporting as a PDF with selectable text."
+        )
+    top = max(counts, key=counts.__getitem__) if counts else "unknown"
+    return _ZERO_CLAIM_MESSAGES.get(
+        top,
+        f"No verifiable claims were found across {total_candidates} candidate sentences.",
+    )
 
 
 async def extract_claims_from_blocks(
@@ -228,7 +332,10 @@ async def extract_claims_from_blocks(
         ClaimExtractionResponse with filtered factual sentences as claims.
     """
     if not citation_blocks:
-        return ClaimExtractionResponse(claims=[])
+        return ClaimExtractionResponse(
+            claims=[],
+            diagnostic=_make_zero_claims_diagnostic({}, 0),
+        )
 
     # Merge line-level blocks (Word-exported PDFs) into paragraph-level blocks so
     # sent_tokenize receives complete sentences with terminal punctuation.
@@ -242,6 +349,8 @@ async def extract_claims_from_blocks(
 
     all_claims: list[ExtractedClaim] = []
     seen: set[str] = set()
+    rejection_counts: dict[str, int] = {}
+    total_candidates = 0
 
     for block in citation_blocks:
         text = _fix_word_boundaries(block.get("text", "").strip())
@@ -255,7 +364,8 @@ async def extract_claims_from_blocks(
 
         for sentence in sentences:
             sentence = sentence.strip()
-            if not _is_likely_claim(sentence):
+            total_candidates += 1
+            if not _is_likely_claim(sentence, rejection_counts):
                 continue
             # Deduplicate
             key = sentence.lower()
@@ -267,6 +377,14 @@ async def extract_claims_from_blocks(
                 citation_markers=_detect_citation_markers(sentence),
             ))
 
-    logger.info("Local extractor produced %d candidate claims from %d blocks",
-                len(all_claims), len(citation_blocks))
+    logger.info(
+        "Local extractor produced %d claims from %d candidates across %d blocks",
+        len(all_claims), total_candidates, len(citation_blocks),
+    )
+
+    if not all_claims:
+        diagnostic = _make_zero_claims_diagnostic(rejection_counts, total_candidates)
+        logger.warning("0 claims extracted — %s", diagnostic)
+        return ClaimExtractionResponse(claims=[], diagnostic=diagnostic)
+
     return ClaimExtractionResponse(claims=all_claims)
