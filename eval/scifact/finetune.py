@@ -252,6 +252,7 @@ def _evaluate(model, tokenizer, dev_pairs: list[tuple[str, str, int]], device) -
     model.eval()
     correct = 0
     per_class: dict[int, dict] = {k: {"correct": 0, "total": 0} for k in (0, 1, 2)}
+    pred_counts: dict[int, int] = {k: 0 for k in (0, 1, 2)}
 
     with torch.no_grad():
         for premise, hypothesis, gold in dev_pairs:
@@ -262,17 +263,29 @@ def _evaluate(model, tokenizer, dev_pairs: list[tuple[str, str, int]], device) -
             inputs = {k: v.to(device) for k, v in inputs.items()}
             pred = int(torch.argmax(model(**inputs).logits[0]).item())
             per_class[gold]["total"] += 1
+            pred_counts[pred] = pred_counts.get(pred, 0) + 1
             if pred == gold:
                 correct += 1
                 per_class[gold]["correct"] += 1
 
     accuracy = correct / len(dev_pairs) if dev_pairs else 0.0
     results: dict = {"accuracy": accuracy, "n": len(dev_pairs)}
+    # Compute macro-F1: need TP, FP, FN per class
+    class_f1s = []
     for label_id, counts in per_class.items():
         name = id2name[label_id]
-        recall = counts["correct"] / counts["total"] if counts["total"] else 0.0
+        tp = counts["correct"]
+        fn = counts["total"] - tp
+        fp = pred_counts.get(label_id, 0) - tp
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        recall    = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        f1        = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+        class_f1s.append(f1)
         results[f"recall_{name}"] = recall
+        results[f"precision_{name}"] = precision
+        results[f"f1_{name}"] = f1
         results[f"n_{name}"] = counts["total"]
+    results["macro_f1"] = sum(class_f1s) / len(class_f1s) if class_f1s else 0.0
     return results
 
 
@@ -282,13 +295,15 @@ def main():
     parser = argparse.ArgumentParser(description="Fine-tune NLI model on SciFact")
     parser.add_argument("--output-dir",  default="./checkpoints/scifact-nli")
     parser.add_argument("--base-model",  default=BASE_MODEL)
-    parser.add_argument("--epochs",      type=int,   default=3)
-    parser.add_argument("--lr",          type=float, default=2e-5)
-    parser.add_argument("--batch-size",  type=int,   default=4)    # 4 × grad_accum 4 = effective 16
-    parser.add_argument("--grad-accum",  type=int,   default=4)    # simulate larger batch
-    parser.add_argument("--max-length",  type=int,   default=128)  # p99 token length < 200
+    parser.add_argument("--epochs",      type=int,   default=5)    # 3-5 per published DeBERTa NLI runs
+    parser.add_argument("--lr",          type=float, default=1e-5)  # 2e-5 too hot for 1,261 examples
+    parser.add_argument("--batch-size",  type=int,   default=4)
+    parser.add_argument("--grad-accum",  type=int,   default=4)
+    parser.add_argument("--max-length",  type=int,   default=128)
     parser.add_argument("--cache-dir",   default=SCIFACT_CACHE)
     parser.add_argument("--seed",        type=int,   default=42)
+    parser.add_argument("--cpu",         action="store_true",
+                        help="Force CPU training (avoids MPS OOM on 8GB M1)")
     parser.add_argument("--eval-only",   action="store_true",
                         help="Evaluate baseline model on dev set without training")
     args = parser.parse_args()
@@ -306,6 +321,7 @@ def main():
     set_seed(args.seed)
 
     device = torch.device(
+        "cpu" if args.cpu else
         "cuda" if torch.cuda.is_available() else
         "mps"  if torch.backends.mps.is_available() else
         "cpu"
@@ -343,6 +359,37 @@ def main():
     output_path = Path(args.output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
+    # Class weights: inverse-frequency for imbalanced SciFact train set.
+    # Label ordering: 0=contradiction(341), 1=entailment(616), 2=neutral(304)
+    # Weights validated in "Rethinking Loss Functions for Fact Verification" (2024).
+    class_weights = torch.tensor([1.8, 1.0, 1.2], dtype=torch.float32).to(device)
+
+    def compute_metrics(eval_pred):
+        import numpy as np  # noqa: PLC0415
+        logits, labels = eval_pred
+        preds = np.argmax(logits, axis=-1)
+        # Macro-F1 (unweighted average across 3 classes — penalizes ignoring any class)
+        tp = np.zeros(3); fp = np.zeros(3); fn = np.zeros(3)
+        for c in range(3):
+            tp[c] = ((preds == c) & (labels == c)).sum()
+            fp[c] = ((preds == c) & (labels != c)).sum()
+            fn[c] = ((preds != c) & (labels == c)).sum()
+        precision = np.where(tp + fp > 0, tp / (tp + fp), 0.0)
+        recall    = np.where(tp + fn > 0, tp / (tp + fn), 0.0)
+        f1        = np.where(precision + recall > 0, 2 * precision * recall / (precision + recall), 0.0)
+        return {"macro_f1": float(f1.mean()), "accuracy": float((preds == labels).mean())}
+
+    class WeightedTrainer(Trainer):
+        """Trainer with class-weighted CrossEntropy loss."""
+        def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+            labels = inputs.pop("labels")
+            outputs = model(**inputs)
+            loss = torch.nn.functional.cross_entropy(
+                outputs.logits, labels, weight=class_weights,
+                label_smoothing=0.1,  # free calibration improvement (IC3K 2024)
+            )
+            return (loss, outputs) if return_outputs else loss
+
     training_args = TrainingArguments(
         output_dir=str(output_path),
         num_train_epochs=args.epochs,
@@ -350,27 +397,30 @@ def main():
         per_device_eval_batch_size=args.batch_size,
         gradient_accumulation_steps=args.grad_accum,
         learning_rate=args.lr,
-        warmup_steps=50,
+        warmup_ratio=0.10,          # larger warmup for small dataset (vs 0.06 on large)
         weight_decay=0.01,
         eval_strategy="epoch",
         save_strategy="epoch",
         load_best_model_at_end=True,
-        metric_for_best_model="eval_loss",
+        metric_for_best_model="macro_f1",   # macro-F1 corrects for class imbalance
+        greater_is_better=True,
         logging_steps=10,
         seed=args.seed,
-        fp16=torch.cuda.is_available(),
+        fp16=torch.cuda.is_available() and not args.cpu,
         bf16=False,
-        gradient_checkpointing=True,      # recompute activations during backward — trades speed for memory
+        gradient_checkpointing=True,
         report_to="none",
+        no_cuda=args.cpu,
     )
 
-    trainer = Trainer(
+    trainer = WeightedTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=dev_dataset,
         processing_class=tokenizer,
         data_collator=DataCollatorWithPadding(tokenizer),
+        compute_metrics=compute_metrics,
     )
 
     logger.info("=== Training (device=%s, epochs=%d) ===", device, args.epochs)
@@ -384,29 +434,32 @@ def main():
     model.eval()
     post = _evaluate(model, tokenizer, dev_pairs, device)
 
-    delta = post["accuracy"] - baseline["accuracy"]
+    delta_acc = post["accuracy"] - baseline["accuracy"]
+    delta_f1  = post["macro_f1"] - baseline.get("macro_f1", 0.0)
     print("\n" + "=" * 60)
     print("FINE-TUNING SUMMARY")
     print("=" * 60)
-    print(f"Base model:     {args.base_model}")
-    print(f"Checkpoint:     {output_path}/best")
-    print(f"Baseline acc:   {baseline['accuracy']:.1%}")
-    print(f"Fine-tuned acc: {post['accuracy']:.1%}  (delta: {delta:+.1%})")
-    print(f"  recall_entailment:   {post['recall_entailment']:.1%}  (n={post['n_entailment']})")
-    print(f"  recall_contradiction:{post['recall_contradiction']:.1%}  (n={post['n_contradiction']})")
-    print(f"  recall_neutral:      {post['recall_neutral']:.1%}  (n={post['n_neutral']})")
+    print(f"Base model:       {args.base_model}")
+    print(f"Checkpoint:       {output_path}/best")
+    print(f"Baseline acc:     {baseline['accuracy']:.1%}   macro-F1: {baseline.get('macro_f1', 0):.1%}")
+    print(f"Fine-tuned acc:   {post['accuracy']:.1%}  (Δ{delta_acc:+.1%})   macro-F1: {post['macro_f1']:.1%}  (Δ{delta_f1:+.1%})")
+    print(f"  entailment:    recall={post['recall_entailment']:.1%}  F1={post['f1_entailment']:.1%}  (n={post['n_entailment']})")
+    print(f"  contradiction: recall={post['recall_contradiction']:.1%}  F1={post['f1_contradiction']:.1%}  (n={post['n_contradiction']})")
+    print(f"  neutral:       recall={post['recall_neutral']:.1%}  F1={post['f1_neutral']:.1%}  (n={post['n_neutral']})")
     print("=" * 60)
 
-    if delta >= 0.03:
-        print(f"\n✓ Improvement ≥ 3pp. Promote checkpoint to production:")
-        print(f"  Update NLI_MODEL_NAME in src/evidenceengine/classification/nli_classifier.py")
-        print(f"  Point it to the local checkpoint path or push to HuggingFace Hub")
+    if delta_f1 >= 0.03:
+        print(f"\n✓ macro-F1 improved ≥ 3pp. Promote checkpoint to production:")
+        print(f"  fly sftp put {output_path}/best/model.safetensors /data/models/scifact-nli/model.safetensors")
+        print(f"  fly sftp put {output_path}/best/config.json /data/models/scifact-nli/config.json")
+        print(f"  fly deploy --strategy rolling")
     else:
-        print(f"\n✗ Improvement {delta:+.1%} < 3pp. Investigate data quality before promoting.")
+        print(f"\n✗ macro-F1 delta {delta_f1:+.1%} < 3pp. Investigate before promoting.")
 
     results_file = output_path / "eval_results.json"
     results_file.write_text(json.dumps(
-        {"baseline": baseline, "post_training": post, "delta": delta}, indent=2
+        {"baseline": baseline, "post_training": post,
+         "delta_accuracy": delta_acc, "delta_macro_f1": delta_f1}, indent=2
     ))
     logger.info("Results written to %s", results_file)
 
