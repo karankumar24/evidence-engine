@@ -17,9 +17,11 @@ primary_region = "sjc"   # San Jose — closest to the default user; change if n
   release_command = "alembic upgrade head"
 
 [env]
-  UPLOAD_DIR = "/data/uploads"
-  INDEX_DIR  = "/data/indexes"
-  PYTHONPATH = "/app/src"
+  UPLOAD_DIR         = "/data/uploads"
+  INDEX_DIR          = "/data/indexes"
+  PYTHONPATH         = "/app/src"
+  HF_HOME            = "/data/huggingface"
+  TRANSFORMERS_CACHE = "/data/huggingface"
 
 [http_service]
   internal_port = 8000
