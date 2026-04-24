@@ -62,17 +62,17 @@ def test_nli_min_confidence_for_verdict_default(monkeypatch):
 
 
 def test_reranker_model_default(monkeypatch):
-    """RET-01: reranker_model defaults to BAAI/bge-reranker-v2-m3."""
+    """RET-01: reranker_model defaults to ms-marco-MiniLM-L6-v2 (pre-downloaded in Docker)."""
     monkeypatch.delenv("RERANKER_MODEL", raising=False)
     s = _fresh()
-    assert s.reranker_model == "BAAI/bge-reranker-v2-m3"
+    assert s.reranker_model == "cross-encoder/ms-marco-MiniLM-L6-v2"
 
 
 def test_reranker_revision_default(monkeypatch):
-    """RET-03: reranker_model_revision defaults to the pinned HF commit SHA."""
+    """RET-03: reranker_model_revision defaults to empty (use latest, no SHA pin)."""
     monkeypatch.delenv("RERANKER_MODEL_REVISION", raising=False)
     s = _fresh()
-    assert s.reranker_model_revision == "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"
+    assert s.reranker_model_revision == ""
 
 
 def test_reranker_model_setting_override():

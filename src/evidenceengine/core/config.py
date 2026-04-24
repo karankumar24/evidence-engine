@@ -54,14 +54,14 @@ class Settings(BaseSettings):
     # Effective cap = min(page_count * max_claims_per_page, max_claims_absolute).
     max_claims_per_page: int = 4
     max_claims_absolute: int = 25
-    # Phase 03 Plan 01: default swapped to BAAI/bge-reranker-v2-m3 (568M, 2024
-    # SOTA multilingual cross-encoder). Pin to an exact HF commit SHA for
-    # reproducibility — CrossEncoder(..., revision=...) routes through
-    # huggingface_hub snapshot_download. Rollback = override RERANKER_MODEL env
-    # var to the prior cross-encoder identifier and set RERANKER_MODEL_REVISION
-    # to the matching SHA.
-    reranker_model: str = "BAAI/bge-reranker-v2-m3"
-    reranker_model_revision: str = "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"
+    # Default reranker: ms-marco-MiniLM-L6-v2 (22M params, pre-downloaded in
+    # Docker at build time). Fast on CPU — ~50ms per pair on shared-cpu-2x.
+    # BAAI/bge-reranker-v2-m3 (568M, 2.27GB) is the higher-quality alternative
+    # but unusable on shared CPU (70s/batch). Override via RERANKER_MODEL env var.
+    # revision="" means use the HF default (latest committed weights, no SHA pin).
+    # Set RERANKER_MODEL_REVISION to a SHA for reproducibility if pinning matters.
+    reranker_model: str = "cross-encoder/ms-marco-MiniLM-L6-v2"
+    reranker_model_revision: str = ""
     index_dir: str = "./indexes"
     classification_model: str = "gemini-2.0-flash"
     # Trust-model thresholds — the interaction between these two numbers is
@@ -109,9 +109,10 @@ class Settings(BaseSettings):
     #     Uses only entail+contra (not neutral) so neutral-dominant evidence
     #     (model says "unrelated") correctly routes to needs_review, not
     #     insufficient_support.
-    #   * nli_tiebreaker_threshold (0.65): when entailment and contradiction
-    #     are both > 0 but neither clears its top threshold, this is the
-    #     margin one must beat the other by to win. Below this → needs_review.
+    #   * nli_tiebreaker_threshold (0.65): reserved for a future tiebreaker path
+    #     where both entail and contra have signal but neither hits 0.80. NOT
+    #     currently applied in nli_probs_to_verdict — kept in config so the
+    #     band invariant test still exercises the threshold ordering.
     #   * nli_entailment_supported_threshold (0.80): entailment score must
     #     clear this to emit a `supported` verdict on its own.
     #   * nli_contradiction_contradicted_threshold (0.80): symmetric for
@@ -120,8 +121,10 @@ class Settings(BaseSettings):
     nli_entailment_supported_threshold: float = 0.80
     nli_contradiction_contradicted_threshold: float = 0.80
     nli_min_confidence_for_verdict: float = 0.50
-    # LLM HTTP client safety rails — OpenAI SDK default timeout is 600s which
-    # compounds with OpenRouter free-tier rate-limits into multi-minute hangs.
+    # ── LLM-primary path only (classifier_backend = "llm_primary") ─────────────
+    # These settings are INACTIVE in the default nli_primary mode. They exist as
+    # a rollback path — flip CLASSIFIER_BACKEND=llm_primary to re-enable.
+    # OpenAI SDK default timeout is 600s which compounds with rate-limits.
     llm_request_timeout_seconds: float = 60.0
     llm_max_retries: int = 2
     # Fallback model chain — comma-separated in .env, parsed to list.
