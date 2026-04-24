@@ -36,7 +36,7 @@ from evidenceengine.classification.schemas import VerdictClassificationResponse
 logger = logging.getLogger(__name__)
 
 # Locked by HF model card — do NOT substitute base or downgrade.
-NLI_MODEL_NAME = "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli"
+NLI_MODEL_NAME = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
 
 # Locked by HF model card: label id 0 = entailment, 1 = neutral, 2 = contradiction.
 NLI_LABELS: tuple[str, str, str] = ("entailment", "neutral", "contradiction")
