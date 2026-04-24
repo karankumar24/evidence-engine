@@ -42,6 +42,75 @@ _META_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Known word concatenations from PyMuPDF line-break extraction in ML/scientific papers.
+# PyMuPDF drops the space when two consecutive lines share a word boundary without a
+# hyphen (e.g. "been\nused" → "beenused"). Lookup applied before sent_tokenize().
+_KNOWN_JOINS: dict[str, str] = {
+    "asthe": "as the",
+    "thesame": "the same",
+    "beenused": "been used",
+    "isthe": "is the",
+    "inthe": "in the",
+    "ofthe": "of the",
+    "tothe": "to the",
+    "forthe": "for the",
+    "andthe": "and the",
+    "withthe": "with the",
+    "fromthe": "from the",
+    "bythe": "by the",
+    "onthe": "on the",
+    "atthe": "at the",
+    "isbased": "is based",
+    # Capital-prefix joins: "The\nfeature" → "Thefeature" (PyMuPDF line break
+    # where the second line starts with lowercase drops the leading space)
+    "Thefeature": "The feature",
+    "Themodel": "The model",
+}
+
+
+def _fix_word_boundaries(text: str) -> str:
+    """Restore spaces lost to PDF line-break extraction artifacts.
+
+    Two passes:
+    1. Regex: split at lowercase→Uppercase boundary ("Thefeature" → "The feature").
+       Does NOT split all-caps acronyms (BERT, NLP) — regex requires a lowercase
+       char before the uppercase char.
+    2. Lookup: replace known common joins from ML papers ("beenused" → "been used").
+    """
+    text = re.sub(r'([a-z])([A-Z])', r'\1 \2', text)
+    for bad, good in _KNOWN_JOINS.items():
+        text = text.replace(bad, good)
+    return text
+
+
+def _merge_short_blocks(blocks: list[dict]) -> list[dict]:
+    """Merge adjacent line-level blocks into paragraph-level blocks.
+
+    PDFs exported from Word or with line-based layout produce one block per line
+    (2-15 words, no terminal punctuation). sent_tokenize() returns each fragment
+    as-is, and _is_likely_claim() rejects it because it lacks terminal punctuation.
+
+    Merges blocks until the buffer ends in terminal punctuation or exceeds 50 words.
+    Paragraph-level PDFs (BERT, Attention) flush immediately since each block already
+    ends in terminal punctuation — no merging occurs, no regression.
+    """
+    merged: list[dict] = []
+    buffer_text = ""
+    buffer_block: dict | None = None
+    for block in blocks:
+        text = block.get("text", "").strip()
+        if not text:
+            continue
+        buffer_text = (buffer_text + " " + text).strip() if buffer_text else text
+        buffer_block = block
+        if text[-1] in ".!?" or len(buffer_text.split()) >= 50:
+            merged.append({**buffer_block, "text": buffer_text})
+            buffer_text = ""
+            buffer_block = None
+    if buffer_text and buffer_block is not None:
+        merged.append({**buffer_block, "text": buffer_text})
+    return merged
+
 
 def _is_likely_claim(sentence: str) -> bool:
     """Return True if the sentence looks like a verifiable factual claim."""
@@ -94,6 +163,10 @@ async def extract_claims_from_blocks(
     if not citation_blocks:
         return ClaimExtractionResponse(claims=[])
 
+    # Merge line-level blocks (Word-exported PDFs) into paragraph-level blocks so
+    # sent_tokenize receives complete sentences with terminal punctuation.
+    citation_blocks = _merge_short_blocks(citation_blocks)
+
     try:
         from nltk.tokenize import sent_tokenize
     except ImportError:
@@ -104,7 +177,7 @@ async def extract_claims_from_blocks(
     seen: set[str] = set()
 
     for block in citation_blocks:
-        text = block.get("text", "").strip()
+        text = _fix_word_boundaries(block.get("text", "").strip())
         if not text:
             continue
         try:

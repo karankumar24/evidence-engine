@@ -241,3 +241,32 @@ def test_returns_unresolvable_with_no_sources():
     )
     assert status == "unresolvable"
     assert doc_id is None
+
+
+def test_resolve_with_line_break_concatenation():
+    """Resolves when PyMuPDF concatenates line-break words into one token.
+
+    'Attention is all\\nyou need' → 'Attention is allyou need' in PyMuPDF output.
+    Token coverage fails because 'allyou' ≠ 'all' or 'you'.
+    Substring fallback: both 'attention' and 'need' appear as substrings in the
+    candidate, scoring 2/2 = 100%, above RESOLUTION_THRESHOLD.
+    """
+    from evidenceengine.extraction.anchor_resolver import resolve_to_source_document
+
+    references_entries = [
+        "A. Vaswani et al. Attention is allyou need. NIPS, 2017."
+    ]
+    attention_doc = make_source_doc(
+        filename="attention_is_all_you_need.pdf",
+        raw_text="Multi-head attention mechanisms for sequence transduction.",
+    )
+    sources = [attention_doc]
+
+    doc_id, status = resolve_to_source_document(
+        raw_marker="[1]",
+        citation_style="numeric",
+        source_documents=sources,
+        references_entries=references_entries,
+    )
+    assert status == "resolved", f"Expected 'resolved' but got '{status}'"
+    assert doc_id == str(attention_doc.id)

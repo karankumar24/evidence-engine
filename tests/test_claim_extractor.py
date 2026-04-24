@@ -287,3 +287,72 @@ def test_position_recovery_page_and_section():
     assert result["page_number"] == 4
     assert result["section_header"] == "Discussion"
     assert result["paragraph_index"] == 2
+
+
+# ---------------------------------------------------------------------------
+# _merge_short_blocks tests (BUG #2: line-level PDF blocks)
+# ---------------------------------------------------------------------------
+
+def test_merge_short_blocks_reconstructs_sentences():
+    """Line-level blocks (no terminal punct) are merged into paragraph-level blocks."""
+    from evidenceengine.extraction.claim_extractor import _merge_short_blocks
+
+    blocks = [
+        {"text": "The connection between mitochondrial dysfunction", "block_type": "paragraph", "position": {}},
+        {"text": "and Parkinson disease was first established in", "block_type": "paragraph", "position": {}},
+        {"text": "a landmark 1989 study by Schapira et al.", "block_type": "paragraph", "position": {}},
+    ]
+    merged = _merge_short_blocks(blocks)
+    # All three fragments should be joined into one block ending in terminal punct
+    assert len(merged) == 1
+    assert merged[0]["text"].endswith("Schapira et al.")
+    assert "mitochondrial dysfunction" in merged[0]["text"]
+
+
+def test_merge_short_blocks_preserves_paragraph_level_pdfs():
+    """Blocks that already end in terminal punctuation flush immediately (no merge)."""
+    from evidenceengine.extraction.claim_extractor import _merge_short_blocks
+
+    blocks = [
+        {"text": "BERT achieves state-of-the-art results on eleven NLP tasks.", "block_type": "paragraph", "position": {}},
+        {"text": "The model is pre-trained on BooksCorpus and English Wikipedia.", "block_type": "paragraph", "position": {}},
+    ]
+    merged = _merge_short_blocks(blocks)
+    # Each block ends in punctuation — should produce 2 separate blocks
+    assert len(merged) == 2
+    assert merged[0]["text"] == blocks[0]["text"]
+    assert merged[1]["text"] == blocks[1]["text"]
+
+
+# ---------------------------------------------------------------------------
+# _fix_word_boundaries tests (BUG #3: PDF concatenation artifacts)
+# ---------------------------------------------------------------------------
+
+def test_fix_word_boundaries_known_joins():
+    """Common ML-paper line-break concatenations are split correctly."""
+    from evidenceengine.extraction.claim_extractor import _fix_word_boundaries
+
+    assert _fix_word_boundaries("Self-attention has beenused successfully.") ==         "Self-attention has been used successfully."
+    assert _fix_word_boundaries("achieves thesame objective function.") ==         "achieves the same objective function."
+    assert _fix_word_boundaries("asthe encoder-decoder architecture.") ==         "as the encoder-decoder architecture."
+
+
+def test_fix_word_boundaries_camelcase_split():
+    """Lowercase-to-Uppercase boundary is split via regex (genuine camelCase join).
+
+    Occurs when PyMuPDF drops the space between a word ending in lowercase and a
+    word starting with uppercase, e.g. 'self\nAttention' -> 'selfAttention'.
+    Capital-initial joins like 'Thefeature' are NOT caught by the regex (T is
+    uppercase) -- those go via _KNOWN_JOINS.
+    """
+    from evidenceengine.extraction.claim_extractor import _fix_word_boundaries
+
+    assert _fix_word_boundaries("selfAttention mechanism") == "self Attention mechanism"
+
+
+def test_fix_word_boundaries_preserves_acronyms():
+    """All-caps acronyms (BERT, NLP, GPT) are not split."""
+    from evidenceengine.extraction.claim_extractor import _fix_word_boundaries
+
+    assert _fix_word_boundaries("BERT achieves state-of-the-art results.") ==         "BERT achieves state-of-the-art results."
+    assert _fix_word_boundaries("NLP tasks require large-scale pre-training.") ==         "NLP tasks require large-scale pre-training."

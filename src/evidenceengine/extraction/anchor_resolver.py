@@ -180,7 +180,19 @@ def resolve_to_source_document(
             coverage = len(candidate_tokens & target_tokens) / len(candidate_tokens) * 100
         else:
             coverage = 0
-        score = max(seq_score, coverage)
+        # Filename-token substring coverage: handles PyMuPDF line-break concatenations.
+        # "Attention is all\nyou need" → "Attention is allyou need" in PyMuPDF output.
+        # "allyou" doesn't tokenize to "all"+"you", but both are substrings of "allyou".
+        # Guard of ≥2 substantive tokens prevents false positives from generic names
+        # like "paper.pdf" where "paper" would match most reference entries.
+        fn_basename = re.sub(r'\.[^.]+$', '', doc.filename)
+        fn_substantive = {t for t in _tokens(fn_basename.lower()) if len(t) >= _MIN_SUBSTANTIVE_TOKEN_LEN}
+        if len(fn_substantive) >= 2:
+            hits = sum(1 for t in fn_substantive if t in candidate_lower)
+            substr_cov = hits / len(fn_substantive) * 100
+        else:
+            substr_cov = 0
+        score = max(seq_score, coverage, substr_cov)
         if score > best_score:
             second_score = best_score
             best_score = score

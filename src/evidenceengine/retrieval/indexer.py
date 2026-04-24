@@ -31,6 +31,7 @@ def extract_spans(parsed_content: dict) -> list[dict]:
     """
     import nltk  # noqa: PLC0415 — lazy to avoid blocking startup
     import re  # noqa: PLC0415
+    from evidenceengine.extraction.claim_extractor import _fix_word_boundaries  # noqa: PLC0415
     ensure_punkt()
     # Minimum number of alphabetic characters for a span to be indexable.
     # Filters out page numbers, section dividers, axis labels, footer digits,
@@ -39,7 +40,7 @@ def extract_spans(parsed_content: dict) -> list[dict]:
     _alpha_re = re.compile(r"[A-Za-z]")
     spans = []
     for block in parsed_content.get("blocks", []):
-        text = block.get("text", "").strip()
+        text = _fix_word_boundaries(block.get("text", "").strip())
         if not text:
             continue
         if len(_alpha_re.findall(text)) < _MIN_ALPHA_CHARS:
