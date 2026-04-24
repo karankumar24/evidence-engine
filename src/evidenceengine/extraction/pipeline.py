@@ -122,22 +122,26 @@ async def extract_claims_for_document(
     # Persist extraction telemetry to RunVersion.pipeline_config. Visibility of
     # over-extraction is a trust-model signal: if the LLM routinely extracts
     # 3x the cap for short reports, verdicts may be skewed toward early pages.
-    if extracted_count > 0:
-        from evidenceengine.models.run import RunVersion  # noqa: PLC0415
-        run_row = (await db.execute(
-            select(RunVersion).where(RunVersion.id == run_version_uuid)
-        )).scalar_one_or_none()
-        if run_row is not None:
-            extraction_telemetry = {
+    from evidenceengine.models.run import RunVersion  # noqa: PLC0415
+    run_row = (await db.execute(
+        select(RunVersion).where(RunVersion.id == run_version_uuid)
+    )).scalar_one_or_none()
+    if run_row is not None:
+        config_patch: dict = {}
+        if extracted_count > 0:
+            config_patch["extraction_telemetry"] = {
                 "extracted_count": extracted_count,
                 "effective_cap": effective_cap,
                 "discarded_count": discarded_count,
                 "discard_ratio": round(discarded_count / extracted_count, 3),
                 "total_pages": total_pages,
             }
+        if extraction_result.diagnostic:
+            config_patch["zero_claims_diagnostic"] = extraction_result.diagnostic
+        if config_patch:
             run_row.pipeline_config = {
                 **(run_row.pipeline_config or {}),
-                "extraction_telemetry": extraction_telemetry,
+                **config_patch,
             }
 
     for extracted_claim in extraction_result.claims:

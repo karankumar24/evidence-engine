@@ -34,3 +34,6 @@ class ClaimExtractionResponse(BaseModel):
 
     claims: list[ExtractedClaim]
     """Only sentences that carry at least one citation marker. Uncited sentences excluded."""
+
+    diagnostic: str | None = None
+    """Human-readable explanation of why 0 claims were extracted, if applicable."""

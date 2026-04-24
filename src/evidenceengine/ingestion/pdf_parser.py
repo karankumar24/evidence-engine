@@ -164,6 +164,14 @@ def parse_pdf(filepath: str) -> ParsedDocument:
 
     doc.close()
 
+    if not blocks and total_pages > 0:
+        logger.warning(
+            "PDF '%s' has %d page(s) but produced 0 text blocks — "
+            "likely a scanned/image-only PDF with no embedded text. "
+            "OCR is required to extract claims from this document.",
+            filename, total_pages,
+        )
+
     # Assemble raw_text by joining block texts with "\n"
     raw_text = "\n".join(b.text for b in blocks)
 
