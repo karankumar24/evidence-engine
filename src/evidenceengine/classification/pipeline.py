@@ -2,31 +2,15 @@
 
 Loads EvidenceSpan rows grouped by Claim, dispatches verdict classification
 through :func:`evidenceengine.classification.backend.get_backend` (NLI-primary
-or LLM-primary per :data:`settings.classifier_backend`), applies a tiebreaker
-for low-confidence NLI verdicts, fires a post-verdict explanation call, and
-persists Verdict + VerdictEvidence rows.
+or LLM-primary per :data:`settings.classifier_backend`), and persists
+Verdict + VerdictEvidence rows.
 
 Handles edge cases without LLM calls:
 - Zero EvidenceSpans → insufficient_support
 - Claim status=unresolvable_anchor → needs_review
 
-Phase 02 Plan 03 wiring (NLI-primary by default):
-- Per-claim dispatch goes through ``backend.classify`` (not ``classify_claim``).
-- When ``classifier_backend == "nli_primary"`` AND the primary verdict's
-  ``confidence_score < settings.nli_tiebreaker_threshold`` (0.65), an LLM
-  tiebreaker fires via ``LLMClassifier``. ``llm_tiebreaker_fired`` ticks on
-  every ATTEMPT. ``RuntimeError`` (chain exhausted / quota) fails-open to
-  ``needs_review`` with the NLI confidence — never raises to the caller.
-- A post-verdict explanation call runs on BOTH backends; failure logs a
-  warning and never blocks persistence.
-- When ``classifier_backend == "nli_primary"``:
-    * the legacy ``nli_second_opinion`` post-step is SKIPPED (Pitfall 7
-      — avoid double NLI).
-    * the legacy ``apply_confidence_threshold(0.70)`` override is SKIPPED
-      (NLI-primary owns its band: 0.50 < 0.65 < 0.80).
-- Telemetry gains ``classifier_backend``, ``nli_verdict_counts``,
-  ``llm_tiebreaker_fired``, ``explanation_generated``, ``explanation_failed``
-  — additive, no existing key renamed or removed.
+NLI-primary (default): DeBERTa classifies every claim locally. No API calls.
+LLM tiebreaker and post-verdict explanation are disabled for performance.
 """
 
 import logging
@@ -39,7 +23,6 @@ from sqlalchemy.orm import selectinload
 
 from evidenceengine.classification.backend import get_backend
 from evidenceengine.classification.classifier import apply_confidence_threshold, classify_claim  # noqa: F401
-from evidenceengine.classification.explanation import generate_explanation
 from evidenceengine.classification.schemas import VerdictClassificationResponse
 from evidenceengine.core.config import settings
 from evidenceengine.models.claim import Claim
@@ -113,10 +96,6 @@ async def classify_verdicts_for_run(
     model_refusal_count = 0
     bypass_unresolvable_anchor = 0
     nli_second_opinion_overrides = 0
-    # v1.2.9 Phase 02 Plan 03 — NLI-primary + tiebreaker + explanation counters.
-    llm_tiebreaker_fired = 0
-    explanation_generated = 0
-    explanation_failed = 0
     nli_verdict_counts: dict[str, int] = {
         "supported": 0, "contradicted": 0,
         "insufficient_support": 0, "needs_review": 0,
@@ -200,32 +179,7 @@ async def classify_verdicts_for_run(
             )
             continue
 
-        # NLI-primary tiebreaker path (CLF-05). Fires when NLI is not confident
-        # enough; increments on ATTEMPT; fails-open to needs_review on quota.
-        if is_nli_primary and classification.confidence_score < settings.nli_tiebreaker_threshold:
-            llm_tiebreaker_fired += 1
-            try:
-                # Reuse the LLMClassifier verdict path — same prompt, same schema.
-                from evidenceengine.classification.llm_classifier import LLMClassifier  # noqa: PLC0415
-                tiebreaker_backend = LLMClassifier()
-                classification = await tiebreaker_backend.classify(
-                    claim.claim_text, evidence_span_dicts,
-                )
-            except RuntimeError as exc:
-                logger.warning(
-                    "NLI tiebreaker failed-open to needs_review: %s", exc,
-                )
-                classification = VerdictClassificationResponse(
-                    reasoning=(
-                        f"[NLI low-conf {classification.confidence_score:.2f}, "
-                        f"tiebreaker quota exhausted] — needs human review. "
-                        f"Original NLI reasoning: {classification.reasoning}"
-                    ),
-                    verdict_type="needs_review",
-                    confidence_score=classification.confidence_score,
-                )
-
-        # Track which verdict-type the chosen backend (post-tiebreaker) produced.
+        # Track which verdict-type the NLI backend produced.
         nli_verdict_counts[classification.verdict_type] = (
             nli_verdict_counts.get(classification.verdict_type, 0) + 1
         )
@@ -287,27 +241,7 @@ async def classify_verdicts_for_run(
             ):
                 threshold_overrides_to_review += 1
 
-        # Always-on post-verdict explanation (BOTH backends). Non-blocking.
-        explanation_text = await generate_explanation(
-            claim.claim_text, evidence_span_dicts, classification,
-        )
-        if explanation_text is not None:
-            explanation_generated += 1
-            classification = classification.model_copy(
-                update={"explanation": explanation_text},
-            )
-        else:
-            explanation_failed += 1
-
-        # Concatenate explanation into reasoning for DB audit trail (Open Q
-        # #3). No schema migration — the raw `explanation` also lives on the
-        # response but Verdict.reasoning is the canonical persisted string.
         reasoning_for_db = classification.reasoning
-        if classification.explanation:
-            reasoning_for_db = (
-                f"{classification.reasoning}\n\n"
-                f"[explanation: {classification.explanation}]"
-            )
 
         verdict = Verdict(
             claim_id=claim.id,
@@ -351,12 +285,8 @@ async def classify_verdicts_for_run(
             "model_refusal_count": model_refusal_count,
             "bypass_unresolvable_anchor": bypass_unresolvable_anchor,
             "nli_second_opinion_overrides": nli_second_opinion_overrides,
-            # v1.2.9 Phase 02 Plan 03 additions (additive — no existing keys renamed/removed).
             "classifier_backend": settings.classifier_backend,
             "nli_verdict_counts": nli_verdict_counts,
-            "llm_tiebreaker_fired": llm_tiebreaker_fired,
-            "explanation_generated": explanation_generated,
-            "explanation_failed": explanation_failed,
         }
         merged_config: dict = {
             **(run.pipeline_config or {}),

@@ -1,115 +1,113 @@
-"""LLM claim extractor using structured output.
+"""Local claim extractor using NLTK sentence splitting.
 
-Uses the synchronous OpenAI client inside asyncio.to_thread so that
-httpx network I/O (which blocks the event loop on macOS via the async
-client) runs in a worker thread, keeping uvicorn fully responsive.
+Replaces the LLM-based extractor to eliminate API dependency from the
+hot path. No network calls, no rate limits, no token costs.
+
+Heuristic filters keep only sentence-length factual-looking text,
+discarding headers, captions, and table fragments.
 """
 
-import asyncio
 import logging
+import re
 
-from evidenceengine.core.config import settings
-from evidenceengine.extraction.schemas import ClaimExtractionResponse
+from evidenceengine.extraction.schemas import ClaimExtractionResponse, ExtractedClaim
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = """You are a precise factual-claim extractor. Your task is to identify every verifiable factual claim in the text.
+# Prefixes that reliably indicate non-claim content
+_SKIP_PREFIXES = (
+    "fig", "figure", "table", "appendix", "note ", "notes ",
+    "see ", "cf.", "e.g.", "i.e.", "et al.", "ibid",
+    "acknowledgement", "acknowledgment", "reference", "bibliography",
+)
 
-A factual claim is a COMPLETE SENTENCE that asserts something a reader could check — numbers, dates, percentages, causal statements, attributions, outcomes, comparisons, superlatives, or any specific empirical assertion.
+# Patterns that suggest a sentence is a structural artifact, not a claim
+_STRUCTURAL_RE = re.compile(
+    r"^\s*(\d+[\.\)]\s|[-•–]\s|[A-Z]{2,}\s*:|\([a-z]\))",
+    re.IGNORECASE,
+)
 
-Rules:
-1. Extract only well-formed sentences: must start with a capital letter, end with a period/question/exclamation, and contain a subject and a verb.
-2. SKIP table cells, row headers, column headers, bullet fragments, and bare numeric line items. Examples to SKIP: "Products $69,958", "Services", "Total net sales (1)", "Three Months Ended". These are data, not claims.
-3. SKIP pure navigation or document structure ("This report summarises...", "See page 12", "Figure 3").
-4. Copy claim sentences VERBATIM — word-for-word, no paraphrasing, no summarizing.
-5. Extract a sentence whether or not it has a citation marker. If markers exist, record them with style:
-   - "numeric": [1], [2,3], [1-3]
-   - "author_year": Smith 2023, (Jones et al., 2021)
-   - "footnote": ¹, ², superscript numbers
-   If a claim has no citation marker, return an empty citation_markers list for it.
-6. Aim for QUALITY over quantity. A 4-page financial statement should produce ~5–20 claims, not 100+. If you find yourself extracting every table row, you are over-extracting: stop, reconsider, and keep only narrative sentences that frame the numbers."""
 
-_MAX_BLOCKS_PER_CALL = 50
+def _is_likely_claim(sentence: str) -> bool:
+    """Return True if the sentence looks like a verifiable factual claim."""
+    s = sentence.strip()
+    if not s:
+        return False
+    words = s.split()
+    if len(words) < 6 or len(words) > 120:
+        return False
+    if not s[0].isupper():
+        return False
+    if not s[-1] in ".!?":
+        return False
+    lower = s.lower()
+    if any(lower.startswith(pfx) for pfx in _SKIP_PREFIXES):
+        return False
+    if _STRUCTURAL_RE.match(s):
+        return False
+    # Must contain at least one verb-like token (ends in -s, -ed, -ing, or "is", "are", "was")
+    verb_like = re.search(
+        r"\b(is|are|was|were|has|have|had|shows?|shows?|demonstrates?|"
+        r"achieves?|achieves?|reduces?|increases?|decreases?|improves?|"
+        r"suggests?|indicates?|contains?|provides?|results?|found|"
+        r"\w+ed|\w+ing)\b",
+        lower,
+    )
+    if not verb_like:
+        return False
+    return True
 
 
 async def extract_claims_from_blocks(
     citation_blocks: list[dict],
 ) -> ClaimExtractionResponse:
-    """Extract cited claims from pre-filtered text blocks using LLM structured output.
+    """Extract factual claims from text blocks using NLTK sentence splitting.
 
-    Runs the synchronous OpenAI client in a thread pool (via asyncio.to_thread)
-    to prevent httpx from blocking the uvicorn event loop on macOS.
+    No LLM calls. No API dependency. Runs locally in milliseconds.
 
     Args:
-        citation_blocks: Blocks already filtered to those containing citation markers.
+        citation_blocks: Text blocks from the parsed document.
                          Each dict has at minimum a "text" key.
 
     Returns:
-        ClaimExtractionResponse with only sentences carrying citation markers.
-        Returns empty claims list for empty input or on LLM refusal.
+        ClaimExtractionResponse with filtered factual sentences as claims.
     """
     if not citation_blocks:
         return ClaimExtractionResponse(claims=[])
 
-    all_claims: list = []
-    for chunk_start in range(0, len(citation_blocks), _MAX_BLOCKS_PER_CALL):
-        chunk = citation_blocks[chunk_start : chunk_start + _MAX_BLOCKS_PER_CALL]
-        text_content = "\n\n".join(block.get("text", "") for block in chunk)
+    try:
+        from nltk.tokenize import sent_tokenize
+    except ImportError:
+        logger.error("nltk not available — returning empty claims")
+        return ClaimExtractionResponse(claims=[])
 
-        # Run synchronous OpenAI client in a thread to avoid blocking the event loop.
-        # AsyncOpenAI + httpx on macOS blocks the asyncio selector for the full
-        # request duration; the sync client in a thread is safe and non-blocking.
-        def _sync_request(content: str = text_content) -> object:
-            from evidenceengine.llm.fallback import sync_call_with_fallback  # noqa: PLC0415
-            chain = settings.model_fallback_chain or [settings.extraction_model]
-            timeout = (
-                settings.llm_fallback_timeout_seconds
-                if len(chain) > 1
-                else settings.llm_request_timeout_seconds
-            )
-            return sync_call_with_fallback(
-                model_chain=chain,
-                messages=[
-                    {"role": "system", "content": _SYSTEM_PROMPT},
-                    {"role": "user", "content": content},
-                ],
-                response_format=ClaimExtractionResponse,
-                timeout=timeout,
-                api_key=settings.llm_api_key,
-                base_url=settings.llm_base_url or None,
-                gemini_api_key=settings.gemini_api_key,
-                groq_api_key=settings.groq_api_key,
-                cerebras_api_key=settings.cerebras_api_key,
-                sambanova_api_key=settings.sambanova_api_key,
-            )
+    all_claims: list[ExtractedClaim] = []
+    seen: set[str] = set()
 
+    for block in citation_blocks:
+        text = block.get("text", "").strip()
+        if not text:
+            continue
         try:
-            message = await asyncio.to_thread(_sync_request)
+            sentences = sent_tokenize(text)
         except Exception as exc:
-            # Per-batch resilience: one chain-exhausted / timeout failure
-            # must not discard claims from earlier successful batches.
-            logger.warning(
-                "Extraction batch starting at block %d failed (%s: %s) — "
-                "skipping this batch, continuing with next.",
-                chunk_start, type(exc).__name__, exc,
-            )
-            continue
+            logger.warning("sent_tokenize failed for block: %s", exc)
+            sentences = [s.strip() for s in text.split(".") if s.strip()]
 
-        if message.refusal:
-            logger.warning(
-                "LLM refused to extract claims: %s. Returning empty for this chunk.",
-                message.refusal,
-            )
-            continue
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if not _is_likely_claim(sentence):
+                continue
+            # Deduplicate
+            key = sentence.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            all_claims.append(ExtractedClaim(
+                claim_text=sentence,
+                citation_markers=[],
+            ))
 
-        if message.parsed is None:
-            logger.error(
-                "LLM returned null parsed response for extraction chunk starting at "
-                "block %d — structured output may have failed. Skipping chunk.",
-                chunk_start,
-            )
-            continue
-
-        all_claims.extend(message.parsed.claims)
-
+    logger.info("Local extractor produced %d candidate claims from %d blocks",
+                len(all_claims), len(citation_blocks))
     return ClaimExtractionResponse(claims=all_claims)

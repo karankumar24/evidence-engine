@@ -252,6 +252,26 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             logger.exception("parser prewarm failed — first document upload may hang")
     app.state.parser_prewarm = asyncio.create_task(_prewarm_parsers())
 
+    # Pre-warm the DeBERTa NLI model so the first pipeline run doesn't pay
+    # the ~30s download + load cost mid-classification.
+    async def _prewarm_nli() -> None:
+        import asyncio as _asyncio
+        import time as _time
+        def _load_nli() -> float:
+            t0 = _time.monotonic()
+            try:
+                from evidenceengine.classification.nli_classifier import _ensure_loaded
+                _ensure_loaded()
+            except Exception:
+                pass
+            return _time.monotonic() - t0
+        try:
+            dur = await _asyncio.to_thread(_load_nli)
+            logger.info("NLI model (DeBERTa) prewarmed in %.1fs", dur)
+        except Exception:
+            logger.exception("NLI prewarm failed — first classification may be slow")
+    app.state.nli_prewarm = asyncio.create_task(_prewarm_nli())
+
     # Recover orphaned in-flight runs from a previous server crash/restart.
     # Any run still in a pipeline stage means its background task was killed
     # mid-flight — _mark_failed was never called. Mark them failed now so the
