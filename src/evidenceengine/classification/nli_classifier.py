@@ -167,11 +167,11 @@ def aggregate_nli(
 ) -> tuple[float, float, float]:
     """Element-wise MAX across spans.
 
-    Empty input returns ``(0.0, 1.0, 0.0)`` — full neutral, which the verdict
-    mapper interprets as insufficient_support.
+    Empty input returns ``(0.0, 0.0, 0.0)`` — zero signal, which the verdict
+    mapper interprets as needs_review at 0.0 confidence (max_p < min threshold).
     """
     if not per_span_probs:
-        return 0.0, 1.0, 0.0
+        return 0.0, 0.0, 0.0
     return (
         max(p[0] for p in per_span_probs),
         max(p[1] for p in per_span_probs),

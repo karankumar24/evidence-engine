@@ -67,8 +67,9 @@
       {% if is_capped %}
         <p class="mb-2 text-xs text-ink-500 italic">Self-verify mode: evidence came from the report itself. Upload the cited source documents alongside the report to get a higher-confidence verdict.</p>
       {% endif %}
-      <p class="font-serif text-sm text-ink-700 leading-relaxed">{{ verdict.reasoning }}</p>
-      <p class="mt-2 text-xs font-mono text-ink-400">Model: {{ verdict.model_name }}</p>
+      <p class="font-serif text-sm text-ink-700 leading-relaxed">
+        Confidence based on the strongest match found across {{ verdict.verdict_evidence | length if verdict.verdict_evidence else 0 }} evidence span{{ "s" if (verdict.verdict_evidence | length if verdict.verdict_evidence else 0) != 1 else "" }}.
+      </p>
     {% endcall %}
   {% endif %}
 
@@ -88,7 +89,6 @@
 
       {% if verdict %}
         {% call prov.provenance_step(3, "Classify", verdict.verdict_type | replace('_', ' ') | title ~ " — " ~ ((verdict.confidence_score * 100) | round(0) | int) ~ "%") %}
-          <p class="text-xs font-mono text-ink-400 mt-1">Model: {{ verdict.model_name }}</p>
         {% endcall %}
       {% endif %}
     </ol>
