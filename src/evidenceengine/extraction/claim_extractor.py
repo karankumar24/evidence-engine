@@ -46,6 +46,35 @@ _META_RE = re.compile(
     re.IGNORECASE,
 )
 
+# URLs: sentences containing links are reference/nav content, not factual claims
+_URL_RE = re.compile(r"https?://")
+
+# Author/affiliation lines (CDC, WHO, GPT-4 staff credits):
+# require BOTH multiple semicolons AND an academic degree abbreviation.
+# Catches: "Smith J. PhD¹; Jones A. MSc11; Lee B. Ph D³"
+# Note: no trailing \b — trailing digits (MSc11, Ph D11) are common in PDFs
+# Doesn't catch: "Dr. Smith showed that..." (no semicolons)
+_AFFILIATION_RE = re.compile(
+    r"\b(Ph\.?\s*D|M\.?\s*Sc|M\.?\s*D\b|MPH|MBChB|MBBS|FRCS|FRCP|B\.?\s*Sc)\d*",
+    re.IGNORECASE,
+)
+
+# TOC fill-character artifacts from PyMuPDF table-of-contents blocks:
+# catches "SPM.4.2.1\t......17" and Unicode replacement character runs
+_TOC_RE = re.compile(r"\t\.{5,}|\t{3,}|\ufffd{4,}")
+
+# Printed webpage navigation — covers common print-to-PDF chrome patterns
+# Includes bullet/icon characters (•, ○, ▸) mid-sentence (nav lists)
+_NAV_RE = re.compile(
+    r"\b(skip to (main )?content|toggle (navigation|menu|button)|"
+    r"sign in|log (in|out)|search results|cookie (policy|settings)|"
+    r"privacy policy|terms of (use|service)|all rights reserved|"
+    r"back to home|stay connected|breadcrumb|navbar|sidebar|"
+    r"read more|click here|subscribe now)\b"
+    r"|[•○◦▸►▶]{2,}",  # multiple bullet chars = nav list
+    re.IGNORECASE,
+)
+
 # Known word concatenations from PyMuPDF line-break extraction in ML/scientific papers.
 # PyMuPDF drops the space when two consecutive lines share a word boundary without a
 # hyphen (e.g. "been\nused" → "beenused"). Lookup applied before sent_tokenize().
@@ -207,12 +236,17 @@ def _detect_citation_markers(text: str) -> list[ExtractedCitationMarker]:
 
 _MIN_CLAIM_WORDS = 3    # lowered from 5 — catches short metric claims
 _MAX_CLAIM_WORDS = 150  # raised from 120 — captures long technical sentences
-_MIN_NOPUNCT_WORDS = 8  # min words to accept a sentence lacking terminal punctuation
+_MIN_NOPUNCT_WORDS = 15  # raised from 8 — prevents 50-word flush from emitting truncated mid-sentences
 
 _VERB_RE = re.compile(
     r"\b(is|are|was|were|has|have|had|shows?|demonstrates?|"
     r"achieves?|reduces?|increases?|decreases?|improves?|"
     r"suggests?|indicates?|contains?|provides?|results?|found|"
+    r"occurs?|appears?|causes?|leads?|prevents?|enables?|allows?|"
+    r"involves?|affects?|produces?|reveals?|confirms?|supports?|"
+    r"includes?|defines?|relates?|depends?|varies?|follows?|"
+    r"associates?|correlates?|mediates?|transmits?|inhibits?|"
+    r"promotes?|triggers?|requires?|generates?|determines?|"
     r"\w+ed|\w+ing)\b"
 )
 _METRIC_RE = re.compile(r":\s*[\d\.\-\+]")  # "Accuracy: 95%." style
@@ -246,6 +280,27 @@ def _is_likely_claim(sentence: str, _counts: dict | None = None) -> bool:
         return reject("acknowledgement")
     if _META_RE.match(s):
         return reject("meta")
+
+    # All-caps heading/TOC: if ≥60% of alphabetic words are fully uppercase,
+    # this is a heading or table-of-contents entry, not a factual claim.
+    # Threshold of 60% admits legitimate claims with 1-2 acronyms (BERT, WHO, NLP)
+    # while catching "MAJOR RECOMMENDATIONS FOR CHINA FOR COUNTRIES..." (100% caps).
+    alpha_words = [w for w in words if w.isalpha() and len(w) >= 3]
+    if alpha_words and sum(1 for w in alpha_words if w.isupper()) / len(alpha_words) >= 0.60:
+        return reject("all_caps_heading")
+
+    # URL-containing sentences are reference/nav content, not factual claims
+    if _URL_RE.search(s):
+        return reject("url")
+    # Author/affiliation lines: semicolons + degree abbreviations
+    if s.count(";") >= 2 and _AFFILIATION_RE.search(s):
+        return reject("affiliation")
+    # TOC fill-character artifacts or tab-heavy lines
+    if _TOC_RE.search(s):
+        return reject("toc_artifact")
+    # Printed webpage navigation chrome
+    if _NAV_RE.search(s):
+        return reject("webpage_nav")
 
     has_punct = s[-1] in ".!?"
     has_verb = bool(_VERB_RE.search(lower))
@@ -298,6 +353,24 @@ _ZERO_CLAIM_MESSAGES: dict[str, str] = {
         "rather than verifiable factual claims."
     ),
     "acknowledgement": "Content is mostly acknowledgements or funding statements.",
+    "url": (
+        "Most text blocks contain URLs. "
+        "This may be a printed webpage rather than a research document. "
+        "Upload the original PDF source, not a browser print-to-PDF."
+    ),
+    "affiliation": (
+        "Content is dominated by author/affiliation lists. "
+        "The document may be a cover page or directory rather than a research document."
+    ),
+    "toc_artifact": (
+        "Content contains table-of-contents formatting artifacts. "
+        "The PDF may have extraction issues or be a TOC-only document."
+    ),
+    "webpage_nav": (
+        "Content contains webpage navigation elements (menus, login buttons, etc.). "
+        "This appears to be a printed webpage rather than a research document. "
+        "Download the original PDF from the publisher, not a browser print-to-PDF."
+    ),
 }
 
 
@@ -340,6 +413,15 @@ async def extract_claims_from_blocks(
     # Merge line-level blocks (Word-exported PDFs) into paragraph-level blocks so
     # sent_tokenize receives complete sentences with terminal punctuation.
     citation_blocks = _merge_short_blocks(citation_blocks)
+
+    # Webpage print detection: if >30% of blocks contain nav/UI patterns,
+    # this is likely a print-to-PDF of a webpage, not a document.
+    nav_count = sum(1 for b in citation_blocks if _NAV_RE.search(b.get("text", "")))
+    if citation_blocks and nav_count / len(citation_blocks) > 0.30:
+        diag = _ZERO_CLAIM_MESSAGES["webpage_nav"]
+        logger.warning("PDF appears to be a printed webpage (%d/%d nav blocks) — %s",
+                       nav_count, len(citation_blocks), diag)
+        return ClaimExtractionResponse(claims=[], diagnostic=diag)
 
     try:
         from nltk.tokenize import sent_tokenize
