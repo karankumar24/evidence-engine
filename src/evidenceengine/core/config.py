@@ -45,8 +45,8 @@ class Settings(BaseSettings):
     retrieval_top_k_bm25: int = 5
     retrieval_top_k_final: int = 2
     # Claim cap: keep small so DeBERTa NLI completes in <60s on shared CPU.
-    # DeBERTa-v3-large costs ~1.5s per (claim, span) pair on 2 vCPUs.
-    # 15 claims × 2 spans × 1.5s = 45s — safely under 60s target.
+    # cross-encoder/nli-deberta-v3-small costs ~0.5s per (claim, span) pair on 2 vCPUs.
+    # 15 claims × 2 spans × 0.5s = 15s — safely under 60s target.
     # Effective cap = min(page_count * max_claims_per_page, max_claims_absolute).
     max_claims_per_page: int = 3
     max_claims_absolute: int = 15

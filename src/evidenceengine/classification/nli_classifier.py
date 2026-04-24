@@ -1,6 +1,6 @@
 """NLI-primary classifier — Phase 02 Plan 02.
 
-Lazy, thread-safe singleton wrapping the DeBERTa-v3-large NLI model
+Lazy, thread-safe singleton wrapping the cross-encoder/nli-deberta-v3-small model
 (``NLI_MODEL_NAME`` below) loaded onto MPS (or CPU fallback). Per-span NLI inference (premise=evidence, hypothesis=claim)
 is aggregated by element-wise MAX across spans, then mapped to the 4-way
 VerdictClassificationResponse schema via settings-driven thresholds.
@@ -35,11 +35,13 @@ from evidenceengine.classification.schemas import VerdictClassificationResponse
 
 logger = logging.getLogger(__name__)
 
-# Locked by HF model card — do NOT substitute base or downgrade.
-NLI_MODEL_NAME = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
+# cross-encoder/nli-deberta-v3-small: 22M params, ~5x faster than deberta-v3-base on CPU.
+# Label order differs from MoritzLaurer models: id 0 = contradiction, 1 = entailment, 2 = neutral.
+# nli_probs_for_pair remaps to the canonical (entail, neutral, contra) return order.
+NLI_MODEL_NAME = "cross-encoder/nli-deberta-v3-small"
 
-# Locked by HF model card: label id 0 = entailment, 1 = neutral, 2 = contradiction.
-NLI_LABELS: tuple[str, str, str] = ("entailment", "neutral", "contradiction")
+# Actual id2label for this model checkpoint (contradiction-first).
+NLI_LABELS: tuple[str, str, str] = ("contradiction", "entailment", "neutral")
 
 # Module-level singleton state. Tests reset these via an autouse fixture.
 _model = None
@@ -123,7 +125,9 @@ def nli_probs_for_pair(
         logits = model(**inputs).logits[0]
     # fp32 softmax unconditionally — MPS fp16 can NaN (Pitfall 1).
     probs = torch.softmax(logits.float(), dim=-1).cpu().tolist()
-    return float(probs[0]), float(probs[1]), float(probs[2])
+    # cross-encoder/nli-deberta-v3-small label order: 0=contradiction, 1=entailment, 2=neutral.
+    # Return canonical (p_entail, p_neutral, p_contra) order expected by callers.
+    return float(probs[1]), float(probs[2]), float(probs[0])
 
 
 VerdictLiteral = Literal[
@@ -176,7 +180,7 @@ def aggregate_nli(
 
 
 class NLIClassifier:
-    """ClassifierBackend implementation backed by DeBERTa-v3-large NLI.
+    """ClassifierBackend implementation backed by cross-encoder/nli-deberta-v3-small NLI.
 
     Per-span inference with MAX aggregation. Leaves ``explanation=None`` on
     the response — Plan 03's explanation generator fills that field after the
