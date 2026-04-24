@@ -42,13 +42,14 @@ class Settings(BaseSettings):
     # required. If you point LLM_BASE_URL at real OpenAI, set these to e.g.
     # "gpt-4o-mini" and LLM_API_KEY to an sk-... key.
     extraction_model: str = "gemini-2.0-flash"
-    retrieval_top_k_bm25: int = 10
-    retrieval_top_k_final: int = 5
-    # Claim cap strategy: scale with document size so small docs aren't
-    # over-capped and large docs don't blow the free-tier LLM budget.
+    retrieval_top_k_bm25: int = 5
+    retrieval_top_k_final: int = 2
+    # Claim cap: keep small so DeBERTa NLI completes in <60s on shared CPU.
+    # DeBERTa-v3-large costs ~1.5s per (claim, span) pair on 2 vCPUs.
+    # 15 claims × 2 spans × 1.5s = 45s — safely under 60s target.
     # Effective cap = min(page_count * max_claims_per_page, max_claims_absolute).
-    max_claims_per_page: int = 10
-    max_claims_absolute: int = 80
+    max_claims_per_page: int = 3
+    max_claims_absolute: int = 15
     # Phase 03 Plan 01: default swapped to BAAI/bge-reranker-v2-m3 (568M, 2024
     # SOTA multilingual cross-encoder). Pin to an exact HF commit SHA for
     # reproducibility — CrossEncoder(..., revision=...) routes through
