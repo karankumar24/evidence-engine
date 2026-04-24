@@ -27,6 +27,21 @@ _STRUCTURAL_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Acknowledgement content anywhere in the sentence (not just prefixes)
+_ACK_RE = re.compile(
+    r"\b(thank|grateful|generously|supported by grant|funded by|"
+    r"we gratefully|with the support of)\b",
+    re.IGNORECASE,
+)
+
+# Self-referential meta-sentences: structural commentary, not verifiable claims
+_META_RE = re.compile(
+    r"^(in this (paper|work|study|article|section|chapter)|"
+    r"this (paper|work|study|section) (presents|proposes|describes|introduces|discusses)|"
+    r"(section|chapter|figure|table|appendix)\s+\d)",
+    re.IGNORECASE,
+)
+
 
 def _is_likely_claim(sentence: str) -> bool:
     """Return True if the sentence looks like a verifiable factual claim."""
@@ -34,7 +49,7 @@ def _is_likely_claim(sentence: str) -> bool:
     if not s:
         return False
     words = s.split()
-    if len(words) < 6 or len(words) > 120:
+    if len(words) < 5 or len(words) > 120:
         return False
     if not s[0].isupper():
         return False
@@ -45,10 +60,14 @@ def _is_likely_claim(sentence: str) -> bool:
         return False
     if _STRUCTURAL_RE.match(s):
         return False
+    if _ACK_RE.search(s):
+        return False
+    if _META_RE.match(s):
+        return False
     # Must contain at least one verb-like token (ends in -s, -ed, -ing, or "is", "are", "was")
     verb_like = re.search(
-        r"\b(is|are|was|were|has|have|had|shows?|shows?|demonstrates?|"
-        r"achieves?|achieves?|reduces?|increases?|decreases?|improves?|"
+        r"\b(is|are|was|were|has|have|had|shows?|demonstrates?|"
+        r"achieves?|reduces?|increases?|decreases?|improves?|"
         r"suggests?|indicates?|contains?|provides?|results?|found|"
         r"\w+ed|\w+ing)\b",
         lower,

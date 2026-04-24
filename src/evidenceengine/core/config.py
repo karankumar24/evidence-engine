@@ -44,12 +44,11 @@ class Settings(BaseSettings):
     extraction_model: str = "gemini-2.0-flash"
     retrieval_top_k_bm25: int = 5
     retrieval_top_k_final: int = 2
-    # Claim cap: keep small so DeBERTa NLI completes in <60s on shared CPU.
-    # cross-encoder/nli-deberta-v3-small costs ~0.5s per (claim, span) pair on 2 vCPUs.
-    # 15 claims × 2 spans × 0.5s = 15s — safely under 60s target.
+    # Claim cap: cross-encoder/nli-deberta-v3-small costs ~0.5s per (claim, span) pair.
+    # 25 claims × 2 spans × 0.5s = 25s — safely under 60s target.
     # Effective cap = min(page_count * max_claims_per_page, max_claims_absolute).
-    max_claims_per_page: int = 3
-    max_claims_absolute: int = 15
+    max_claims_per_page: int = 4
+    max_claims_absolute: int = 25
     # Phase 03 Plan 01: default swapped to BAAI/bge-reranker-v2-m3 (568M, 2024
     # SOTA multilingual cross-encoder). Pin to an exact HF commit SHA for
     # reproducibility — CrossEncoder(..., revision=...) routes through
