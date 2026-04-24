@@ -22,7 +22,7 @@
           The pipeline completed without producing verdicts. Most common causes, in order:
         </p>
         <ol class="mt-3 ml-5 text-sm text-ink-500 list-decimal space-y-1">
-          <li><strong>LLM extraction failed or was rate-limited.</strong> Check the run-status page for batch-failure warnings. If you see "Invalid API Key" errors, contact support. Daily quota resets at 00:00 UTC — re-upload to retry.</li>
+          <li><strong>No verifiable claims found.</strong> The extractor filters headings, citations, figure captions, and acknowledgements — documents with mostly tables, lists, or formulae may produce few claims.</li>
           <li>The report has no <strong>complete factual sentences</strong> (extraction skips table cells, headers, and bullet fragments — by design).</li>
           <li>The report is <strong>very short</strong> (under ~200 words of narrative).</li>
         </ol>

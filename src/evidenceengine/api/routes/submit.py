@@ -149,6 +149,10 @@ async def run_status_page(
     run = await db.get(RunVersion, run_id)
     if run is None:
         return RedirectResponse("/dashboard", status_code=302)
+    if run.status == "completed":
+        return RedirectResponse(
+            f"/dashboard/{run.packet_id}/{run.id}", status_code=302
+        )
     return templates.TemplateResponse(
         request=request,
         name="run_status.html",

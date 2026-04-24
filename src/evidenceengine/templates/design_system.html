@@ -279,8 +279,8 @@
 
       <div class="border border-ink-100 rounded-sm p-6 bg-white max-w-xl">
         {% call prov.provenance_step(1, "Document Ingestion", "Parsed 24-page PDF, extracted 847 text segments.") %}{% endcall %}
-        {% call prov.provenance_step(2, "Claim Extraction", "Identified 20 verifiable claims via GPT-4 extraction prompt.") %}{% endcall %}
-        {% call prov.provenance_step(3, "Evidence Retrieval", "Top-5 passages retrieved per claim via semantic search (threshold 0.65).") %}{% endcall %}
+        {% call prov.provenance_step(2, "Claim Extraction", "Identified 20 verifiable claims via sentence analysis.") %}{% endcall %}
+        {% call prov.provenance_step(3, "Evidence Retrieval", "Top-5 passages retrieved per claim via BM25 + cross-encoder reranking.") %}{% endcall %}
         {% call prov.provenance_step(4, "Classification", "Verdicts assigned: 8 supported, 3 contradicted, 5 needs_review, 4 insufficient.") %}{% endcall %}
         {% call prov.provenance_step(5, "Review Queue", "5 claims in active reviewer queue.") %}{% endcall %}
       </div>

@@ -23,6 +23,7 @@ from sqlalchemy.orm import selectinload
 
 from evidenceengine.classification.backend import get_backend
 from evidenceengine.classification.classifier import apply_confidence_threshold, classify_claim  # noqa: F401
+from evidenceengine.classification.nli_classifier import NLI_MODEL_NAME
 from evidenceengine.classification.schemas import VerdictClassificationResponse
 from evidenceengine.core.config import settings
 from evidenceengine.models.claim import Claim
@@ -249,7 +250,7 @@ async def classify_verdicts_for_run(
             verdict_type=classification.verdict_type,
             confidence_score=classification.confidence_score,
             reasoning=reasoning_for_db,
-            model_name=settings.classification_model,
+            model_name=NLI_MODEL_NAME,
             prompt_version=settings.verdict_prompt_version,
         )
         try:

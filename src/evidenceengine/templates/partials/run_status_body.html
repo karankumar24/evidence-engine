@@ -13,14 +13,10 @@
     <div class="px-4 py-3 rounded-sm bg-red-50 border border-red-200 text-red-800 text-sm text-left">
       <p class="font-medium mb-1">Pipeline failed</p>
       <p class="text-xs font-mono break-all">{{ run.error_summary or "Unknown error" }}</p>
-      {% if run.error_summary and "rate limit" in (run.error_summary|lower) %}
-        <p class="mt-2 text-xs">The free-tier LLM quota is currently exhausted. The pipeline will work again once the upstream rate limit resets (usually within minutes, or at 00:00 UTC for daily-quota errors).</p>
-      {% endif %}
       <a href="/dashboard" class="mt-3 inline-block text-xs text-red-700 underline">← Back to dashboard</a>
     </div>
   {% elif run.status == "completed" %}
     <div class="text-sm text-accent-700">Complete — redirecting…</div>
-    <script>window.location.replace('/dashboard/{{ run.packet_id }}/{{ run.id }}');</script>
   {% else %}
     {# Spinner + hero — render ONLY while in-flight so they disappear when status flips. #}
     <div class="text-center pb-4">
