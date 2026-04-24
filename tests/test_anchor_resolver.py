@@ -270,3 +270,33 @@ def test_resolve_with_line_break_concatenation():
     )
     assert status == "resolved", f"Expected 'resolved' but got '{status}'"
     assert doc_id == str(attention_doc.id)
+
+
+def test_resolve_author_year_via_reference_entry_lookup():
+    """Author-year markers resolve by looking up the full reference entry.
+
+    '(Vaswani et al., 2017)' alone gives poor token coverage against
+    'attention_is_all_you_need.pdf'. But if references_entries contains
+    the full entry 'Vaswani... Attention is all you need. 2017.', the
+    candidate becomes richly-tokenized and matches the filename correctly.
+    """
+    from evidenceengine.extraction.anchor_resolver import resolve_to_source_document
+
+    references_entries = [
+        "Smith J. 2023. Climate change analysis.",
+        "Ashish Vaswani, Noam Shazeer et al. 2017. Attention is all you need. NIPS.",
+    ]
+    attention_doc = make_source_doc(
+        filename="attention_is_all_you_need.pdf",
+        raw_text="Multi-head attention mechanisms for sequence modelling.",
+    )
+    sources = [attention_doc]
+
+    doc_id, status = resolve_to_source_document(
+        raw_marker="(Vaswani et al., 2017)",
+        citation_style="author_year",
+        source_documents=sources,
+        references_entries=references_entries,
+    )
+    assert status == "resolved", f"Expected resolved, got: {status}"
+    assert doc_id == str(attention_doc.id)

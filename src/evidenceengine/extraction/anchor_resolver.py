@@ -231,7 +231,22 @@ def _build_candidate_string(
         return raw_marker
 
     elif citation_style == "author_year":
-        return raw_marker  # "Smith 2023" or "(Smith et al., 2023)"
+        # For richer matching, try to look up the full reference entry by author
+        # surname + year. Author-year markers like "(Vaswani et al., 2017)" only
+        # carry surname + year, giving poor token coverage (~50%) against source
+        # doc filenames. The full entry ("Vaswani... Attention is all you need.
+        # 2017.") provides title tokens that fuzzy-match filenames correctly.
+        if references_entries:
+            year_m = re.search(r'\b(\d{4})\b', raw_marker)
+            surname_m = re.search(r'\b([A-Z][a-z]+)\b', raw_marker)
+            if year_m and surname_m:
+                year = year_m.group(1)
+                surname = surname_m.group(1).lower()
+                for entry in references_entries:
+                    entry_lower = entry.lower()
+                    if surname in entry_lower and year in entry_lower:
+                        return entry
+        return raw_marker  # Fallback: no reference entry found
 
     elif citation_style == "footnote":
         return raw_marker  # superscript symbol — low match probability
