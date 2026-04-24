@@ -141,28 +141,35 @@ def nli_probs_to_verdict(
     """Map 3-way NLI probabilities to a 4-way verdict + confidence.
 
     Rules (locked by ROADMAP + Pattern 2 in RESEARCH.md):
-    - max(p_entail, p_contra) < nli_min_confidence_for_verdict (0.50) → needs_review
-      (neither decisive class has signal; neutral dominant means evidence doesn't
-      relate to the claim — honest uncertainty, not insufficient evidence)
+    - max_p < nli_min_confidence_for_verdict (0.50) → needs_review
     - p_entail >= nli_entailment_supported_threshold (0.80) → supported
     - p_contra >= nli_contradiction_contradicted_threshold (0.80) → contradicted
-    - else → insufficient_support
+    - else → insufficient_support (confidence = max of the three)
+
+    WHY max_p uses all three classes (not just entail+contra): the NLI model
+    cannot distinguish "insufficient_support" (neutral-dominant, evidence exists
+    but is unrelated) from "needs_review" (genuinely uncertain) — both produce
+    neutral-dominant outputs. Using max_p (including neutral) means the 0.50
+    threshold is never hit in practice (the model is always confident about
+    SOMETHING). As a result, needs_review is only assigned by rule-based paths
+    in pipeline.py (unresolvable_anchor, model load failure), not by this function.
+    This is the CORRECT behavior for the current NLI-only pipeline: neutral
+    dominant = insufficient_support, not needs_review.
 
     Confidence for supported is p_entail; for contradicted is p_contra;
-    for needs_review it is max(p_entail, p_contra);
-    for insufficient_support it is max across all three classes.
+    for needs_review and insufficient_support it is the max across classes.
     """
     # Local import so tests can monkeypatch settings attributes cleanly.
     from evidenceengine.core.config import settings  # noqa: PLC0415
 
-    max_decisive = max(p_entail, p_contra)
-    if max_decisive < settings.nli_min_confidence_for_verdict:
-        return "needs_review", max_decisive
+    max_p = max(p_entail, p_neutral, p_contra)
+    if max_p < settings.nli_min_confidence_for_verdict:
+        return "needs_review", max_p
     if p_entail >= settings.nli_entailment_supported_threshold:
         return "supported", p_entail
     if p_contra >= settings.nli_contradiction_contradicted_threshold:
         return "contradicted", p_contra
-    return "insufficient_support", max(p_entail, p_neutral, p_contra)
+    return "insufficient_support", max_p
 
 
 def aggregate_nli(

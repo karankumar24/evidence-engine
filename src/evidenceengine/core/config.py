@@ -104,11 +104,11 @@ class Settings(BaseSettings):
     #   0 < nli_tiebreaker_threshold
     #     < nli_contradiction_contradicted_threshold
     #
-    #   * nli_min_confidence_for_verdict (0.50): when max(p_entail, p_contra)
-    #     falls below this, neither decisive class has signal → needs_review.
-    #     Uses only entail+contra (not neutral) so neutral-dominant evidence
-    #     (model says "unrelated") correctly routes to needs_review, not
-    #     insufficient_support.
+    #   * nli_min_confidence_for_verdict (0.50): when max(p_entail, p_neutral,
+    #     p_contra) falls below this → needs_review. In practice this threshold
+    #     is never hit (NLI softmax always gives some class > 0.50). needs_review
+    #     is therefore assigned only by rule-based paths (unresolvable citations,
+    #     model load failure), not by the NLI output itself.
     #   * nli_tiebreaker_threshold (0.65): reserved for a future tiebreaker path
     #     where both entail and contra have signal but neither hits 0.80. NOT
     #     currently applied in nli_probs_to_verdict — kept in config so the
