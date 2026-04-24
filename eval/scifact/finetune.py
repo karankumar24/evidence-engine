@@ -410,7 +410,7 @@ def main():
         bf16=False,
         gradient_checkpointing=True,
         report_to="none",
-        no_cuda=args.cpu,
+        use_cpu=args.cpu,
     )
 
     trainer = WeightedTrainer(
