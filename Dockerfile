@@ -42,6 +42,7 @@ RUN pip install --no-cache-dir \
 
 # Copy application source + static assets (fonts, vendor JS, etc.)
 COPY src/ ./src/
+COPY eval/ ./eval/
 
 # Alembic migrations — run at release time (see fly.toml [deploy])
 COPY alembic.ini ./
