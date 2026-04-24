@@ -122,13 +122,16 @@ class Settings(BaseSettings):
     # Default is the same live chain shipped in fly.toml so local dev gets the
     # same resilience as prod. Audit monthly against /api/v1/models.
     model_fallback_chain: Annotated[list[str], NoDecode] = Field(
-        # v1.2.9 default: Gemini Flash primary (1,500 req/day free) → Groq Llama
-        # 3.3 70B fallback (14,400 req/day free). Both speak OpenAI-compat wire
-        # so the same sync_call_with_fallback path handles both without
-        # branching. Override via MODEL_FALLBACK_CHAIN env var (CSV) if needed.
+        # 4-provider free-tier chain (mirrors Fly production secret).
+        # Gemini 2.0 Flash primary (1,500 req/day) → Groq Llama 4 Scout
+        # (json_schema-compatible; llama-3.3-70b-versatile is NOT) →
+        # SambaNova → Cerebras as deep fallbacks.
+        # Override via MODEL_FALLBACK_CHAIN env var (CSV).
         default_factory=lambda: [
             "gemini-2.0-flash",
-            "llama-3.3-70b-versatile",
+            "meta-llama/llama-4-scout-17b-16e-instruct",
+            "sambanova/Meta-Llama-3.3-70B-Instruct",
+            "cerebras/qwen-3-235b-a22b-instruct-2507",
         ]
     )
     # Per-model timeout when the fallback chain has >1 model — shorter so failures
