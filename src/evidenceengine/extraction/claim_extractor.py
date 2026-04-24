@@ -10,7 +10,11 @@ discarding headers, captions, and table fragments.
 import logging
 import re
 
-from evidenceengine.extraction.schemas import ClaimExtractionResponse, ExtractedClaim
+from evidenceengine.extraction.schemas import (
+    ClaimExtractionResponse,
+    ExtractedClaim,
+    ExtractedCitationMarker,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +138,47 @@ def _merge_short_blocks(blocks: list[dict]) -> list[dict]:
     return merged
 
 
+# Regex patterns for inline citation marker detection.
+# Numeric: [1], [1,2], [1, 2-4]
+_NUMERIC_CITATION_RE = re.compile(r'\[\d+(?:[,\s\-]+\d+)*\]')
+# Author-year parenthesized: (Smith, 2023), (Jones et al., 2020), (A et al., 2020; B, 2021)
+_AUTHOR_YEAR_PAREN_RE = re.compile(
+    r'\([A-Z][a-zA-Z\-]+(?:\s+et\s+al\.?)?(?:,\s*\d{4}[a-z]?)?'
+    r'(?:[;,]\s*[A-Z][a-zA-Z\-]+(?:\s+et\s+al\.?)?(?:,\s*\d{4}[a-z]?)?)*'
+    r',?\s+\d{4}[a-z]?\)'
+)
+# Author-year bare: Smith (2023), Jones et al. (2020)
+_AUTHOR_YEAR_BARE_RE = re.compile(
+    r'[A-Z][a-zA-Z\-]+(?:\s+et\s+al\.?)?\s+\(\d{4}[a-z]?\)'
+)
+
+
+def _detect_citation_markers(text: str) -> list[ExtractedCitationMarker]:
+    """Detect numeric and author-year citation markers in a sentence.
+
+    The NLTK extractor can't ask an LLM to identify citations, so we use
+    regex. Misses footnote superscripts (no reliable plain-text pattern)
+    but catches the two dominant styles in academic PDFs.
+    """
+    markers: list[ExtractedCitationMarker] = []
+    seen: set[str] = set()
+
+    for m in _NUMERIC_CITATION_RE.finditer(text):
+        raw = m.group()
+        if raw not in seen:
+            seen.add(raw)
+            markers.append(ExtractedCitationMarker(raw_marker=raw, citation_style="numeric"))
+
+    for pattern in (_AUTHOR_YEAR_PAREN_RE, _AUTHOR_YEAR_BARE_RE):
+        for m in pattern.finditer(text):
+            raw = m.group()
+            if raw not in seen:
+                seen.add(raw)
+                markers.append(ExtractedCitationMarker(raw_marker=raw, citation_style="author_year"))
+
+    return markers
+
+
 def _is_likely_claim(sentence: str) -> bool:
     """Return True if the sentence looks like a verifiable factual claim."""
     s = sentence.strip()
@@ -219,7 +264,7 @@ async def extract_claims_from_blocks(
             seen.add(key)
             all_claims.append(ExtractedClaim(
                 claim_text=sentence,
-                citation_markers=[],
+                citation_markers=_detect_citation_markers(sentence),
             ))
 
     logger.info("Local extractor produced %d candidate claims from %d blocks",

@@ -356,3 +356,41 @@ def test_fix_word_boundaries_preserves_acronyms():
 
     assert _fix_word_boundaries("BERT achieves state-of-the-art results.") ==         "BERT achieves state-of-the-art results."
     assert _fix_word_boundaries("NLP tasks require large-scale pre-training.") ==         "NLP tasks require large-scale pre-training."
+
+
+# ---------------------------------------------------------------------------
+# _detect_citation_markers tests (BUG #1: citation markers never detected)
+# ---------------------------------------------------------------------------
+
+def test_detect_citation_markers_numeric():
+    """Numeric [N] citations are detected with correct style."""
+    from evidenceengine.extraction.claim_extractor import _detect_citation_markers
+
+    markers = _detect_citation_markers(
+        "The model achieves state-of-the-art results on eleven NLP benchmarks [1]."
+    )
+    assert len(markers) == 1
+    assert markers[0].raw_marker == "[1]"
+    assert markers[0].citation_style == "numeric"
+
+
+def test_detect_citation_markers_author_year():
+    """Author-year (Vaswani et al., 2017) citations are detected with correct style."""
+    from evidenceengine.extraction.claim_extractor import _detect_citation_markers
+
+    markers = _detect_citation_markers(
+        "The attention mechanism (Vaswani et al., 2017) is adopted in BERT."
+    )
+    assert len(markers) >= 1
+    assert any(m.citation_style == "author_year" for m in markers)
+    assert any("Vaswani" in m.raw_marker for m in markers)
+
+
+def test_detect_citation_markers_empty_no_citation():
+    """Sentences without citation markers return empty list."""
+    from evidenceengine.extraction.claim_extractor import _detect_citation_markers
+
+    markers = _detect_citation_markers(
+        "BERT achieves state-of-the-art results on eleven NLP tasks."
+    )
+    assert markers == []
