@@ -141,25 +141,28 @@ def nli_probs_to_verdict(
     """Map 3-way NLI probabilities to a 4-way verdict + confidence.
 
     Rules (locked by ROADMAP + Pattern 2 in RESEARCH.md):
-    - max_p < nli_min_confidence_for_verdict (0.50) → needs_review
+    - max(p_entail, p_contra) < nli_min_confidence_for_verdict (0.50) → needs_review
+      (neither decisive class has signal; neutral dominant means evidence doesn't
+      relate to the claim — honest uncertainty, not insufficient evidence)
     - p_entail >= nli_entailment_supported_threshold (0.80) → supported
     - p_contra >= nli_contradiction_contradicted_threshold (0.80) → contradicted
-    - else → insufficient_support (confidence = max of the three)
+    - else → insufficient_support
 
     Confidence for supported is p_entail; for contradicted is p_contra;
-    for needs_review and insufficient_support it is the max across classes.
+    for needs_review it is max(p_entail, p_contra);
+    for insufficient_support it is max across all three classes.
     """
     # Local import so tests can monkeypatch settings attributes cleanly.
     from evidenceengine.core.config import settings  # noqa: PLC0415
 
-    max_p = max(p_entail, p_neutral, p_contra)
-    if max_p < settings.nli_min_confidence_for_verdict:
-        return "needs_review", max_p
+    max_decisive = max(p_entail, p_contra)
+    if max_decisive < settings.nli_min_confidence_for_verdict:
+        return "needs_review", max_decisive
     if p_entail >= settings.nli_entailment_supported_threshold:
         return "supported", p_entail
     if p_contra >= settings.nli_contradiction_contradicted_threshold:
         return "contradicted", p_contra
-    return "insufficient_support", max_p
+    return "insufficient_support", max(p_entail, p_neutral, p_contra)
 
 
 def aggregate_nli(

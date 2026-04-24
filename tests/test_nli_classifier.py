@@ -141,8 +141,15 @@ def test_threshold_contra_contradicted():
 
 
 def test_low_max_needs_review():
-    # All three classes < 0.50 → needs_review with confidence = max.
+    # max(entail, contra) < 0.50 → needs_review with confidence = max(entail, contra).
     assert nli_probs_to_verdict(0.40, 0.35, 0.25) == ("needs_review", 0.40)
+
+
+def test_neutral_dominant_needs_review():
+    # Regression: neutral=0.65 dominates but max(entail=0.30, contra=0.05) < 0.50.
+    # Before fix: routed to insufficient_support (wrong).
+    # After fix: correctly routes to needs_review at confidence 0.30.
+    assert nli_probs_to_verdict(0.30, 0.65, 0.05) == ("needs_review", 0.30)
 
 
 def test_neutral_insufficient():
@@ -159,8 +166,10 @@ def test_mid_entail_insufficient():
 # ---------------------------------------------------------------------------
 
 
-def test_aggregate_empty_returns_neutral():
-    assert aggregate_nli([]) == (0.0, 1.0, 0.0)
+def test_aggregate_empty_returns_zero():
+    # Empty input → (0.0, 0.0, 0.0): zero signal, not fake neutral confidence.
+    # Verdict mapper sees max_decisive=0.0 < 0.50 → needs_review at 0.0.
+    assert aggregate_nli([]) == (0.0, 0.0, 0.0)
 
 
 def test_aggregate_max_across_spans():

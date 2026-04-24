@@ -23,6 +23,7 @@ from evidenceengine.models.claim import Claim
 from evidenceengine.models.document import SourceDocument
 from evidenceengine.models.evidence import EvidenceSpan
 from evidenceengine.retrieval.bm25_retriever import load_or_build_index, query_index
+from evidenceengine.retrieval.dense_retriever import load_or_build_dense, query_dense
 from evidenceengine.retrieval.indexer import extract_spans
 from evidenceengine.retrieval.recall_logger import log_retrieval_metrics
 from evidenceengine.retrieval.reranker import rerank
@@ -71,9 +72,9 @@ async def retrieve_evidence_for_run(
     retrieved_claim_count = 0
     all_spans: list[EvidenceSpan] = []
 
-    # In-run BM25 index cache: {source_document_id_str -> (bm25s.BM25, span_dicts)}
-    # Avoids re-indexing when multiple claims cite the same source document.
-    index_cache: dict[str, tuple[Any, list[dict]]] = {}
+    # In-run index cache: {source_document_id_str -> (retriever, span_dicts, dense_embs|None)}
+    # Avoids re-indexing/re-encoding when multiple claims cite the same source document.
+    index_cache: dict[str, tuple[Any, list[dict], Any]] = {}
 
     for claim in claims:
         resolved_anchors = [
@@ -126,12 +127,17 @@ async def retrieve_evidence_for_run(
                 span_texts = [s["text"] for s in span_dicts]
                 index_path = os.path.join(settings.index_dir, doc_id_str)
                 retriever = load_or_build_index(span_texts, index_path)
-                index_cache[doc_id_str] = (retriever, span_dicts)
+                dense_embs = (
+                    load_or_build_dense(span_texts, index_path)
+                    if settings.dense_retrieval_enabled
+                    else None
+                )
+                index_cache[doc_id_str] = (retriever, span_dicts, dense_embs)
 
             if doc_id_str not in index_cache:
                 continue  # failed to build index above
 
-            retriever, span_dicts = index_cache[doc_id_str]
+            retriever, span_dicts, dense_embs = index_cache[doc_id_str]
             span_texts = [s["text"] for s in span_dicts]
 
             # BM25 top-k query
@@ -146,8 +152,9 @@ async def retrieve_evidence_for_run(
             # filter, BM25 rank-1 is always the paragraph CONTAINING the claim
             # (not just the exact claim text), producing circular verdicts like
             # "SUPPORTED 95%" where the only evidence is the claim itself.
-            # We check on the span_dicts (with char_start/end) then filter
-            # bm25_texts by membership.
+            # overlapping_texts is kept outside the if-block so the dense union
+            # below can apply the same filter without re-computing overlap.
+            overlapping_texts: set[str] = set()
             if anchor is None:
                 claim_start = claim.char_start or 0
                 claim_end = claim.char_end or 0
@@ -161,10 +168,27 @@ async def retrieve_evidence_for_run(
                 }
                 bm25_texts = [t for t in bm25_texts if t not in overlapping_texts]
 
+            # Dense retrieval union — appends semantically similar candidates
+            # that keyword search misses (e.g. paraphrased claims). Applies the
+            # same overlap filter as BM25 to prevent self-citation in self-verify
+            # mode. New candidates are appended after BM25 results so the
+            # cross-encoder reranker sees the full candidate set.
+            if settings.dense_retrieval_enabled and dense_embs is not None:
+                dense_k = max(2, settings.retrieval_top_k_bm25 // 2)
+                dense_candidates = query_dense(
+                    claim.claim_text, dense_embs, span_texts, k=dense_k,
+                )
+                if overlapping_texts:
+                    dense_candidates = [t for t in dense_candidates if t not in overlapping_texts]
+                bm25_set = set(bm25_texts)
+                for t in dense_candidates:
+                    if t not in bm25_set:
+                        bm25_texts.append(t)
+
             if not bm25_texts:
                 continue
 
-            # Cross-encoder reranking
+            # Cross-encoder reranking over BM25 ∪ dense candidates.
             ranked = await rerank(claim.claim_text, bm25_texts)
             final_spans = ranked[: settings.retrieval_top_k_final]
 

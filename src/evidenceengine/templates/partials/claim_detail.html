@@ -43,7 +43,12 @@
         </div>
       {% endif %}
       <div class="space-y-3">
-        {% for ve in verdict.verdict_evidence %}
+        {% for ve in verdict.verdict_evidence | sort(attribute="weight", reverse=True) %}
+          {% if loop.first and (verdict.verdict_evidence | length) > 1 %}
+            <div class="flex items-center gap-1.5 mb-1">
+              <span class="text-[10px] font-medium uppercase tracking-wider text-accent-600">Top match</span>
+            </div>
+          {% endif %}
           {{ ev.evidence_span(ve.evidence_span, ve.evidence_span.retrieval_method) }}
         {% endfor %}
       </div>

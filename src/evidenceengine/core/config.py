@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     extraction_model: str = "gemini-2.0-flash"
     retrieval_top_k_bm25: int = 5
     retrieval_top_k_final: int = 2
+    # Dense retrieval: when True, all-MiniLM-L6-v2 embeddings augment BM25 to
+    # catch paraphrased evidence. Union of BM25 + dense candidates is reranked,
+    # then truncated to retrieval_top_k_final. Set DENSE_RETRIEVAL_ENABLED=false
+    # to fall back to BM25-only (e.g. memory-constrained environments).
+    dense_retrieval_enabled: bool = True
     # Claim cap: cross-encoder/nli-deberta-v3-small costs ~0.5s per (claim, span) pair.
     # 25 claims × 2 spans × 0.5s = 25s — safely under 60s target.
     # Effective cap = min(page_count * max_claims_per_page, max_claims_absolute).
@@ -99,8 +104,11 @@ class Settings(BaseSettings):
     #   0 < nli_tiebreaker_threshold
     #     < nli_contradiction_contradicted_threshold
     #
-    #   * nli_min_confidence_for_verdict (0.50): below this the NLI head has
-    #     no signal — verdict defaults to insufficient_support / needs_review.
+    #   * nli_min_confidence_for_verdict (0.50): when max(p_entail, p_contra)
+    #     falls below this, neither decisive class has signal → needs_review.
+    #     Uses only entail+contra (not neutral) so neutral-dominant evidence
+    #     (model says "unrelated") correctly routes to needs_review, not
+    #     insufficient_support.
     #   * nli_tiebreaker_threshold (0.65): when entailment and contradiction
     #     are both > 0 but neither clears its top threshold, this is the
     #     margin one must beat the other by to win. Below this → needs_review.

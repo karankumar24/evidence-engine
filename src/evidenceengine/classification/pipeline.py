@@ -265,7 +265,7 @@ async def classify_verdicts_for_run(
                 VerdictEvidence(
                     verdict_id=verdict.id,
                     evidence_span_id=span.id,
-                    weight=span.relevance_score,
+                    weight=span.relevance_score or 0.0,
                 )
             )
 
