@@ -14,7 +14,11 @@ from sqlalchemy.orm import selectinload
 
 from evidenceengine.api.dependencies import get_db, get_file_store
 from evidenceengine.core.config import settings
-from evidenceengine.ingestion.validation import validate_and_parse_file, validate_file_type
+from evidenceengine.ingestion.validation import (
+    serialize_parsed_document as _serialize_parsed_document,
+    validate_and_parse_file,
+    validate_file_type,
+)
 from evidenceengine.models.document import DocumentPacket, SourceDocument
 from evidenceengine.schemas.common import ErrorDetail, ErrorResponse
 from evidenceengine.schemas.document import PacketResponse
@@ -149,8 +153,8 @@ async def create_packet(
             file_type=_detect_file_type_str(filename),
             file_size_bytes=len(content),
             parsed_content=parsed_content,
-            raw_text=parsed.raw_text,
-            markdown_text=parsed.markdown_text,
+            raw_text=(parsed.raw_text or "").replace("\x00", "") or None,
+            markdown_text=(parsed.markdown_text or "").replace("\x00", "") or None,
             total_pages=parsed.total_pages,
             parse_status="completed",
         )
@@ -194,32 +198,6 @@ async def get_packet(
         )
 
     return PacketResponse.model_validate(packet)
-
-
-def _serialize_parsed_document(parsed) -> dict:
-    """Serialize a ParsedDocument to a JSON-serialisable dict."""
-    blocks = []
-    for block in parsed.blocks:
-        blocks.append(
-            {
-                "text": block.text,
-                "block_type": block.block_type,
-                "position": {
-                    "page": block.position.page,
-                    "paragraph": block.position.paragraph,
-                    "char_start": block.position.char_start,
-                    "char_end": block.position.char_end,
-                    "section_header": block.position.section_header,
-                    "bbox": list(block.position.bbox) if block.position.bbox else None,
-                },
-            }
-        )
-    return {
-        "filename": parsed.filename,
-        "total_pages": parsed.total_pages,
-        "blocks": blocks,
-        "tables": parsed.tables,
-    }
 
 
 def _detect_file_type_str(filename: str) -> str:

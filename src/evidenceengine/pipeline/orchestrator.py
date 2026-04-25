@@ -52,8 +52,8 @@ async def _parse_pending_documents(packet_id: uuid.UUID, session: AsyncSession) 
             await session.commit()
             raise RuntimeError(f"Parse failed for {doc.filename}: {exc}") from exc
         doc.parsed_content = serialize_parsed_document(parsed)
-        doc.raw_text = parsed.raw_text
-        doc.markdown_text = parsed.markdown_text
+        doc.raw_text = (parsed.raw_text or "").replace("\x00", "") or None
+        doc.markdown_text = (parsed.markdown_text or "").replace("\x00", "") or None
         doc.total_pages = parsed.total_pages
         doc.parse_status = "completed"
         await session.commit()
