@@ -43,7 +43,8 @@ _ACK_RE = re.compile(
 # Self-referential meta-sentences: structural commentary, not verifiable claims
 _META_RE = re.compile(
     r"^(in this (paper|work|study|article|section|chapter)|"
-    r"this (paper|work|study|section|report) (presents|proposes|describes|introduces|discusses|summari[sz]es|outlines|examines)|"
+    r"this (paper|work|study|section|report|edition) (presents|proposes|describes|introduces|discusses|summari[sz]es|outlines|examines|provides)|"
+    r"the (latest|current|new|present) edition of|"
     r"the following (table|figure|section|appendix|chart|graph|diagram)\b|"
     r"(section|chapter|figure|table|appendix)\s+\d)",
     re.IGNORECASE,
@@ -63,8 +64,9 @@ _AFFILIATION_RE = re.compile(
 )
 
 # TOC fill-character artifacts from PyMuPDF table-of-contents blocks:
-# catches "SPM.4.2.1\t......17" and Unicode replacement character runs
-_TOC_RE = re.compile(r"\t\.{5,}|\t{3,}|\ufffd{4,}")
+# catches "SPM.4.2.1\t......17", Unicode replacement runs, and inline TOC entries
+# like "Health-related SDGs 23 2.1 Infectious..." (page number + section X.Y inline).
+_TOC_RE = re.compile(r"\t\.{5,}|\t{3,}|\ufffd{4,}|\b\d{1,3}\s+\d{1,2}\.\d{1,2}\s+[A-Z]")
 
 # Publisher imprint lines: "Cambridge University Press, Cambridge, United Kingdom"
 # These have no verb so already fail has_verb, but only when terminal-punctuated.
@@ -95,6 +97,10 @@ _LEGAL_RE = re.compile(
     r"isbn[\s\-:]\d|issn[\s\-:]\d|doi[\s:]*10\.|printed in|"
     # CIP / library cataloguing
     r"cataloguing.in.publication|cataloging.in.publication|cip data|"
+    # WHO/legal warranty and liability boilerplate
+    r"errors and omissions excepted|without warranty of any|"
+    r"liable for damages|all reasonable precautions.{1,40}verify|"
+    r"distributed without warranty|being distributed without|"
     # International org disclaimers (WHO, UN, World Bank, IMF)
     r"designations employed|approximate border lines|dotted and dashed lines on maps|"
     r"not responsible for the content or accuracy|"
