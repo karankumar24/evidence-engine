@@ -41,7 +41,8 @@ _ACK_RE = re.compile(
 # Self-referential meta-sentences: structural commentary, not verifiable claims
 _META_RE = re.compile(
     r"^(in this (paper|work|study|article|section|chapter)|"
-    r"this (paper|work|study|section) (presents|proposes|describes|introduces|discusses)|"
+    r"this (paper|work|study|section|report) (presents|proposes|describes|introduces|discusses|summari[sz]es|outlines|examines)|"
+    r"the following (table|figure|section|appendix|chart|graph|diagram)\b|"
     r"(section|chapter|figure|table|appendix)\s+\d)",
     re.IGNORECASE,
 )

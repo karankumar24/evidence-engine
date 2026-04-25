@@ -116,6 +116,19 @@ def parse_pdf(filepath: str) -> ParsedDocument:
             if raw_block.get("type") != 0:
                 continue
 
+            # Skip blocks whose bbox significantly overlaps a table region.
+            # table_bboxes were collected in Layer 3 for exactly this purpose
+            # (the original comment said "so we can skip table blocks in Layer 2"
+            # but the skip was never wired up). Center-point containment is fast
+            # and avoids false-positives from blocks that merely touch a table edge.
+            block_bbox = raw_block.get("bbox")
+            if block_bbox and table_bboxes:
+                bx0, by0, bx1, by1 = block_bbox
+                cx, cy = (bx0 + bx1) / 2, (by0 + by1) / 2
+                if any(tx0 <= cx <= tx1 and ty0 <= cy <= ty1
+                       for tx0, ty0, tx1, ty1 in table_bboxes):
+                    continue
+
             # Collect all span text from all lines in this block
             lines = raw_block.get("lines", [])
             if not lines:
