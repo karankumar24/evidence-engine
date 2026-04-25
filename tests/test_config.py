@@ -43,7 +43,7 @@ def test_nli_tiebreaker_threshold_default(monkeypatch):
 def test_nli_entailment_supported_threshold_default(monkeypatch):
     monkeypatch.delenv("NLI_ENTAILMENT_SUPPORTED_THRESHOLD", raising=False)
     s = _fresh()
-    assert s.nli_entailment_supported_threshold == 0.80
+    assert s.nli_entailment_supported_threshold == 0.86
 
 
 def test_nli_contradiction_contradicted_threshold_default(monkeypatch):
@@ -85,7 +85,7 @@ def test_reranker_model_setting_override():
 
 
 def test_threshold_band_invariant():
-    """Locks the ordering 0.50 < 0.65 < 0.80 (and 0.65 < 0.80 for contradiction).
+    """Locks the ordering 0.50 < 0.65 < entailment_threshold (and 0.65 < contradiction_threshold).
 
     Changing any of these defaults requires updating this test AND the band
     documentation in config.py next to the field definitions.
