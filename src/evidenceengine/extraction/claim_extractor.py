@@ -77,6 +77,21 @@ _PUBLISHER_RE = re.compile(
 # "Kumar 1 Karan Kumar Dr. Tariq BIO 101" — the " \d+ " break after a word is the signal
 _STUDENT_HEADER_RE = re.compile(r"^[A-Z][a-z]+ \d+ [A-Z]")
 
+# Author/org list with country or role in parentheses:
+# "Paola Arias (Colombia), Mercedes Bustamante (Brazil), Ismail Elgizouli (Sudan)"
+# Fires when 2+ parenthesized items appear in a sentence with 3+ commas.
+# Catches IPCC, WHO, UN reports that list authors with country affiliations.
+_COUNTRY_PARENS_RE = re.compile(r'\([A-Z][a-zA-Z ]{2,25}\)')
+
+# Copyright, legal, and editorial boilerplate common in published PDFs
+_LEGAL_RE = re.compile(
+    r"\b(all rights reserved|reproduction prohibited|without authorization|"
+    r"right of publication|rights of translation|editorial correspondence|"
+    r"requests to publish|reproduce or translate|©\s*\d{4}|copyright \d{4}|"
+    r"isbn[\s\-:]\d|issn[\s\-:]\d|doi:\s*10\.|printed in)\b",
+    re.IGNORECASE,
+)
+
 # Printed webpage navigation — covers common print-to-PDF chrome patterns
 # Includes bullet/icon characters (•, ○, ▸) mid-sentence (nav lists)
 _NAV_RE = re.compile(
@@ -370,6 +385,12 @@ def _is_likely_claim(sentence: str, _counts: dict | None = None) -> bool:
         return reject("publisher_imprint")
     if _STUDENT_HEADER_RE.match(s):
         return reject("student_header")
+    # Author/org lists with country or role in parens (IPCC, WHO, UN style)
+    if s.count(",") >= 3 and len(_COUNTRY_PARENS_RE.findall(s)) >= 2:
+        return reject("author_org_list")
+    # Copyright, legal, and editorial boilerplate
+    if _LEGAL_RE.search(s):
+        return reject("legal_boilerplate")
 
     has_punct = s[-1] in ".!?"
     has_verb = bool(_VERB_RE.search(lower))
