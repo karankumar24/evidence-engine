@@ -25,6 +25,7 @@ _SKIP_PREFIXES = (
     "acknowledgement", "acknowledgment", "reference", "bibliography",
     "keywords", "keyword:", "key words",
     "doi:", "doi ", "pmid", "pmcid", "epub ahead",
+    "for a review", "for an overview", "for more detail", "for details,",
 )
 
 # Patterns that suggest a sentence is a structural artifact, not a claim
@@ -63,10 +64,11 @@ _AFFILIATION_RE = re.compile(
     re.IGNORECASE,
 )
 
-# TOC fill-character artifacts from PyMuPDF table-of-contents blocks:
-# catches "SPM.4.2.1\t......17", Unicode replacement runs, and inline TOC entries
-# like "Health-related SDGs 23 2.1 Infectious..." (page number + section X.Y inline).
-_TOC_RE = re.compile(r"\t\.{5,}|\t{3,}|\ufffd{4,}|\b\d{1,3}\s+\d{1,2}\.\d{1,2}\s+[A-Z]")
+# TOC fill-character artifacts from PyMuPDF table-of-contents blocks.
+# Catches tab+dots, multiple tabs, Unicode replacement runs, inline numeric TOC,
+# AND plain-period fill runs ("Conclusion ......... 29") where the dots are not
+# tab-preceded \u2014 common in BIS/ECB/World Bank quarterly reports.
+_TOC_RE = re.compile(r"\t\.{5,}|\t{3,}|\ufffd{4,}|\b\d{1,3}\s+\d{1,2}\.\d{1,2}\s+[A-Z]|\.{5,}")
 
 # Publisher imprint lines: "Cambridge University Press, Cambridge, United Kingdom"
 # These have no verb so already fail has_verb, but only when terminal-punctuated.

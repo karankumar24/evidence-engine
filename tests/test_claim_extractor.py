@@ -510,3 +510,13 @@ def test_still_rejects_url_sentence():
 
 def test_still_rejects_toc_artifact():
     assert not _claim("Introduction\t......\t\t\t17")
+
+def test_rejects_toc_plain_dots():
+    # BIS/ECB/World Bank style TOC with spaces+dots (no tab)
+    assert not _claim("Conclusion  ...............................................................................................................................  29 References  ................................................................................................................................  30")
+
+def test_rejects_toc_short_with_plain_dots():
+    assert not _claim("Policy considerations ..........................................................  90")
+
+def test_rejects_bibliography_reference():
+    assert not _claim("For a review of methods and modes, see B Cohen, P Hördahl and D Xia, 'Term premia: models and some stylised facts', BIS Quarterly Review, September 2018, pp 79–91.")
