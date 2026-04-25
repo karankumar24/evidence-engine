@@ -26,6 +26,10 @@ _SKIP_PREFIXES = (
     "keywords", "keyword:", "key words",
     "doi:", "doi ", "pmid", "pmcid", "epub ahead",
     "for a review", "for an overview", "for more detail", "for details,",
+    # Figure/chart description starters — universal across all document types
+    "the dotted ", "the dashed ", "the solid line", "the shaded area",
+    "bars represent", "bars show", "bars indicate", "the bars ",
+    "the horizontal lines", "the vertical lines",
 )
 
 # Patterns that suggest a sentence is a structural artifact, not a claim

@@ -520,3 +520,12 @@ def test_rejects_toc_short_with_plain_dots():
 
 def test_rejects_bibliography_reference():
     assert not _claim("For a review of methods and modes, see B Cohen, P Hördahl and D Xia, 'Term premia: models and some stylised facts', BIS Quarterly Review, September 2018, pp 79–91.")
+
+def test_rejects_figure_dotted_lines():
+    assert not _claim("The dotted horizontal lines indicate January 2007–June 2008 average.")
+
+def test_rejects_figure_dashed_lines():
+    assert not _claim("The dashed lines represent the 95% confidence interval around the estimate.")
+
+def test_rejects_figure_bars():
+    assert not _claim("Bars represent the interquartile range across 48 country samples from 2010 to 2023.")
