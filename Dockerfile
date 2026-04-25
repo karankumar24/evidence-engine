@@ -80,6 +80,7 @@ RUN mkdir -p /app/uploads /app/indexes /app/nltk_data \
 # have to download it (would fail on read-only Fly rootfs if HOME misconfigured).
 RUN pip install --no-cache-dir nltk \
     && python -m nltk.downloader -d /app/nltk_data punkt punkt_tab \
+        averaged_perceptron_tagger averaged_perceptron_tagger_eng \
     && chown -R ee:ee /app/nltk_data
 
 EXPOSE 8000

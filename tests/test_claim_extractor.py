@@ -394,3 +394,119 @@ def test_detect_citation_markers_empty_no_citation():
         "BERT achieves state-of-the-art results on eleven NLP tasks."
     )
     assert markers == []
+
+
+# ---------------------------------------------------------------------------
+# Universal claim filter tests
+# Verifies that _is_likely_claim() rejects doc-specific noise universally
+# and accepts genuine verifiable claims regardless of domain.
+# ---------------------------------------------------------------------------
+
+def _claim(s: str) -> bool:
+    from evidenceengine.extraction.claim_extractor import _is_likely_claim
+    return _is_likely_claim(s)
+
+
+# --- Universal legal filter (must reject) ---
+
+def test_rejects_all_rights_reserved():
+    assert not _claim("All rights reserved. No part of this publication may be reproduced.")
+
+def test_rejects_copyright_line():
+    assert not _claim("Copyright 2024 World Health Organization. All rights reserved.")
+
+def test_rejects_isbn_line():
+    assert not _claim("ISBN 978-92-4-156545-8. Printed in France.")
+
+def test_rejects_liability_clause():
+    assert not _claim("The publisher disclaims any liability for errors or omissions in this work.")
+
+def test_rejects_warranty_disclaimer():
+    assert not _claim("This material is provided without warranty of any kind, express or implied.")
+
+def test_rejects_deontic_modal_reproduction():
+    assert not _claim("This work may not be reproduced in whole or in part without written permission.")
+
+def test_rejects_trademark():
+    assert not _claim("The designation does not imply trademark or patent status of any product.")
+
+def test_rejects_prohibited_use():
+    assert not _claim("Unauthorized reproduction or redistribution of this content is prohibited.")
+
+
+# --- VBG preamble filter (must reject) ---
+
+def test_rejects_noting_preamble():
+    assert not _claim("Noting that climate change poses an increasing threat to human health and ecosystems.")
+
+def test_rejects_acknowledging_preamble():
+    assert not _claim("Acknowledging the importance of international cooperation in addressing global challenges.")
+
+def test_rejects_having_regard_preamble():
+    assert not _claim("Having regard to the provisions of Article 12 of the International Covenant.")
+
+
+# --- High proper-noun ratio filter (must reject) ---
+
+def test_rejects_author_institution_line():
+    assert not _claim("Dr Maria Rodriguez Instituto Nacional Salud Colombia Director Research Programs.")
+
+def test_rejects_org_country_list():
+    assert not _claim("Tedros Adhanom Ghebreyesus Director-General World Health Organization Geneva Switzerland.")
+
+
+# --- Factual signal gate (must reject) ---
+
+def test_rejects_vague_definitional_claim():
+    assert not _claim("Protein folding is a complex and highly regulated biological process.")
+
+def test_rejects_obvious_truism():
+    assert not _claim("The immune system plays an important role in protecting the body.")
+
+def test_rejects_general_introductory_sentence():
+    assert not _claim("Climate change represents one of the most pressing challenges of our time.")
+
+
+# --- Factual signal gate (must PASS) ---
+
+def test_passes_numeric_percentage():
+    assert _claim("Cardiovascular disease accounts for 17.9 million deaths per year, representing 31% of all global deaths.")
+
+def test_passes_causal_language():
+    assert _claim("Antibiotic resistance is caused by overuse and misuse of antimicrobial agents in humans and animals.")
+
+def test_passes_comparative_language():
+    assert _claim("Group A achieved 23% higher survival rates compared to the control group at 12 months.")
+
+def test_passes_statistical_qualifier():
+    assert _claim("Vaccine efficacy was significantly higher in participants aged 18-64 than in older adults.")
+
+def test_passes_long_declarative_with_finding_verb():
+    assert _claim("Studies have consistently found that influenza spreads primarily through respiratory droplets during close contact with infected individuals.")
+
+def test_passes_measurement_with_unit():
+    assert _claim("The average global temperature has increased by 1.1 degrees Celsius since the pre-industrial period.")
+
+def test_passes_year_reference_in_context():
+    assert _claim("In 2023, the WHO reported over 250 million cases of malaria worldwide, with 94% concentrated in the African region.")
+
+def test_passes_ml_benchmark_result():
+    assert _claim("The proposed model achieves 89.4% accuracy on the SQuAD 2.0 benchmark, outperforming all previous single-model baselines.")
+
+def test_passes_economics_claim():
+    assert _claim("GDP growth in sub-Saharan Africa is projected to reach 3.8% in 2025, driven by commodity exports and infrastructure investment.")
+
+
+# --- Regression: existing valid patterns must still work ---
+
+def test_still_rejects_meta_sentence():
+    assert not _claim("In this paper, we propose a new method for neural machine translation.")
+
+def test_still_rejects_acknowledgement():
+    assert not _claim("We thank the reviewers for their helpful comments and suggestions.")
+
+def test_still_rejects_url_sentence():
+    assert not _claim("Full results are available at https://example.com/results/2024.")
+
+def test_still_rejects_toc_artifact():
+    assert not _claim("Introduction\t......\t\t\t17")

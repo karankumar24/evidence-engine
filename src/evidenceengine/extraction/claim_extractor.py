@@ -88,30 +88,26 @@ _STUDENT_HEADER_RE = re.compile(r"^[A-Z][a-z]+ \d+ [A-Z]")
 # Catches IPCC, WHO, UN reports that list authors with country affiliations.
 _COUNTRY_PARENS_RE = re.compile(r'\([A-Z][a-zA-Z ]{2,25}\)')
 
-# Copyright, legal, and editorial boilerplate common in published PDFs
-# and international organization reports (WHO, UN, World Bank, IMF, etc.)
-_LEGAL_RE = re.compile(
-    r"\b(all rights reserved|reproduction prohibited|without authorization|"
-    r"right of publication|rights of translation|editorial correspondence|"
-    r"requests to publish|reproduce or translate|©\s*\d{4}|copyright \d{4}|"
-    r"isbn[\s\-:]\d|issn[\s\-:]\d|doi[\s:]*10\.|printed in|"
-    # CIP / library cataloguing
-    r"cataloguing.in.publication|cataloging.in.publication|cip data|"
-    # WHO/legal warranty and liability boilerplate
-    r"errors and omissions excepted|without warranty of any|"
-    r"liable for damages|all reasonable precautions.{1,40}verify|"
-    r"distributed without warranty|being distributed without|"
-    # International org disclaimers (WHO, UN, World Bank, IMF)
-    r"designations employed|approximate border lines|dotted and dashed lines on maps|"
-    r"not responsible for the content or accuracy|"
-    r"binding and authentic edition|"
-    r"mention of specific companies|mention of specific manufacturers|"
-    r"reuse material from this work|"
-    r"infringement of any third.party|"
-    r"logo is not permitted|"
-    r"translation of this work[^.!?]{0,60}add the following|"
-    r"sales.{1,20}rights.{1,20}licensing|"
-    r"presentation of the material in this publication)\b",
+# Universal legal/deontic/IP filter.
+# 4 categories that appear in legal text across ANY organization or document type:
+# deontic modals (shall not / may not), IP terms (copyright/trademark/patent),
+# liability language (liable/disclaimer/warranty), reproduction control.
+# No org-specific phrases — this works for WHO, World Bank, journals, patents, standards.
+_LEGAL_UNIVERSAL_RE = re.compile(
+    r"\b(all\s+rights?\s+reserved|copyright\s+\d{4}|©\s*\d{4}|"
+    r"ISBN[\s\-:]\d|ISSN[\s\-:]\d|doi[\s:]*10\.|"                  # publication IDs
+    r"reproduction\s+(?:prohibited|without)|"                         # reproduction restriction
+    r"shall\s+not\s+be\s+(?:liable|reproduced|used)|"                # deontic modal
+    r"may\s+not\s+be\s+(?:reproduced|copied|used)|"                  # deontic modal
+    r"without\s+(?:written\s+)?permission|"                           # permission requirement
+    r"for\s+(?:commercial\s+)?reproduction|"                          # reproduction clause
+    r"\bliabilit(?:y|ies)\b|\bliable\b|\bindemnif\w+\b|"            # liability terms
+    r"\bwithout\s+warrant(?:y|ies)\b|\bno\s+warrant(?:y|ies)\b|"   # warranty disclaimer
+    r"\bdisclaims?\b|\bdisclaimer\b|"                                 # disclaimer
+    r"\btrademark\b|\bpatented?\b|"                                   # IP terms
+    r"\bprohibited\b|\bforbidden\b|\bunauthori[sz]ed\b|"             # access control
+    r"printed\s+in\s+[A-Z][a-z]|"                                    # "Printed in France"
+    r"catalogu?ing[- ]in[- ]publication|cip\s+data)",                  # library CIP
     re.IGNORECASE,
 )
 
@@ -353,6 +349,49 @@ _VERB_RE = re.compile(
 )
 _METRIC_RE = re.compile(r":\s*[\d\.\-\+]")  # "Accuracy: 95%." style
 
+# Precision gate: a sentence must contain at least one factual signal to pass.
+# Filters vague definitional claims ("Protein folding is complex") that are not
+# evidence-checkable. Any 2+ digit number, causal/comparative language, or a
+# statistical qualifier qualifies. Built from universal linguistic properties —
+# not document-type-specific.
+_FACTUAL_SIGNAL_RE = re.compile(
+    # Decimal number — almost always scientific measurement (1.1, 17.9, 0.05)
+    r"\b\d+\.\d+\b"
+    # Quantified number with unit or scientific domain noun
+    r"|\b\d+\.?\d*\s*(%|percent|‰|fold|times|"
+    r"million|billion|trillion|thousand|"
+    r"mg|kg|µg|ng|ml|mm|cm|km|nm|µm|Hz|kHz|MHz|°C|°F|"
+    r"degree[s]?\s+(?:celsius|fahrenheit|kelvin|centigrade)|"
+    r"bp|kb|Mb|yr|year|day|week|month|"
+    r"patient|case|sample|participant|subject|trial|individual|cohort|"
+    r"species|gene|protein|compound|drug|dose)\b"
+    # Causal language
+    r"|\b(due\s+to|caused?\s+by|leads?\s+to|results?\s+in|"
+    r"associated\s+with|attributed\s+to|because\s+of|owing\s+to|"
+    r"consequently|hence|therefore|driven\s+by|mediated\s+by|modulated\s+by)\b"
+    # Comparative language
+    r"|\b(more\s+than|less\s+than|higher\s+than|lower\s+than|"
+    r"greater\s+than|fewer\s+than|at\s+least|at\s+most|"
+    r"compared\s+(?:to|with)|relative\s+to|versus|vs\.|"
+    r"exceed[s]?|outperform[s]?|superior\s+to|inferior\s+to)\b"
+    # Statistical qualifier
+    r"|\b(significantly|substantially|markedly|statistically|"
+    r"considerably|dramatically|notably)\b"
+    # Any bare 2+ digit number (catches years, counts, measurements)
+    r"|\b\d{2,}\b",
+    re.IGNORECASE,
+)
+
+# Finding verbs — fallback signal for long declarative sentences that lack a
+# hard number but clearly report a scientific result.
+_FINDING_VERB_RE = re.compile(
+    r"\b(shows?|demonstrates?|indicates?|suggests?|reveals?|confirms?|"
+    r"finds?|found|reports?|establishes?|proves?|validates?|"
+    r"supports?|contradicts?|refutes?|challenges?|"
+    r"observes?|observed|measures?|measured|analyz(?:es?|ed))\b",
+    re.IGNORECASE,
+)
+
 
 def _is_likely_claim(sentence: str, _counts: dict | None = None) -> bool:
     """Return True if the sentence looks like a verifiable factual claim.
@@ -411,25 +450,68 @@ def _is_likely_claim(sentence: str, _counts: dict | None = None) -> bool:
     # Author/org lists with country or role in parens (IPCC, WHO, UN style)
     if s.count(",") >= 3 and len(_COUNTRY_PARENS_RE.findall(s)) >= 2:
         return reject("author_org_list")
-    # Copyright, legal, and editorial boilerplate
-    if _LEGAL_RE.search(s):
+    # Universal legal/IP/deontic filter (not document-specific)
+    if _LEGAL_UNIVERSAL_RE.search(s):
         return reject("legal_boilerplate")
 
+    # POS-based universal structural filters.
+    # Run after all cheap string filters to minimise tagging overhead.
+    try:
+        from nltk import pos_tag, word_tokenize  # cached after first load
+        pos_tags = pos_tag(word_tokenize(s))
+    except (ImportError, LookupError):
+        pos_tags = []
+
+    if pos_tags:
+        # VBG opener = preamble clause ("Noting that...", "Having regard to...")
+        # Appear in legal/policy preambles across ALL document types.
+        first_content = next(
+            (t for _, t in pos_tags if t not in ('DT', 'IN', 'CC', 'TO', ',')), None
+        )
+        if first_content == 'VBG':
+            return reject("vbg_preamble")
+
+        # High proper-noun ratio = author/institution/country list
+        # e.g. "Dr John Smith Director-General World Health Organization" (~80% NNP)
+        nnp_count = sum(1 for _, t in pos_tags if t == 'NNP')
+        if nnp_count / len(pos_tags) > 0.45:
+            return reject("high_nnp_ratio")
+
+        # Union with regex fallback: POS tagger can misparse domain-specific nouns
+        # as verbs or vice versa (e.g. "accounts" → NNS instead of VBZ).
+        # If either method finds a finite verb, accept it.
+        has_verb_pos = any(t in {'VBZ', 'VBD', 'VBP', 'VBN', 'VB', 'MD'} for _, t in pos_tags)
+        has_verb = has_verb_pos or bool(_VERB_RE.search(lower))
+    else:
+        # POS tagger unavailable — fall back to regex
+        has_verb = bool(_VERB_RE.search(lower))
+
     has_punct = s[-1] in ".!?"
-    has_verb = bool(_VERB_RE.search(lower))
 
     if not has_punct:
         # Slide/bullet-point style: accept if long enough AND has a verb.
-        # Handles PowerPoint PDFs, Beamer slides, docs without terminal periods.
         if len(words) >= _MIN_NOPUNCT_WORDS and has_verb:
-            return True
-        return reject("no_terminal_punct")
+            pass  # continue to factual signal check
+        else:
+            return reject("no_terminal_punct")
 
     if not has_verb:
         # Metric/data-sheet style: accept "Accuracy: 95%." patterns.
         if _METRIC_RE.search(s):
             return True
         return reject("no_verb")
+
+    # Factual signal gate — precision-first.
+    # A verifiable claim must assert something measurable or relational.
+    # Vague sentences ("Protein folding is complex") fail here by design —
+    # they cannot be verified against specific evidence anyway.
+    has_factual_signal = bool(_FACTUAL_SIGNAL_RE.search(s))
+    # Fallback: a long sentence with a scientific finding verb can pass even without
+    # a hard number (e.g. "Studies have consistently found that influenza spreads
+    # through respiratory droplets during close-contact interactions with infected...").
+    is_long_declarative = len(words) >= 15 and bool(_FINDING_VERB_RE.search(lower))
+    if not has_factual_signal and not is_long_declarative:
+        return reject("no_factual_signal")
 
     return True
 
@@ -483,6 +565,21 @@ _ZERO_CLAIM_MESSAGES: dict[str, str] = {
         "Content contains webpage navigation elements (menus, login buttons, etc.). "
         "This appears to be a printed webpage rather than a research document. "
         "Download the original PDF from the publisher, not a browser print-to-PDF."
+    ),
+    "vbg_preamble": (
+        "Content is dominated by preamble clauses (\"Noting that...\", \"Having regard to...\"). "
+        "This is common in legal/policy documents. The document may be a treaty, "
+        "resolution, or regulatory filing rather than a research paper."
+    ),
+    "high_nnp_ratio": (
+        "Content is dominated by proper nouns — likely author lists, "
+        "institutional headers, or country/organisation catalogues."
+    ),
+    "no_factual_signal": (
+        "Sentences lack verifiable factual content: no numbers, measurements, "
+        "causal language, or comparative assertions. "
+        "The document may be introductory, definitional, or purely narrative. "
+        "Try uploading the methods or results section directly."
     ),
 }
 
