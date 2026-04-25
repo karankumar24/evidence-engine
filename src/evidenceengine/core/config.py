@@ -118,7 +118,7 @@ class Settings(BaseSettings):
     #   * nli_contradiction_contradicted_threshold (0.80): symmetric for
     #     `contradicted`.
     nli_tiebreaker_threshold: float = 0.65
-    nli_entailment_supported_threshold: float = 0.80
+    nli_entailment_supported_threshold: float = 0.86   # tuned for SciFact v2 model: 86.7% 3-class, 7.3% false-support
     nli_contradiction_contradicted_threshold: float = 0.80
     nli_min_confidence_for_verdict: float = 0.50
     # ── LLM-primary path only (classifier_backend = "llm_primary") ─────────────
