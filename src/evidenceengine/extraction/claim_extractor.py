@@ -130,12 +130,51 @@ _KNOWN_JOINS: dict[str, str] = {
     "neuralnetwork": "neural network",
     # Hyphenation artifacts from PDF line-break extraction
     "re-sult": "result",
+    "re-strictions": "restrictions",
+    "re-lationships": "relationships",
+    "re-presentation": "representation",
+    "re-quired": "required",
     "representa-tion": "representation",
     "informa-tion": "information",
     "pre-sented": "presented",
     "pre-diction": "prediction",
     "evalu-ation": "evaluation",
     "classi-fication": "classification",
+    "incor-porate": "incorporate",
+    "incor-porating": "incorporating",
+    "lan-guage": "language",
+    "lan-guages": "languages",
+    "ma-jor": "major",
+    "at-tend": "attend",
+    "at-tending": "attending",
+    "unidi-rectionality": "unidirectionality",
+    "unidirec-tional": "unidirectional",
+    "archi-tecture": "architecture",
+    "outper-forming": "outperforming",
+    "outper-form": "outperform",
+    "param-eters": "parameters",
+    "param-eter": "parameter",
+    # Word joins (no space between words due to PDF line-break)
+    "suchas": "such as",
+    "suchan": "such an",
+    "asnatural": "as natural",
+    "aslanguage": "as language",
+    "aswell": "as well",
+    "asfollows": "as follows",
+    "embeddingsare": "embeddings are",
+    "embeddingswith": "embeddings with",
+    "tocoarser": "to coarser",
+    "tofine": "to fine",
+    "areunidirectional": "are unidirectional",
+    "approachesis": "approaches is",
+    "approachis": "approach is",
+    "advantageis": "advantage is",
+    "modelis": "model is",
+    "forexample": "for example",
+    "forinstance": "for instance",
+    "achievesstate": "achieves state",
+    "suiteof": "suite of",
+    "Dolanand": "Dolan and",
 }
 
 
@@ -154,9 +193,12 @@ def _fix_word_boundaries(text: str) -> str:
        ("beenused" → "been used", "Inthe" → "In the"). Preserves leading
        capitalisation so sentence-start joins stay capitalised.
     """
-    # Pass 0: sentence boundary — period/comma touching a capital letter with no space
+    # Pass 0: sentence boundary — period/comma touching a letter with no space.
     # "powerful.It" → "powerful. It", "result,The" → "result, The"
     text = re.sub(r'([a-z])([.,])([A-Z])', r'\1\2 \3', text)
+    # Also fix comma/semicolon immediately followed by a lowercase letter (no space).
+    # "tasks,and" → "tasks, and". Guard: don't match digit before comma (1,000 stays).
+    text = re.sub(r'([a-z])([,;])([a-z])', r'\1\2 \3', text)
     # Pass 1: camelCase boundary split
     text = re.sub(r'([a-z])([A-Z])', r'\1 \2', text)
     # Pass 1.5: proper-noun line-break hyphenation ("Rad-ford" → "Radford").
@@ -168,13 +210,21 @@ def _fix_word_boundaries(text: str) -> str:
     text = re.sub(r'([A-Z][a-z]{2,})-([a-z]{2,5})\b', _dehyphenate_proper, text)
     # Pass 2: remove hyphens before suffixes that are never real compound parts
     # Suffixes: -tion, -sion, -ation, -ization, -ment, -ness, -ful, -tion, -ance
-    text = re.sub(r'([a-z]{3,})-(sentation|tion|sion|ation|ization|ment|ness|ful|ance|ence|ture|ive|ary|ory|able|ible|ly)\b',
-                  r'\1\2', text, flags=re.IGNORECASE)
-    # Pass 3: case-insensitive lookup replacements
+    text = re.sub(
+        r'([a-z]{3,})-(sentation|tion|sion|ation|ization|ment|ness|ful|ance|ence|'
+        r'ture|ive|ary|ory|able|ible|ly|ing|ings|ers|ists|ology|ologies|'
+        r'strictions|striction|porate|porates|guage|guages|jority|tend|tending)\b',
+        r'\1\2', text, flags=re.IGNORECASE,
+    )
+    # Pass 3: case-insensitive lookup replacements with word-boundary guards.
+    # \b anchors prevent matching within correct words: "Caswell" contains "aswell"
+    # but the word boundary between "C" and "a" (both \w) does not exist, so
+    # \baswell\b does NOT match inside "Caswell". Artifact "aswell" surrounded by
+    # spaces/punctuation does have word boundaries and matches correctly.
     for bad, good in _KNOWN_JOINS.items():
         def _replace(m: re.Match, _good: str = good) -> str:
             return _good[0].upper() + _good[1:] if m.group(0)[0].isupper() else _good
-        text = re.sub(re.escape(bad), _replace, text, flags=re.IGNORECASE)
+        text = re.sub(r'\b' + re.escape(bad) + r'\b', _replace, text, flags=re.IGNORECASE)
     return text
 
 
