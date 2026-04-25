@@ -23,6 +23,12 @@ logger = logging.getLogger(__name__)
 
 _DENSE_MODEL_NAME = "all-MiniLM-L6-v2"
 
+# Skip dense encoding when the corpus is too large — encoding 2000+ blocks on
+# a shared CPU takes 10-20 minutes. Fall back to BM25 + cross-encoder reranking
+# which is fast and still produces good results. Cached runs (second upload of
+# the same document) are always fast regardless of corpus size.
+MAX_DENSE_CORPUS_SIZE = 1500
+
 _model = None
 _lock = threading.Lock()
 _load_failed = False
@@ -73,6 +79,15 @@ def load_or_build_dense(span_texts: list[str], cache_path: str) -> np.ndarray | 
             )
         except Exception as exc:  # noqa: BLE001
             logger.warning("Dense cache load failed (%s) — recomputing", exc)
+
+    # Skip dense encoding for very large corpora — too slow on shared CPU.
+    # BM25 + cross-encoder reranking handles quality for large documents.
+    if len(span_texts) > MAX_DENSE_CORPUS_SIZE:
+        logger.info(
+            "Dense encoding skipped: corpus size %d exceeds limit %d — BM25-only for this document",
+            len(span_texts), MAX_DENSE_CORPUS_SIZE,
+        )
+        return None
 
     model = _ensure_loaded()
     if model is None:
