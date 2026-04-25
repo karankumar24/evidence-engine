@@ -63,6 +63,20 @@ _AFFILIATION_RE = re.compile(
 # catches "SPM.4.2.1\t......17" and Unicode replacement character runs
 _TOC_RE = re.compile(r"\t\.{5,}|\t{3,}|\ufffd{4,}")
 
+# Publisher imprint lines: "Cambridge University Press, Cambridge, United Kingdom"
+# These have no verb so already fail has_verb, but only when terminal-punctuated.
+# Explicit guard handles the rare case they slip through as non-punct lines.
+_PUBLISHER_RE = re.compile(
+    r"^(Cambridge|Oxford|Springer|Elsevier|Wiley|MIT|Academic|CRC|Routledge|"
+    r"Taylor\s*&\s*Francis|Sage|IEEE|ACM|Nature|Palgrave|Penguin|HarperCollins|"
+    r"Random\s+House)\s+(University\s+Press|Press|Publishing|Publications?)\b",
+    re.IGNORECASE,
+)
+
+# Student/course header: surname followed immediately by a digit, then more names
+# "Kumar 1 Karan Kumar Dr. Tariq BIO 101" — the " \d+ " break after a word is the signal
+_STUDENT_HEADER_RE = re.compile(r"^[A-Z][a-z]+ \d+ [A-Z]")
+
 # Printed webpage navigation — covers common print-to-PDF chrome patterns
 # Includes bullet/icon characters (•, ○, ▸) mid-sentence (nav lists)
 _NAV_RE = re.compile(
@@ -301,6 +315,11 @@ def _is_likely_claim(sentence: str, _counts: dict | None = None) -> bool:
     # Printed webpage navigation chrome
     if _NAV_RE.search(s):
         return reject("webpage_nav")
+    # Publisher imprint lines and student course headers
+    if _PUBLISHER_RE.match(s):
+        return reject("publisher_imprint")
+    if _STUDENT_HEADER_RE.match(s):
+        return reject("student_header")
 
     has_punct = s[-1] in ".!?"
     has_verb = bool(_VERB_RE.search(lower))
@@ -433,6 +452,7 @@ async def extract_claims_from_blocks(
     seen: set[str] = set()
     rejection_counts: dict[str, int] = {}
     total_candidates = 0
+    prev_sentence = ""  # tracks the sentence immediately before the current one, across blocks
 
     for block in citation_blocks:
         text = _fix_word_boundaries(block.get("text", "").strip())
@@ -448,16 +468,27 @@ async def extract_claims_from_blocks(
             sentence = sentence.strip()
             total_candidates += 1
             if not _is_likely_claim(sentence, rejection_counts):
+                prev_sentence = sentence
                 continue
             # Deduplicate
             key = sentence.lower()
             if key in seen:
+                prev_sentence = sentence
                 continue
             seen.add(key)
+            markers = _detect_citation_markers(sentence)
+            # If no in-sentence citations, inherit from the preceding sentence.
+            # Scientific writing often places a citation in sentence N and makes
+            # a verifiable claim in sentence N+1: "...shown by Vaswani et al.
+            # (2017). Such restrictions are sub-optimal..." — the claim sentence
+            # has no marker, but the citation context clearly applies.
+            if not markers and prev_sentence:
+                markers = _detect_citation_markers(prev_sentence)
             all_claims.append(ExtractedClaim(
                 claim_text=sentence,
-                citation_markers=_detect_citation_markers(sentence),
+                citation_markers=markers,
             ))
+            prev_sentence = sentence
 
     logger.info(
         "Local extractor produced %d claims from %d candidates across %d blocks",

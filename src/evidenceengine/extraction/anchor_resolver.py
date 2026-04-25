@@ -65,6 +65,29 @@ def _has_substantive_token(tokens: set[str]) -> bool:
     return any(len(t) >= _MIN_SUBSTANTIVE_TOKEN_LEN for t in tokens)
 
 
+def _try_surname_year_lookup(
+    surname: str, year: str, non_report_docs: list
+) -> str | None:
+    """Surname+year co-occurrence scan against source doc title-page content.
+
+    When fuzzy matching fails for author-year markers, scan each source doc's
+    first 5000 chars (title page, abstract, author list) for surname+year
+    co-occurrence. Returns the single matching doc_id, or None if 0 or 2+ docs
+    match (ambiguous).
+
+    Fixes the "(Devlin et al., 2019)" case: raw marker has only 2 tokens so
+    token coverage is ≤50%, below the 80-threshold. But "devlin" + "2019" both
+    appear in bert_paper.pdf's author list / abstract, giving a direct hit.
+    """
+    surname_lower = surname.lower()
+    matches: list[str] = []
+    for doc in non_report_docs:
+        text = (doc.raw_text or "")[:5000].lower()
+        if surname_lower in text and year in text:
+            matches.append(str(doc.id))
+    return matches[0] if len(matches) == 1 else None
+
+
 # Recognized headings that introduce a references section.
 _REFERENCES_HEADERS = frozenset(
     {"references", "bibliography", "works cited", "citations", "literature cited"}
@@ -201,12 +224,29 @@ def resolve_to_source_document(
             second_score = score
 
     if best_score >= RESOLUTION_THRESHOLD:
+        # Tie: two docs score equally high — genuinely ambiguous, don't guess
+        if best_score == second_score:
+            return None, "unresolvable"
         return best_doc_id, "resolved"
     # Margin-of-separation path: top candidate has a decent score and leaves
     # the runner-up far behind. Typical false-positive shape (two docs scoring
     # similarly both below threshold) is rejected by the LEAD requirement.
     if best_score >= MARGIN_THRESHOLD and (best_score - second_score) >= MARGIN_LEAD:
         return best_doc_id, "resolved"
+    # Surname+year direct scan fallback for author-year citations.
+    # Raw markers like "(Devlin et al., 2019)" carry only 2 tokens — surname
+    # and year — giving ≤50% token coverage, below RESOLUTION_THRESHOLD.
+    # When both appear in exactly one source doc's first 5000 chars (title
+    # page / author list), that's an unambiguous match.
+    if citation_style == "author_year":
+        year_m = re.search(r"\b(\d{4})\b", raw_marker)
+        surname_m = re.search(r"\b([A-Z][a-z]+)\b", raw_marker)
+        if year_m and surname_m:
+            direct_id = _try_surname_year_lookup(
+                surname_m.group(1), year_m.group(1), non_report_docs
+            )
+            if direct_id:
+                return direct_id, "resolved"
     return None, "unresolvable"
 
 

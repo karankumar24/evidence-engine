@@ -272,6 +272,63 @@ def test_resolve_with_line_break_concatenation():
     assert doc_id == str(attention_doc.id)
 
 
+def test_resolve_author_year_fallback_surname_year_scan():
+    """Fallback: when references_entries is missing, scan source doc content for surname+year.
+
+    "(Devlin et al., 2019)" has only 2 tokens — not enough for 80% token
+    coverage via fuzzy match. But "devlin" and "2019" appear in bert_paper.pdf's
+    author list, so the direct scan resolves it correctly.
+    """
+    from evidenceengine.extraction.anchor_resolver import resolve_to_source_document
+
+    bert_doc = make_source_doc(
+        filename="bert_paper.pdf",
+        raw_text=(
+            "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding. "
+            "Jacob Devlin, Ming-Wei Chang, Kenton Lee, Kristina Toutanova. Google AI Language. 2019."
+        ),
+    )
+    unrelated_doc = make_source_doc(
+        filename="gpt_paper.pdf",
+        raw_text="Language models are few-shot learners. Tom Brown et al. OpenAI. 2020.",
+    )
+    sources = [bert_doc, unrelated_doc]
+
+    doc_id, status = resolve_to_source_document(
+        raw_marker="(Devlin et al., 2019)",
+        citation_style="author_year",
+        source_documents=sources,
+        references_entries=[],  # empty — simulates extraction failure
+    )
+    assert status == "resolved", f"Expected resolved via surname+year scan, got: {status}"
+    assert doc_id == str(bert_doc.id)
+
+
+def test_resolve_author_year_fallback_ambiguous_no_resolve():
+    """Surname+year scan returns None when 2+ docs contain the surname+year (ambiguous)."""
+    from evidenceengine.extraction.anchor_resolver import resolve_to_source_document
+
+    doc_a = make_source_doc(
+        filename="paper_a.pdf",
+        raw_text="Smith 2023. Climate analysis methods.",
+    )
+    doc_b = make_source_doc(
+        filename="paper_b.pdf",
+        raw_text="Smith 2023. Ocean temperature models.",
+    )
+    sources = [doc_a, doc_b]
+
+    doc_id, status = resolve_to_source_document(
+        raw_marker="(Smith et al., 2023)",
+        citation_style="author_year",
+        source_documents=sources,
+        references_entries=[],
+    )
+    # Both docs match surname+year → ambiguous → unresolvable
+    assert status == "unresolvable"
+    assert doc_id is None
+
+
 def test_resolve_author_year_via_reference_entry_lookup():
     """Author-year markers resolve by looking up the full reference entry.
 
