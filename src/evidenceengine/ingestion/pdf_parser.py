@@ -172,6 +172,12 @@ def parse_pdf(filepath: str) -> ParsedDocument:
             filename, total_pages,
         )
 
+    # Strip null bytes — PostgreSQL VARCHAR/JSONB rejects \x00 (U+0000).
+    # Large technical PDFs (e.g. GPT-4 report) contain embedded binary fragments
+    # that PyMuPDF surfaces as null bytes. Must happen before offset verification.
+    for b in blocks:
+        b.text = b.text.replace("\x00", "")
+
     # Assemble raw_text by joining block texts with "\n"
     raw_text = "\n".join(b.text for b in blocks)
 
