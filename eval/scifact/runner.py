@@ -138,7 +138,7 @@ async def _evaluate_claim(
         return ScifactCaseResult(
             id=claim.id,
             gold_label=claim.gold_label,
-            predicted_label=response.verdict,
+            predicted_label=response.verdict_type,
             confidence=response.confidence_score,
             retrieved_spans=evidence_spans,
             retrieval_recall=retrieval_recall,

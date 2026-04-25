@@ -148,13 +148,16 @@ async def run_full_pipeline(run_version_id: str) -> None:
                    so that the task runner (uvicorn / asyncio) can log it.
     """
     try:
-        key = settings.llm_api_key
-        if not key or key.startswith("sk-REPLACE"):
-            raise RuntimeError(
-                "LLM_API_KEY is not configured. Set a real key (e.g. an OpenRouter "
-                "sk-or-v1-… key) in .env before running the pipeline. "
-                "Legacy OPENAI_API_KEY is also accepted."
-            )
+        # Only require an API key if the LLM classifier is actually selected.
+        # NLI-primary mode (the default) runs fully locally with no API calls.
+        if settings.classifier_backend != "nli_primary":
+            key = settings.llm_api_key
+            if not key or key.startswith("sk-REPLACE"):
+                raise RuntimeError(
+                    "LLM_API_KEY is not configured. Set a real key (e.g. an OpenRouter "
+                    "sk-or-v1-… key) in .env before running the pipeline. "
+                    "Legacy OPENAI_API_KEY is also accepted."
+                )
 
         # Stages 0–2 use one session. It commits and closes before Stage 3 so
         # the DB connection is not held idle during the CPU-intensive NLI run.
