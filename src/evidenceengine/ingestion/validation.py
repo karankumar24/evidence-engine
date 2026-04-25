@@ -137,6 +137,21 @@ def validate_and_parse_file(
         raise ValueError(f"Failed to parse {filename}: {exc}") from exc
 
 
+def _strip_null_bytes(obj: object) -> object:
+    """Recursively strip \\x00 from every string in a JSON-serializable structure.
+
+    PostgreSQL rejects U+0000 in VARCHAR and JSONB columns. Called as a final
+    pass on the serialized dict before it reaches the database.
+    """
+    if isinstance(obj, str):
+        return obj.replace("\x00", "")
+    if isinstance(obj, list):
+        return [_strip_null_bytes(item) for item in obj]
+    if isinstance(obj, dict):
+        return {k: _strip_null_bytes(v) for k, v in obj.items()}
+    return obj
+
+
 def serialize_parsed_document(parsed) -> dict:
     """Serialize a ParsedDocument into the JSONB shape persisted on SourceDocument.parsed_content."""
     blocks = []
@@ -153,9 +168,10 @@ def serialize_parsed_document(parsed) -> dict:
                 "bbox": list(block.position.bbox) if block.position.bbox else None,
             },
         })
-    return {
+    raw = {
         "filename": parsed.filename,
         "total_pages": parsed.total_pages,
         "blocks": blocks,
         "tables": parsed.tables,
     }
+    return _strip_null_bytes(raw)  # type: ignore[return-value]

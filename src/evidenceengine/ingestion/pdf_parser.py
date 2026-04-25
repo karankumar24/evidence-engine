@@ -83,9 +83,12 @@ def parse_pdf(filepath: str) -> ParsedDocument:
         for table in page_tables:
             try:
                 data = table.extract()
-                # Normalise: replace None cells with empty string
+                # Normalise: replace None cells with empty string, strip null bytes.
+                # str() cast handles rare non-string cells; \x00 crashes PostgreSQL.
                 cleaned_data = [
-                    [cell if cell is not None else "" for cell in row] for row in data
+                    [str(cell).replace("\x00", "") if cell is not None else ""
+                     for cell in row]
+                    for row in data
                 ]
                 tables.append(
                     {
@@ -174,9 +177,12 @@ def parse_pdf(filepath: str) -> ParsedDocument:
 
     # Strip null bytes — PostgreSQL VARCHAR/JSONB rejects \x00 (U+0000).
     # Large technical PDFs (e.g. GPT-4 report) contain embedded binary fragments
-    # that PyMuPDF surfaces as null bytes. Must happen before offset verification.
+    # that PyMuPDF surfaces as null bytes. Covers block text AND section_header
+    # (which is set from raw heading text before this loop runs).
     for b in blocks:
         b.text = b.text.replace("\x00", "")
+        if b.position.section_header:
+            b.position.section_header = b.position.section_header.replace("\x00", "")
 
     # Assemble raw_text by joining block texts with "\n"
     raw_text = "\n".join(b.text for b in blocks)
