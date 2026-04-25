@@ -109,7 +109,7 @@ _LEGAL_RE = re.compile(
     r"reuse material from this work|"
     r"infringement of any third.party|"
     r"logo is not permitted|"
-    r"translation of this work.*add the following|"
+    r"translation of this work[^.!?]{0,60}add the following|"
     r"sales.{1,20}rights.{1,20}licensing|"
     r"presentation of the material in this publication)\b",
     re.IGNORECASE,
