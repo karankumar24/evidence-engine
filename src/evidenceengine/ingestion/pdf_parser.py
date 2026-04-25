@@ -26,6 +26,14 @@ FOOTNOTE_PAGE_FRACTION = 0.15
 # Minimum font size for footnote detection (smaller than body text)
 FOOTNOTE_FONT_SIZE_MAX = 9.0
 
+# Maximum page count for which table extraction (Layer 3) runs.
+# find_tables() is O(tables_per_page) with high constant factor — on a 190-page
+# IMF report it takes ~5 minutes. For large documents, _is_likely_claim() heuristics
+# (no-verb, no-terminal-punct, length filters) already reject table cell content
+# with high recall. Skip table extraction above this threshold to keep parse times
+# under 60 seconds.
+TABLE_EXTRACTION_MAX_PAGES = 50
+
 
 def _detect_block_type(
     block: dict,
@@ -74,12 +82,25 @@ def parse_pdf(filepath: str) -> ParsedDocument:
     current_offset = 0
     current_section: str | None = None
 
+    # Skip table extraction for large documents: find_tables() is expensive
+    # (O(tables_per_page)) and takes minutes for 100+ page reports.
+    # _is_likely_claim() heuristics already reject table cell content effectively.
+    skip_table_extraction = total_pages > TABLE_EXTRACTION_MAX_PAGES
+    if skip_table_extraction:
+        logger.info(
+            "pdf_parser: %s has %d pages — skipping table extraction (threshold %d)",
+            filename, total_pages, TABLE_EXTRACTION_MAX_PAGES,
+        )
+
     for page_num, page in enumerate(doc, start=1):
         page_height = page.rect.height
 
         # Layer 3: Extract structured table data first (so we can skip table blocks in Layer 2)
-        page_tables = page.find_tables()
         table_bboxes = []
+        if skip_table_extraction:
+            page_tables = []
+        else:
+            page_tables = page.find_tables()
         for table in page_tables:
             try:
                 data = table.extract()

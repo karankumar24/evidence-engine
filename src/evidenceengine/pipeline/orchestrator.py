@@ -156,6 +156,10 @@ async def run_full_pipeline(run_version_id: str) -> None:
                 "Legacy OPENAI_API_KEY is also accepted."
             )
 
+        # Stages 0–2 use one session. It commits and closes before Stage 3 so
+        # the DB connection is not held idle during the CPU-intensive NLI run.
+        # A 190-page document can take 10+ minutes of NLI inference, which
+        # causes PostgreSQL to close idle connections (InterfaceError).
         async with async_session_factory() as session:
             # ── Stage 0: Parse any pending source documents ───────────────────
             await _set_stage(run_version_id, "parsing", session)
@@ -180,8 +184,14 @@ async def run_full_pipeline(run_version_id: str) -> None:
             await _set_stage(run_version_id, "retrieving", session)
             await retrieve_evidence_for_run(run_version_id, session)
 
-            # ── Stage 3: Classify (with error collection) ─────────────────────
+            # Mark as classifying BEFORE closing this session so the UI
+            # reflects the current stage while NLI runs in the next block.
             await _set_stage(run_version_id, "classifying", session)
+        # Session closes here — connection returned to pool.
+
+        # Stage 3 uses a fresh connection so no idle timeout during NLI.
+        async with async_session_factory() as session:
+            # ── Stage 3: Classify (with error collection) ─────────────────────
             _verdicts, claim_errors = await _classify_with_error_collection(
                 run_version_id, session
             )
