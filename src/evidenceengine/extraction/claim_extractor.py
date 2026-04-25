@@ -600,6 +600,65 @@ def _make_zero_claims_diagnostic(counts: dict[str, int], total_candidates: int) 
     )
 
 
+def _extract_claims_sync(
+    citation_blocks: list[dict],
+    sent_tokenize_fn,  # passed in so the caller handles the import
+) -> ClaimExtractionResponse:
+    """Synchronous extraction loop — runs in a thread pool via asyncio.to_thread.
+
+    Separated from the async wrapper so POS tagging (CPU-intensive, synchronous)
+    never blocks the event loop. Health checks remain responsive even for large
+    documents.
+    """
+    all_claims: list[ExtractedClaim] = []
+    seen: set[str] = set()
+    rejection_counts: dict[str, int] = {}
+    total_candidates = 0
+    prev_sentence = ""
+
+    for block in citation_blocks:
+        text = _fix_word_boundaries(block.get("text", "").strip())
+        if not text:
+            continue
+        try:
+            sentences = sent_tokenize_fn(text)
+        except Exception as exc:
+            logger.warning("sent_tokenize failed for block: %s", exc)
+            sentences = [s.strip() for s in text.split(".") if s.strip()]
+
+        for sentence in sentences:
+            sentence = sentence.strip()
+            total_candidates += 1
+            if not _is_likely_claim(sentence, rejection_counts):
+                prev_sentence = sentence
+                continue
+            key = sentence.lower()
+            if key in seen:
+                prev_sentence = sentence
+                continue
+            seen.add(key)
+            markers = _detect_citation_markers(sentence)
+            if not markers and prev_sentence:
+                markers = _detect_citation_markers(prev_sentence)
+            all_claims.append(ExtractedClaim(
+                claim_text=sentence,
+                citation_markers=markers,
+            ))
+            prev_sentence = sentence
+
+    logger.info(
+        "Local extractor produced %d claims from %d candidates across %d blocks",
+        len(all_claims), total_candidates, len(citation_blocks),
+    )
+
+    if not all_claims:
+        diagnostic = _make_zero_claims_diagnostic(rejection_counts, total_candidates)
+        logger.warning("0 claims extracted — %s", diagnostic)
+        return ClaimExtractionResponse(claims=[], diagnostic=diagnostic)
+
+    return ClaimExtractionResponse(claims=all_claims)
+
+
 async def extract_claims_from_blocks(
     citation_blocks: list[dict],
 ) -> ClaimExtractionResponse:
@@ -607,13 +666,12 @@ async def extract_claims_from_blocks(
 
     No LLM calls. No API dependency. Runs locally in milliseconds.
 
-    Args:
-        citation_blocks: Text blocks from the parsed document.
-                         Each dict has at minimum a "text" key.
-
-    Returns:
-        ClaimExtractionResponse with filtered factual sentences as claims.
+    The CPU-intensive work (sentence tokenisation + per-sentence heuristics
+    including NLTK POS tagging) runs in a thread pool via asyncio.to_thread
+    so the event loop stays responsive for health checks and other requests.
     """
+    import asyncio
+
     if not citation_blocks:
         return ClaimExtractionResponse(
             claims=[],
@@ -639,56 +697,7 @@ async def extract_claims_from_blocks(
         logger.error("nltk not available — returning empty claims")
         return ClaimExtractionResponse(claims=[])
 
-    all_claims: list[ExtractedClaim] = []
-    seen: set[str] = set()
-    rejection_counts: dict[str, int] = {}
-    total_candidates = 0
-    prev_sentence = ""  # tracks the sentence immediately before the current one, across blocks
-
-    for block in citation_blocks:
-        text = _fix_word_boundaries(block.get("text", "").strip())
-        if not text:
-            continue
-        try:
-            sentences = sent_tokenize(text)
-        except Exception as exc:
-            logger.warning("sent_tokenize failed for block: %s", exc)
-            sentences = [s.strip() for s in text.split(".") if s.strip()]
-
-        for sentence in sentences:
-            sentence = sentence.strip()
-            total_candidates += 1
-            if not _is_likely_claim(sentence, rejection_counts):
-                prev_sentence = sentence
-                continue
-            # Deduplicate
-            key = sentence.lower()
-            if key in seen:
-                prev_sentence = sentence
-                continue
-            seen.add(key)
-            markers = _detect_citation_markers(sentence)
-            # If no in-sentence citations, inherit from the preceding sentence.
-            # Scientific writing often places a citation in sentence N and makes
-            # a verifiable claim in sentence N+1: "...shown by Vaswani et al.
-            # (2017). Such restrictions are sub-optimal..." — the claim sentence
-            # has no marker, but the citation context clearly applies.
-            if not markers and prev_sentence:
-                markers = _detect_citation_markers(prev_sentence)
-            all_claims.append(ExtractedClaim(
-                claim_text=sentence,
-                citation_markers=markers,
-            ))
-            prev_sentence = sentence
-
-    logger.info(
-        "Local extractor produced %d claims from %d candidates across %d blocks",
-        len(all_claims), total_candidates, len(citation_blocks),
-    )
-
-    if not all_claims:
-        diagnostic = _make_zero_claims_diagnostic(rejection_counts, total_candidates)
-        logger.warning("0 claims extracted — %s", diagnostic)
-        return ClaimExtractionResponse(claims=[], diagnostic=diagnostic)
-
-    return ClaimExtractionResponse(claims=all_claims)
+    # Offload CPU-intensive synchronous work to a thread pool.
+    # This prevents NLTK POS tagging (called per-sentence) from blocking the
+    # event loop on large documents.
+    return await asyncio.to_thread(_extract_claims_sync, citation_blocks, sent_tokenize)
