@@ -23,6 +23,8 @@ _SKIP_PREFIXES = (
     "fig", "figure", "table", "appendix", "note ", "notes ",
     "see ", "cf.", "e.g.", "i.e.", "et al.", "ibid",
     "acknowledgement", "acknowledgment", "reference", "bibliography",
+    "keywords", "keyword:", "key words",
+    "doi:", "doi ", "pmid", "pmcid", "epub ahead",
 )
 
 # Patterns that suggest a sentence is a structural artifact, not a claim
@@ -85,11 +87,25 @@ _STUDENT_HEADER_RE = re.compile(r"^[A-Z][a-z]+ \d+ [A-Z]")
 _COUNTRY_PARENS_RE = re.compile(r'\([A-Z][a-zA-Z ]{2,25}\)')
 
 # Copyright, legal, and editorial boilerplate common in published PDFs
+# and international organization reports (WHO, UN, World Bank, IMF, etc.)
 _LEGAL_RE = re.compile(
     r"\b(all rights reserved|reproduction prohibited|without authorization|"
     r"right of publication|rights of translation|editorial correspondence|"
     r"requests to publish|reproduce or translate|©\s*\d{4}|copyright \d{4}|"
-    r"isbn[\s\-:]\d|issn[\s\-:]\d|doi:\s*10\.|printed in)\b",
+    r"isbn[\s\-:]\d|issn[\s\-:]\d|doi[\s:]*10\.|printed in|"
+    # CIP / library cataloguing
+    r"cataloguing.in.publication|cataloging.in.publication|cip data|"
+    # International org disclaimers (WHO, UN, World Bank, IMF)
+    r"designations employed|approximate border lines|dotted and dashed lines on maps|"
+    r"not responsible for the content or accuracy|"
+    r"binding and authentic edition|"
+    r"mention of specific companies|mention of specific manufacturers|"
+    r"reuse material from this work|"
+    r"infringement of any third.party|"
+    r"logo is not permitted|"
+    r"translation of this work.*add the following|"
+    r"sales.{1,20}rights.{1,20}licensing|"
+    r"presentation of the material in this publication)\b",
     re.IGNORECASE,
 )
 
