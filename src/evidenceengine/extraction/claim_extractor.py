@@ -26,6 +26,10 @@ _SKIP_PREFIXES = (
     "keywords", "keyword:", "key words",
     "doi:", "doi ", "pmid", "pmcid", "epub ahead",
     "for a review", "for an overview", "for more detail", "for details,",
+    # Journal header lines (publication metadata, not claims).
+    # "journal of " covers JMLR, NEJM, etc. "proceedings of " excluded — legal/policy
+    # docs legitimately write "proceedings of this investigation revealed…"
+    "journal of ",
     # Figure/chart description starters — universal across all document types
     "the dotted ", "the dashed ", "the solid line", "the shaded area",
     "bars represent", "bars show", "bars indicate", "the bars ",

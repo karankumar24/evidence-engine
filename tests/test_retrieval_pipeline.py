@@ -270,17 +270,37 @@ async def test_pipeline_scoped_to_cited_document(db_session, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_unresolvable_claim_skipped(db_session, monkeypatch):
-    """Claim with unresolvable anchor → no EvidenceSpan rows; still counts in recall denominator."""
+async def test_unresolvable_claim_falls_back_to_cited_source(db_session, monkeypatch):
+    """Claim with unresolvable anchor + cited source uploaded → falls back to cited source corpus."""
     from evidenceengine.retrieval.pipeline import retrieve_evidence_for_run
 
-    _, _, _, run_version, claims, _ = await make_packet_with_claim(
+    # with_source_doc=True (default): packet has a non-report cited source
+    _, _, source_doc, run_version, _, _ = await make_packet_with_claim(
         db_session, resolution_status="unresolvable"
     )
     mock_bm25_functions(monkeypatch)
     mock_reranker(monkeypatch)
 
     spans = await retrieve_evidence_for_run(str(run_version.id), db_session)
+    # Unresolvable anchor falls back to cited source — evidence spans are produced
+    assert len(spans) > 0
+    assert all(str(s.source_document_id) == str(source_doc.id) for s in spans)
+
+
+@pytest.mark.asyncio
+async def test_unresolvable_claim_no_cited_source_returns_empty(db_session, monkeypatch):
+    """Claim with unresolvable anchor and NO cited source → self-verify against empty report → no spans."""
+    from evidenceengine.retrieval.pipeline import retrieve_evidence_for_run
+
+    # with_source_doc=False: report-only upload, nothing to fall back to
+    _, _, _, run_version, _, _ = await make_packet_with_claim(
+        db_session, resolution_status="unresolvable", with_source_doc=False
+    )
+    mock_bm25_functions(monkeypatch)
+    mock_reranker(monkeypatch)
+
+    spans = await retrieve_evidence_for_run(str(run_version.id), db_session)
+    # Report has parsed_content={"blocks": []} → no spans extracted
     assert spans == []
 
 
@@ -485,9 +505,10 @@ async def test_recall_at_k_correct_with_unresolvable(db_session, monkeypatch):
     updated_run = result.scalar_one()
     metrics = updated_run.pipeline_config["retrieval_metrics"]
     assert metrics["claim_count"] == 3
-    assert metrics["retrieved_count"] == 2
-    # recall_at_k = 2/3 ≈ 0.667
-    assert abs(metrics["recall_at_k"] - 2 / 3) < 0.01
+    # Unresolvable claim now falls back to cited source corpus → all 3 claims retrieve evidence
+    assert metrics["retrieved_count"] == 3
+    # recall_at_k = 3/3 = 1.0
+    assert abs(metrics["recall_at_k"] - 1.0) < 0.01
 
 
 @pytest.mark.asyncio

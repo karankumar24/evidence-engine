@@ -72,6 +72,18 @@ async def retrieve_evidence_for_run(
     retrieved_claim_count = 0
     all_spans: list[EvidenceSpan] = []
 
+    # 1b. Load cited (non-report) source documents for this packet.
+    # Used as fallback corpus when a claim has no resolved citation anchors —
+    # searching cited sources is strictly better than self-verifying the report.
+    packet_id = claims[0].packet_id
+    cited_result = await db.execute(
+        select(SourceDocument.id).where(
+            SourceDocument.packet_id == packet_id,
+            SourceDocument.is_report == False,  # noqa: E712
+        )
+    )
+    cited_source_ids: list[str] = [str(row[0]) for row in cited_result.fetchall()]
+
     # In-run index cache: {source_document_id_str -> (retriever, span_dicts, dense_embs|None)}
     # Avoids re-indexing/re-encoding when multiple claims cite the same source document.
     index_cache: dict[str, tuple[Any, list[dict], Any]] = {}
@@ -83,15 +95,22 @@ async def retrieve_evidence_for_run(
         ]
 
         # Build the list of (target_doc_id, anchor_or_None) pairs to search.
-        # If the claim has resolved citation anchors, use those source documents.
-        # Otherwise fall back to self-verification: search the report itself for
-        # supporting/contradicting evidence (the report's own other paragraphs).
+        # Priority 1: resolved citation anchors → search only the anchored docs.
+        # Priority 2: uploaded cited sources → search all non-report docs in packet.
+        # Priority 3: no cited sources → self-verification (report corpus).
         if resolved_anchors:
             search_targets = [(str(a.target_document_id), a) for a in resolved_anchors]
+        elif cited_source_ids:
+            search_targets = [(doc_id, None) for doc_id in cited_source_ids]
+            logger.debug(
+                "Claim %s has no resolved anchors — searching %d cited source(s)",
+                claim.id,
+                len(cited_source_ids),
+            )
         else:
             search_targets = [(str(claim.source_document_id), None)]
             logger.debug(
-                "Claim %s has no resolved anchors — using report as self-verification corpus",
+                "Claim %s has no resolved anchors and no cited sources — self-verifying",
                 claim.id,
             )
 
@@ -154,8 +173,12 @@ async def retrieve_evidence_for_run(
             # "SUPPORTED 95%" where the only evidence is the claim itself.
             # overlapping_texts is kept outside the if-block so the dense union
             # below can apply the same filter without re-computing overlap.
+            # Guard: only apply when searching the claim's own source document.
+            # In multi-doc fallback mode anchor=None but doc_id differs from
+            # claim.source_document_id — char positions are document-local and
+            # comparing across documents produces spurious overlap hits.
             overlapping_texts: set[str] = set()
-            if anchor is None:
+            if anchor is None and doc_id_str == str(claim.source_document_id):
                 claim_start = claim.char_start or 0
                 claim_end = claim.char_end or 0
                 overlapping_texts = {
