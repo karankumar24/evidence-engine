@@ -34,3 +34,7 @@ class ParsedDocument:
     markdown_text: str  # PyMuPDF4LLM markdown for PDF; raw_text for DOCX
     raw_text: str  # Concatenated block texts joined with "\n"
     tables: list[dict] = field(default_factory=list)  # Structured table data
+    # Extracted paper metadata for citation anchor resolution.
+    # Schema: {"title": str, "authors": [str, ...], "year": str}
+    # None for DOCX or when PDF metadata is unavailable.
+    paper_metadata: dict | None = None

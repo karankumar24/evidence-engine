@@ -157,6 +157,7 @@ async def create_packet(
             markdown_text=(parsed.markdown_text or "").replace("\x00", "") or None,
             total_pages=parsed.total_pages,
             parse_status="completed",
+            paper_metadata=getattr(parsed, "paper_metadata", None),
         )
         db.add(source_doc)
 

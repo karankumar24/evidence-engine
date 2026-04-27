@@ -34,6 +34,32 @@ from evidenceengine.extraction.position_recovery import recover_position
 from evidenceengine.models.claim import CitationAnchor, Claim
 from evidenceengine.models.document import SourceDocument
 
+
+def _stratified_sample(claims: list, n: int) -> list:
+    """Sample n claims spread evenly across 5 document sections.
+
+    Ensures results/discussion sections are represented rather than
+    only introduction/background (which appear first in the document).
+    """
+    if not claims or n <= 0:
+        return []
+    section_count = min(5, len(claims))
+    section_size = max(1, len(claims) // section_count)
+    sections = [claims[i:i + section_size] for i in range(0, len(claims), section_size)]
+    per_section = max(1, n // len(sections))
+    result = []
+    for section in sections:
+        result.extend(section[:per_section])
+    # Fill remaining slots from the start (prefer early document coverage)
+    if len(result) < n:
+        seen = set(id(c) for c in result)
+        for claim in claims:
+            if id(claim) not in seen:
+                result.append(claim)
+                if len(result) >= n:
+                    break
+    return result[:n]
+
 logger = logging.getLogger(__name__)
 
 
@@ -108,13 +134,41 @@ async def extract_claims_for_document(
         settings.max_claims_absolute,
     )
     extracted_count = len(extraction_result.claims)
-    discarded_count = max(0, extracted_count - effective_cap)
+
+    # Citation-first sampling: cited claims (sentences with [N] or (Author, Year))
+    # fill the cap first. These are the claims the tool exists to verify.
+    # Uncited claims are added via stratified section sampling to ensure all
+    # document sections (intro/methods/results/discussion) are represented.
+    cited_claims = [
+        c for c in extraction_result.claims
+        if getattr(c, "citation_markers", [])
+    ]
+    uncited_claims = [
+        c for c in extraction_result.claims
+        if not getattr(c, "citation_markers", [])
+    ]
+
+    if len(cited_claims) >= effective_cap:
+        sampled_claims = cited_claims[:effective_cap]
+    else:
+        remaining = effective_cap - len(cited_claims)
+        sampled_claims = cited_claims + _stratified_sample(uncited_claims, remaining)
+
+    discarded_count = max(0, extracted_count - len(sampled_claims))
     if discarded_count > 0:
         logger.warning(
-            "Extraction produced %d claims for %d-page report %s — capping at %d (discarded %d)",
-            extracted_count, total_pages, report_document_id, effective_cap, discarded_count,
+            "Extraction produced %d claims for %d-page report %s — "
+            "citation-first cap at %d (%d cited, %d uncited sampled, %d discarded)",
+            extracted_count, total_pages, report_document_id, effective_cap,
+            len(cited_claims), len(sampled_claims) - len(cited_claims), discarded_count,
         )
-        extraction_result.claims = extraction_result.claims[:effective_cap]
+    else:
+        logger.info(
+            "Extraction: %d claims selected (%d cited + %d uncited) for report %s",
+            len(sampled_claims), len(cited_claims),
+            len(sampled_claims) - len(cited_claims), report_document_id,
+        )
+    extraction_result.claims = sampled_claims
     # 6. Persist each claim and its anchors
     claims: list[Claim] = []
     run_version_uuid = _uuid.UUID(run_version_id)
@@ -132,6 +186,9 @@ async def extract_claims_for_document(
             config_patch["extraction_telemetry"] = {
                 "extracted_count": extracted_count,
                 "effective_cap": effective_cap,
+                "cited_claim_count": len(cited_claims),
+                "uncited_claim_count": len(uncited_claims),
+                "sampled_count": len(sampled_claims),
                 "discarded_count": discarded_count,
                 "discard_ratio": round(discarded_count / extracted_count, 3),
                 "total_pages": total_pages,

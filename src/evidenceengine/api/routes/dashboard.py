@@ -9,6 +9,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import select
+
 from evidenceengine.api.dependencies import get_db
 from evidenceengine.api.services.dashboard_queries import (
     load_claim_detail,
@@ -17,6 +19,7 @@ from evidenceengine.api.services.dashboard_queries import (
     upsert_review_decision,
 )
 from evidenceengine.core.config import settings
+from evidenceengine.models.document import SourceDocument
 from evidenceengine.schemas.common import APIError
 
 TEMPLATES_DIR = Path(__file__).parent.parent.parent / "templates"
@@ -167,6 +170,16 @@ async def claim_detail_view(
             status=404,
         )
     claim, context_snippet = result
+
+    # Build source doc map for evidence badge display: {str(doc.id): {"filename", "is_draft"}}
+    docs_result = await db.execute(
+        select(SourceDocument).where(SourceDocument.packet_id == claim.packet_id)
+    )
+    source_doc_map = {
+        str(doc.id): {"filename": doc.filename, "is_draft": doc.is_report}
+        for doc in docs_result.scalars().all()
+    }
+
     return templates.TemplateResponse(
         request=request,
         name="partials/claim_detail.html",
@@ -175,6 +188,7 @@ async def claim_detail_view(
             "context_snippet": context_snippet,
             "packet_id": packet_id,
             "run_id": run_id,
+            "source_doc_map": source_doc_map,
         },
     )
 

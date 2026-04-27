@@ -66,6 +66,11 @@ class SourceDocument(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     total_pages: Mapped[int | None] = mapped_column(Integer, nullable=True)
     parse_status: Mapped[str] = mapped_column(String(30), default="pending", nullable=False)
     parse_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Structured paper metadata extracted from PDF at parse time.
+    # Used for citation anchor resolution: matching "[1]" to uploaded papers
+    # by title+author instead of filename (filename matching fails for generic names).
+    # Schema: {"title": str, "authors": [str, ...], "year": str}
+    paper_metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     # Relationships
     packet: Mapped["DocumentPacket"] = relationship(

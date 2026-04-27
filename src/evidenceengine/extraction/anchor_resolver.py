@@ -185,11 +185,20 @@ def resolve_to_source_document(
     for doc in non_report_docs:
         # Clean filename: replace underscores/dots with spaces for better token matching
         filename_clean = doc.filename.replace("_", " ").replace(".", " ")
-        # Build target string: cleaned filename + first 2000 chars of raw_text.
-        # 2000 covers a typical source excerpt's introductory + first body pages
-        # where authors/dates/section titles tend to live, without incurring the
-        # O(n^2) SequenceMatcher cost of scanning full documents.
-        target = f"{filename_clean} {(doc.raw_text or '')[:2000]}"
+        # Build target string: paper_metadata (title + authors) takes priority over
+        # filename, because user-supplied filenames are unreliable (e.g. "bert_paper.pdf"
+        # may not fuzzy-match "BERT" in the reference entry, but the full title
+        # "BERT: Pre-training of Deep Bidirectional Transformers" will).
+        meta = getattr(doc, "paper_metadata", None) or {}
+        meta_parts = []
+        if meta.get("title"):
+            meta_parts.append(meta["title"])
+        if meta.get("authors"):
+            # Add all author names (first + last) for author-year citation matching
+            meta_parts.extend(meta["authors"])
+        meta_str = " ".join(meta_parts)
+        # Target: metadata tokens first (high signal), then filename, then raw_text snippet
+        target = f"{meta_str} {filename_clean} {(doc.raw_text or '')[:2000]}"
         target_lower = target.lower()
         # Combine character-level fuzzy with token-coverage. SequenceMatcher
         # alone misses clean matches when filenames inject extra tokens (e.g.
@@ -216,6 +225,12 @@ def resolve_to_source_document(
         else:
             substr_cov = 0
         score = max(seq_score, coverage, substr_cov)
+        # Year match bonus: if paper_metadata year matches a year in the candidate
+        # string, boost score by 10 points. This helps resolve ambiguous matches
+        # (e.g. two papers with similar titles from different years).
+        meta_year = meta.get("year", "")
+        if meta_year and meta_year in candidate_lower:
+            score = min(100, score + 10)
         if score > best_score:
             second_score = best_score
             best_score = score

@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     # then truncated to retrieval_top_k_final. Set DENSE_RETRIEVAL_ENABLED=false
     # to fall back to BM25-only (e.g. memory-constrained environments).
     dense_retrieval_enabled: bool = True
+    # BGE-base-en-v1.5 replaces all-MiniLM-L6-v2: +12 MTEB retrieval points on technical text.
+    # Requires query prefix "Represent this sentence for searching relevant passages: " on queries.
+    dense_embedding_model: str = "BAAI/bge-base-en-v1.5"
+    # Raised from 1500 to cover large ML papers (100-page arXiv papers ~2000-2500 chunks).
+    # At 3000 chunks, BGE-base uses ~9MB for embeddings + ~400MB for model = well within 4GB.
+    dense_retrieval_max_corpus_size: int = 3000
     # Claim cap: cross-encoder/nli-deberta-v3-small costs ~0.5s per (claim, span) pair.
     # 25 claims × 2 spans × 0.5s = 25s — safely under 60s target.
     # Effective cap = min(page_count * max_claims_per_page, max_claims_absolute).
@@ -118,8 +124,8 @@ class Settings(BaseSettings):
     #   * nli_contradiction_contradicted_threshold (0.80): symmetric for
     #     `contradicted`.
     nli_tiebreaker_threshold: float = 0.65
-    nli_entailment_supported_threshold: float = 0.86   # tuned for SciFact v2 model: 86.7% 3-class, 7.3% false-support
-    nli_contradiction_contradicted_threshold: float = 0.80
+    nli_entailment_supported_threshold: float = 0.92   # raised 0.86→0.92 for calibrated precision (DeBERTa overconfident by ~8pp)
+    nli_contradiction_contradicted_threshold: float = 0.85  # raised 0.80→0.85 symmetric with entailment
     nli_min_confidence_for_verdict: float = 0.50
     # ── LLM-primary path only (classifier_backend = "llm_primary") ─────────────
     # These settings are INACTIVE in the default nli_primary mode. They exist as

@@ -1,14 +1,19 @@
-"""Dense retrieval using sentence-transformers/all-MiniLM-L6-v2.
+"""Dense retrieval using sentence-transformers (BGE-base-en-v1.5 default).
 
 Fail-open singleton: if the model cannot load, every function returns None/[]
 and the retrieval pipeline falls back to BM25-only. No import errors propagate
 to callers.
 
-Embeddings are cached to disk at INDEX_DIR/{doc_id}_dense.npy so repeated
-runs on the same document skip re-encoding (~3-5s saved per document).
+Embeddings are cached to disk at INDEX_DIR/{doc_id}_dense_{model_slug}.npy so
+repeated runs on the same document skip re-encoding (~3-5s saved per document).
+The model name is part of the cache key — swapping models auto-invalidates stale
+caches (384-dim MiniLM vs 768-dim BGE are incompatible).
 
 Shape invariant: cache is invalidated whenever the number of spans changes
 (document re-indexed), so stale caches never produce wrong top-k results.
+
+BGE-base-en-v1.5 note: QUERY embeddings require a prefix for correct accuracy.
+DOCUMENT embeddings (indexed passages) do NOT get the prefix.
 """
 
 from __future__ import annotations
@@ -19,15 +24,20 @@ from pathlib import Path
 
 import numpy as np
 
+from evidenceengine.core.config import settings
+
 logger = logging.getLogger(__name__)
 
-_DENSE_MODEL_NAME = "all-MiniLM-L6-v2"
+_DENSE_MODEL_NAME = settings.dense_embedding_model
 
-# Skip dense encoding when the corpus is too large — encoding 2000+ blocks on
-# a shared CPU takes 10-20 minutes. Fall back to BM25 + cross-encoder reranking
-# which is fast and still produces good results. Cached runs (second upload of
-# the same document) are always fast regardless of corpus size.
-MAX_DENSE_CORPUS_SIZE = 1500
+# BGE-base requires this prefix on query text only (not on document passages).
+# Without it, the model still runs but loses ~5-8pp retrieval accuracy.
+_BGE_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
+
+MAX_DENSE_CORPUS_SIZE = settings.dense_retrieval_max_corpus_size
+
+# Cache slug: safe filesystem name derived from model identifier
+_CACHE_MODEL_SLUG = _DENSE_MODEL_NAME.replace("/", "_").replace("-", "_").lower()
 
 _model = None
 _lock = threading.Lock()
@@ -49,7 +59,8 @@ def _ensure_loaded():
         try:
             from sentence_transformers import SentenceTransformer  # noqa: PLC0415
             _model = SentenceTransformer(_DENSE_MODEL_NAME)
-            logger.info("Dense retrieval model %s loaded", _DENSE_MODEL_NAME)
+            _model.max_seq_length = 512  # explicit for BGE-base (default 512, was 128 for MiniLM)
+            logger.info("Dense retrieval model %s loaded (max_seq_length=512)", _DENSE_MODEL_NAME)
             return _model
         except Exception as exc:  # noqa: BLE001
             logger.warning(
@@ -62,12 +73,12 @@ def _ensure_loaded():
 
 
 def load_or_build_dense(span_texts: list[str], cache_path: str) -> np.ndarray | None:
-    """Return (N, 384) float32 embedding matrix for span_texts.
+    """Return (N, D) float32 embedding matrix for span_texts (D=768 for BGE-base, 384 for MiniLM).
 
     Loads from ``cache_path + "_dense.npy"`` if it exists and the shape matches,
     otherwise encodes and saves. Returns None if the model is unavailable.
     """
-    npy_path = Path(cache_path + "_dense.npy")
+    npy_path = Path(f"{cache_path}_dense_{_CACHE_MODEL_SLUG}.npy")
     if npy_path.exists():
         try:
             cached = np.load(str(npy_path))
@@ -110,6 +121,13 @@ def load_or_build_dense(span_texts: list[str], cache_path: str) -> np.ndarray | 
     return embeddings
 
 
+def _apply_query_prefix(text: str) -> str:
+    """Apply BGE query prefix when using a BGE model. No-op for other models."""
+    if "bge" in _DENSE_MODEL_NAME.lower():
+        return f"{_BGE_QUERY_PREFIX}{text}"
+    return text
+
+
 def query_dense(
     query_text: str,
     corpus_embeddings: np.ndarray,
@@ -122,7 +140,7 @@ def query_dense(
         return []
     try:
         query_emb: np.ndarray = model.encode(
-            [query_text], convert_to_numpy=True, show_progress_bar=False
+            [_apply_query_prefix(query_text)], convert_to_numpy=True, show_progress_bar=False
         )[0]
         # Cosine similarity: normalise both sides then dot product.
         corpus_norm = corpus_embeddings / (

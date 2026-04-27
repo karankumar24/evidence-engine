@@ -59,6 +59,40 @@ def _detect_block_type(
     return "paragraph"
 
 
+def _extract_paper_metadata(doc: "fitz.Document", first_page_text: str) -> dict | None:
+    """Extract title, authors, year from PDF metadata and first-page text.
+
+    Returns a dict suitable for SourceDocument.paper_metadata, or None if
+    no useful metadata could be extracted. Used for citation anchor resolution:
+    matching "[1]" or "(Author, 2018)" against uploaded papers by title+author
+    is far more reliable than filename fuzzy-matching.
+    """
+    import re  # noqa: PLC0415
+    metadata: dict = {}
+
+    pdf_meta = doc.metadata or {}
+    raw_title = (pdf_meta.get("title") or "").strip()
+    if raw_title and len(raw_title) > 5:  # ignore trivial/empty titles
+        metadata["title"] = raw_title
+
+    raw_author = (pdf_meta.get("author") or "").strip()
+    if raw_author:
+        # Split on common separators: ";", "," (when not inside a name), "&"
+        authors = [a.strip() for a in re.split(r"[;]|(?<=[a-z]),\s*(?=[A-Z])", raw_author) if a.strip()]
+        if authors:
+            metadata["authors"] = authors
+
+    # Year: prefer PDF metadata creation date, fall back to first occurrence in first 2000 chars
+    raw_date = pdf_meta.get("creationDate") or pdf_meta.get("modDate") or ""
+    year_match = re.search(r"(19|20)\d{2}", raw_date)
+    if not year_match:
+        year_match = re.search(r"\b(19|20)\d{2}\b", first_page_text[:2000])
+    if year_match:
+        metadata["year"] = year_match.group(0)
+
+    return metadata or None
+
+
 def parse_pdf(filepath: str) -> ParsedDocument:
     """Parse a PDF and return a ParsedDocument with full positional metadata.
 
@@ -251,4 +285,5 @@ def parse_pdf(filepath: str) -> ParsedDocument:
         markdown_text=markdown_text,
         raw_text=raw_text,
         tables=tables,
+        paper_metadata=_extract_paper_metadata(doc, raw_text),
     )

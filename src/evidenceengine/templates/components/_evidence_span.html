@@ -19,12 +19,25 @@
   {%- endif -%}
 {%- endmacro %}
 
-{% macro evidence_span(span, method) %}
+{% macro evidence_span(span, method, source_filename=None, is_draft=False) %}
   {%- set span_text = span.span_text if span.span_text is defined else span["span_text"] -%}
   {%- set page_number = span.page_number if span.page_number is defined else span.get("page_number") if span is mapping else None -%}
   {%- set section_header = span.section_header if span.section_header is defined else span.get("section_header") if span is mapping else None -%}
+  {#- Source label: prefer explicit source_filename/is_draft over generic "Packet" -#}
+  {%- set _span_filename = span.get("source_filename") if span is mapping else None -%}
+  {%- set _span_is_draft = span.get("is_draft", False) if span is mapping else False -%}
+  {%- set _eff_filename = source_filename or _span_filename -%}
+  {%- set _eff_is_draft = is_draft or _span_is_draft -%}
   {%- set method_tone = "bg-verdict-insufficient/15 text-verdict-insufficient" if method == "web_fallback" else "bg-accent-100 text-accent-700" -%}
-  {%- set method_label = "Web fallback" if method == "web_fallback" else "Packet" -%}
+  {%- if method == "web_fallback" -%}
+    {%- set method_label = "Web fallback" -%}
+  {%- elif _eff_is_draft -%}
+    {%- set method_label = "Draft" -%}
+  {%- elif _eff_filename -%}
+    {%- set method_label = _eff_filename -%}
+  {%- else -%}
+    {%- set method_label = "Source" -%}
+  {%- endif -%}
   <figure data-component="evidence-span"
           data-method="{{ method }}"
           class="relative border-l-2 border-accent-300 bg-paper-50 pl-4 pr-3 py-3 rounded-r-sm">
