@@ -14,3 +14,7 @@ test-results/
 .env
 .env.local
 .claude/
+eval/data/
+eval/results/
+docs/design/
+.planning/
