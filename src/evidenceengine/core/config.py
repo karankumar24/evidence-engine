@@ -103,6 +103,9 @@ class Settings(BaseSettings):
     # historical LLM path (pre-v1.2.9 behavior). Rollback is a single env var
     # flip — no code change needed.
     classifier_backend: Literal["nli_primary", "llm_primary"] = "nli_primary"
+    # Path to fine-tuned NLI model checkpoint. Empty = use HuggingFace base model.
+    # Production: /data/models/scifact-nli (Fly.io volume). Local dev: ./checkpoints/scifact-nli/best
+    nli_model_path: str = ""
     # NLI threshold band. Band invariant (locked by test_config.py):
     #   0 < nli_min_confidence_for_verdict
     #     < nli_tiebreaker_threshold

@@ -40,9 +40,8 @@ logger = logging.getLogger(__name__)
 # Falls back to base model string if local path absent (dev/CI environments).
 import os as _os
 NLI_MODEL_NAME = (
-    "/data/models/scifact-nli"
-    if _os.path.exists("/data/models/scifact-nli/config.json")
-    else "cross-encoder/nli-deberta-v3-small"
+    _os.environ.get("NLI_MODEL_PATH")
+    or ("/data/models/scifact-nli" if _os.path.exists("/data/models/scifact-nli/config.json") else "cross-encoder/nli-deberta-v3-small")
 )
 
 # Actual id2label for this model checkpoint (contradiction-first).
@@ -86,9 +85,15 @@ def _ensure_loaded():
             _device = torch.device(
                 "mps" if torch.backends.mps.is_available() else "cpu"
             )
-            logger.info("Loading NLI model %s onto %s", NLI_MODEL_NAME, _device)
-            _tokenizer = AutoTokenizer.from_pretrained(NLI_MODEL_NAME)
-            _model = AutoModelForSequenceClassification.from_pretrained(NLI_MODEL_NAME)
+            # Resolve model path at load time so NLI_MODEL_PATH from .env works.
+            from evidenceengine.core.config import settings as _settings  # noqa: PLC0415
+            _effective_model = (
+                _settings.nli_model_path
+                or NLI_MODEL_NAME
+            )
+            logger.info("Loading NLI model %s onto %s", _effective_model, _device)
+            _tokenizer = AutoTokenizer.from_pretrained(_effective_model)
+            _model = AutoModelForSequenceClassification.from_pretrained(_effective_model)
             _model.to(_device)
             _model.eval()
             logger.info("NLI model ready on %s", _device)
