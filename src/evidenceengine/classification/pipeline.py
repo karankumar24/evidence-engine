@@ -22,7 +22,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from evidenceengine.classification.backend import get_backend
-from evidenceengine.classification.classifier import apply_confidence_threshold, classify_claim  # noqa: F401
 from evidenceengine.classification.nli_classifier import NLI_MODEL_NAME
 from evidenceengine.classification.schemas import VerdictClassificationResponse
 from evidenceengine.core.config import settings
@@ -82,21 +81,18 @@ async def classify_verdicts_for_run(
         )).all()
         doc_filename_by_id = {r[0]: r[1] for r in doc_rows}
 
-    # Resolve backend ONCE per run. get_backend() reads settings and dispatches
-    # to NLIClassifier or LLMClassifier — Plan 01 foundation / Plan 02 brain.
+    # Resolve backend ONCE per run. Production runs nli_primary only —
+    # get_backend() returns NLIClassifier unconditionally.
     backend = get_backend()
-    is_nli_primary = settings.classifier_backend == "nli_primary"
 
     all_verdicts: list[Verdict] = []
     claim_errors_accumulator: list[dict] = []
     # Telemetry accumulators — surfaced in pipeline_config["classification_telemetry"] below.
     self_verify_claims = 0
     self_verify_caps_applied = 0
-    threshold_overrides_to_review = 0
     chain_exhausted_count = 0
     model_refusal_count = 0
     bypass_unresolvable_anchor = 0
-    nli_second_opinion_overrides = 0
     nli_verdict_counts: dict[str, int] = {
         "supported": 0, "contradicted": 0,
         "insufficient_support": 0, "needs_review": 0,
@@ -207,40 +203,9 @@ async def classify_verdicts_for_run(
             )
             self_verify_caps_applied += 1
 
-        # Legacy NLI second-opinion: GATED OFF for nli_primary (Pitfall 7 —
-        # avoid double NLI; the NLI classifier already IS the primary here).
-        # llm_primary still gets the second-opinion downgrader.
-        if not is_nli_primary and settings.nli_second_opinion_enabled:
-            from evidenceengine.classification.nli_second_opinion import (  # noqa: PLC0415
-                nli_judgment,
-                should_force_review,
-            )
-            import asyncio as _asyncio  # noqa: PLC0415
-            nli = await _asyncio.to_thread(
-                nli_judgment, claim.claim_text, [s["span_text"] for s in evidence_span_dicts],
-            )
-            force, suffix = should_force_review(classification.verdict_type, nli)
-            if force:
-                classification = VerdictClassificationResponse(
-                    verdict_type="needs_review",
-                    confidence_score=min(classification.confidence_score, 0.50),
-                    reasoning=f"{suffix} {classification.reasoning}",
-                )
-                nli_second_opinion_overrides += 1
-
-        # Legacy 0.70 confidence override — GATED OFF for nli_primary (Open Q
-        # #4: NLI-primary owns its band 0.50 < 0.65 < 0.80; re-applying 0.70
-        # here would re-override tiebreaker-passed 0.68 verdicts).
-        if not is_nli_primary:
-            pre_threshold_type = classification.verdict_type
-            classification = apply_confidence_threshold(
-                classification, settings.verdict_needs_review_threshold,
-            )
-            if (
-                pre_threshold_type != "needs_review"
-                and classification.verdict_type == "needs_review"
-            ):
-                threshold_overrides_to_review += 1
+        # NLI-primary owns its threshold band (0.50 < 0.65 < 0.80) — the
+        # legacy 0.70 confidence override and NLI second-opinion downgrader
+        # were LLM-primary only and were removed with the rollback path.
 
         reasoning_for_db = classification.reasoning
 
@@ -281,11 +246,9 @@ async def classify_verdicts_for_run(
             "self_verify_claims": self_verify_claims,
             "self_verify_rate": round(self_verify_claims / len(claims), 3) if claims else 0.0,
             "self_verify_caps_applied": self_verify_caps_applied,
-            "threshold_overrides_to_review": threshold_overrides_to_review,
             "chain_exhausted_count": chain_exhausted_count,
             "model_refusal_count": model_refusal_count,
             "bypass_unresolvable_anchor": bypass_unresolvable_anchor,
-            "nli_second_opinion_overrides": nli_second_opinion_overrides,
             "classifier_backend": settings.classifier_backend,
             "nli_verdict_counts": nli_verdict_counts,
         }

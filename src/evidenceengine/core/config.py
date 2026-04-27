@@ -89,20 +89,12 @@ class Settings(BaseSettings):
     verdict_needs_review_threshold: float = 0.70
     self_verify_supported_cap: float = 0.80
     verdict_prompt_version: str = "v1"
-    # Local NLI second-opinion: when True, a locally-hosted DeBERTa-v3-NLI
-    # model runs AFTER the LLM verdict. High-confidence disagreement
-    # (contradiction found by NLI but LLM said supported, or vice versa)
-    # forces the verdict to needs_review. It never upgrades. Disable in
-    # environments without transformers/torch installed — the classifier
-    # detects that and falls back cleanly either way.
-    nli_second_opinion_enabled: bool = True
-    # ─── v1.2.9 NLI-primary classifier (Plan 02-01) ──────────────────────────
-    # classifier_backend selects which ClassifierBackend implementation the
-    # pipeline dispatches to. "nli_primary" runs the local DeBERTa-NLI model
-    # as the primary verdict source (Plan 02); "llm_primary" keeps the
-    # historical LLM path (pre-v1.2.9 behavior). Rollback is a single env var
-    # flip — no code change needed.
-    classifier_backend: Literal["nli_primary", "llm_primary"] = "nli_primary"
+    # ─── NLI-primary classifier ─────────────────────────────────────────────
+    # Production runs ``nli_primary`` only. The historical LLM-primary
+    # rollback path (and the NLI second-opinion downgrader that gated it)
+    # were deleted in the Phase A simplification refactor. The field is kept
+    # for telemetry continuity.
+    classifier_backend: Literal["nli_primary"] = "nli_primary"
     # Path to fine-tuned NLI model checkpoint. Empty = use HuggingFace base model.
     # Production: /data/models/scifact-nli (Fly.io volume). Local dev: ./checkpoints/scifact-nli/best
     nli_model_path: str = ""
@@ -130,9 +122,10 @@ class Settings(BaseSettings):
     nli_entailment_supported_threshold: float = 0.92   # raised 0.86→0.92 for calibrated precision (DeBERTa overconfident by ~8pp)
     nli_contradiction_contradicted_threshold: float = 0.85  # raised 0.80→0.85 symmetric with entailment
     nli_min_confidence_for_verdict: float = 0.50
-    # ── LLM-primary path only (classifier_backend = "llm_primary") ─────────────
-    # These settings are INACTIVE in the default nli_primary mode. They exist as
-    # a rollback path — flip CLASSIFIER_BACKEND=llm_primary to re-enable.
+    # ── LLM HTTP settings (used by on-demand explanation generation) ──────────
+    # The classification hot path is NLI-only. These knobs apply to the
+    # on-demand explanation generator (``classification/explanation.py``) which
+    # calls ``llm/fallback.sync_call_with_fallback``.
     # OpenAI SDK default timeout is 600s which compounds with rate-limits.
     llm_request_timeout_seconds: float = 60.0
     llm_max_retries: int = 2
@@ -212,16 +205,6 @@ class Settings(BaseSettings):
                 new_query.append(("ssl", "disable"))
             url = urlunsplit(parts._replace(query=urlencode(new_query)))
         return url
-
-    # Back-compat shims: existing code references settings.openai_api_key /
-    # settings.openai_base_url. Keep those names working after the LLM_* rename.
-    @property
-    def openai_api_key(self) -> str:
-        return self.llm_api_key
-
-    @property
-    def openai_base_url(self) -> str:
-        return self.llm_base_url
 
 
 settings = Settings()

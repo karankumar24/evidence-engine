@@ -20,8 +20,6 @@ Design notes (see .planning/phases/02-nli-primary-classifier/02-RESEARCH.md):
 - ``transformers`` / ``torch`` are imported lazily inside the functions that
   need them so the module is cheap to import from tests that never touch a
   real model.
-- ``nli_second_opinion.py`` is NOT touched — it remains available for the
-  ``llm_primary`` rollback path.
 """
 
 from __future__ import annotations

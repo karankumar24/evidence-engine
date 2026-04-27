@@ -252,6 +252,18 @@ def _fix_word_boundaries(text: str) -> str:
     def _dehyphenate_proper(m: re.Match) -> str:
         return m.group(0) if m.group(2).lower() in _keep_after else m.group(1) + m.group(2)
     text = re.sub(r'([A-Z][a-z]{2,})-([a-z]{2,5})\b', _dehyphenate_proper, text)
+    # Pass 1.6: split content-word + function-word joins where space was lost
+    # ("intendedfor" → "intended for", "Transformerwas" → "Transformer was",
+    # "referthe" → "refer the"). Requires content word ≥4 chars to avoid
+    # damaging real words. Function words restricted to ≥3 chars: 2-char words
+    # ("as", "or", "is", "to", "of") cause greedy false matches inside real
+    # words ("Transformerwas" → "Transformerw as" via greedy "as" capture).
+    text = re.sub(
+        r'([a-z]{4,})(for|the|and|but|with|from|that|this|these|those|when|then|than|'
+        r'over|under|after|while|before|because|though|was|were|are|'
+        r'has|have|had|would|could|should|may|might|will|shall|can|did|does)\b',
+        r'\1 \2', text,
+    )
     # Pass 2: remove hyphens before suffixes that are never real compound parts
     # Suffixes: -tion, -sion, -ation, -ization, -ment, -ness, -ful, -tion, -ance
     text = re.sub(

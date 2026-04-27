@@ -1,9 +1,8 @@
 """ClassifierBackend Protocol + get_backend() dispatcher.
 
-Plan 02-01 foundation. Plan 02 lands NLIClassifier; Plan 03 wires dispatch
-into pipeline.py. In this plan, get_backend() is defined but not yet called
-from pipeline code — it's provided so Plan 02/03 can slot in without editing
-this file.
+Production runs ``nli_primary`` only. The historical LLM-primary rollback path
+was deleted in the Phase A simplification refactor — ``get_backend`` now
+returns ``NLIClassifier`` unconditionally.
 """
 
 from __future__ import annotations
@@ -15,11 +14,10 @@ from evidenceengine.classification.schemas import VerdictClassificationResponse
 
 @runtime_checkable
 class ClassifierBackend(Protocol):
-    """Common interface for verdict classifiers (LLM-based or NLI-based).
+    """Common interface for verdict classifiers.
 
-    The same (claim_text, evidence_spans) input contract that ``classify_claim``
-    has always used. Returns a VerdictClassificationResponse — may set
-    ``explanation`` to None (Plan 03 wires the explanation generator).
+    Same ``(claim_text, evidence_spans)`` input contract callers have always
+    used. Returns a ``VerdictClassificationResponse``.
     """
 
     async def classify(
@@ -30,22 +28,9 @@ class ClassifierBackend(Protocol):
 
 
 def get_backend() -> ClassifierBackend:
-    """Return the classifier backend selected by settings.classifier_backend.
+    """Return the NLI classifier backend.
 
-    Lazy imports avoid circular dependencies AND keep Plan 01 green standalone:
-    ``NLIClassifier`` is only imported on the ``nli_primary`` branch, which
-    means tests that monkeypatch ``settings.classifier_backend = "llm_primary"``
-    never trigger the NLI import even before Plan 02 lands.
+    Lazy import keeps this module cheap to load and avoids circular deps.
     """
-    # Lazy import so this module stays cheap to load.
-    from evidenceengine.core.config import settings
-
-    if settings.classifier_backend == "nli_primary":
-        # Imported lazily — Plan 02 provides this module. Until it lands,
-        # callers explicitly setting nli_primary will get an ImportError,
-        # which is the correct signal that the feature isn't wired yet.
-        from evidenceengine.classification.nli_classifier import NLIClassifier  # noqa: PLC0415
-        return NLIClassifier()
-
-    from evidenceengine.classification.llm_classifier import LLMClassifier  # noqa: PLC0415
-    return LLMClassifier()
+    from evidenceengine.classification.nli_classifier import NLIClassifier  # noqa: PLC0415
+    return NLIClassifier()

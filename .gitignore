@@ -158,3 +158,8 @@ node_modules/
 .aider*/
 .aider.*
 checkpoints/
+
+# Cruft excluded April 27 cleanup
+test-results/
+.venv.broken-*/
+.venv.bak-*/
