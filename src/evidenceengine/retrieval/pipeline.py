@@ -98,19 +98,32 @@ async def retrieve_evidence_for_run(
         # Priority 1: resolved citation anchors → search only the anchored docs.
         # Priority 2: uploaded cited sources → search all non-report docs in packet.
         # Priority 3: no cited sources → self-verification (report corpus).
+        # Distinguish "claim has citations but none resolve" from "claim has no citations".
+        # When a claim cites papers that aren't in the packet (e.g. cites BERT but only
+        # Transformer was uploaded), searching the uploaded paper for evidence produces
+        # false contradictions — NLI sees unrelated content with different numbers and
+        # confidently rules "contradicted". Skip retrieval; classification short-circuits
+        # to needs_review with reason "cited sources unavailable".
+        has_citation_markers = bool(claim.citation_anchors)
         if resolved_anchors:
             search_targets = [(str(a.target_document_id), a) for a in resolved_anchors]
+        elif has_citation_markers:
+            logger.debug(
+                "Claim %s has citation markers but none resolve to uploaded sources — skipping retrieval",
+                claim.id,
+            )
+            continue  # no spans → classification marks needs_review
         elif cited_source_ids:
             search_targets = [(doc_id, None) for doc_id in cited_source_ids]
             logger.debug(
-                "Claim %s has no resolved anchors — searching %d cited source(s)",
+                "Claim %s has no citation markers — searching %d cited source(s) for context",
                 claim.id,
                 len(cited_source_ids),
             )
         else:
             search_targets = [(str(claim.source_document_id), None)]
             logger.debug(
-                "Claim %s has no resolved anchors and no cited sources — self-verifying",
+                "Claim %s self-verifying against report (no citations, no cited sources)",
                 claim.id,
             )
 
