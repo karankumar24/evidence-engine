@@ -49,6 +49,25 @@ _ACK_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Funding / conflict / data-availability / authorship-disclosure boilerplate.
+# Universal across post-2020 transparency-required journals (PMC, Frontiers,
+# PLOS, BMC, NEJM, Cell). These sentences are NOT verifiable research claims
+# even though NLI may say "supported" because they're literally true (e.g.
+# "the authors received funding" → matches actual funding disclosure spans).
+# Surfaced in 2026-04-27 bio pressure test (semaglutide review false-positive
+# supported on funding-declaration sentence).
+_DISCLOSURE_RE = re.compile(
+    r"\b(author(?:\(s\)|s)?\s+decl(?:are|ares|aration)|"
+    r"received\s+(?:financial\s+)?support\s+(?:from|for)|"
+    r"competing\s+interests?|conflict\s+of\s+interest|"
+    r"funding\s+(?:statement|source|disclosure)|"
+    r"data\s+availability\s+statement|"
+    r"ethics\s+(?:approval|statement|committee)|"
+    r"informed\s+consent\s+was\s+obtained|"
+    r"institutional\s+review\s+board|\bIRB\s+approval)\b",
+    re.IGNORECASE,
+)
+
 # Self-referential meta-sentences: structural commentary, not verifiable claims
 _META_RE = re.compile(
     r"^(in this (paper|work|study|article|section|chapter)|"
@@ -425,6 +444,8 @@ def _is_likely_claim(sentence: str, _counts: dict | None = None) -> bool:
         return reject("structural")
     if _ACK_RE.search(s):
         return reject("acknowledgement")
+    if _DISCLOSURE_RE.search(s):
+        return reject("disclosure_boilerplate")
     if _META_RE.match(s):
         return reject("meta")
 
@@ -554,6 +575,11 @@ _ZERO_CLAIM_MESSAGES: dict[str, str] = {
         "rather than verifiable factual claims."
     ),
     "acknowledgement": "Content is mostly acknowledgements or funding statements.",
+    "disclosure_boilerplate": (
+        "Content is mostly funding / conflict-of-interest / data-availability "
+        "disclosure boilerplate. The document may be a cover page or back-matter "
+        "section rather than a research paper."
+    ),
     "url": (
         "Most text blocks contain URLs. "
         "This may be a printed webpage rather than a research document. "
