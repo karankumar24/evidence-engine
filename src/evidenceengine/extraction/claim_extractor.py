@@ -280,8 +280,12 @@ def _merge_short_blocks(blocks: list[dict]) -> list[dict]:
 
 
 # Regex patterns for inline citation marker detection.
-# Numeric: [1], [1,2], [1, 2-4]
+# Numeric (Vancouver bracketed): [1], [1,2], [1, 2-4]
 _NUMERIC_CITATION_RE = re.compile(r'\[\d+(?:[,\s\-]+\d+)*\]')
+# Numeric (paren-bracketed): (12), (12, 13), (12-15)
+# Bio journals (Frontiers, PLOS, BMC, Cell, Heliyon) commonly use this.
+# 1-3 digit cap excludes year-like 4-digit numbers to avoid conflict with author-year style.
+_NUMERIC_PAREN_CITATION_RE = re.compile(r'\(\d{1,3}(?:[,\s–\-]+\d{1,3})*\)')
 # Author-year parenthesized: (Smith, 2023), (Jones et al., 2020), (A et al., 2020; B, 2021)
 _AUTHOR_YEAR_PAREN_RE = re.compile(
     r'\([A-Z][a-zA-Z\-]+(?:\s+et\s+al\.?)?(?:,\s*\d{4}[a-z]?)?'
@@ -310,12 +314,26 @@ def _detect_citation_markers(text: str) -> list[ExtractedCitationMarker]:
             seen.add(raw)
             markers.append(ExtractedCitationMarker(raw_marker=raw, citation_style="numeric"))
 
+    # Author-year scanned BEFORE numeric-paren so (Smith, 2023) doesn't get
+    # mis-classified by the looser numeric-paren pattern (4-digit year filter
+    # in numeric-paren means it shouldn't match author-year, but ordering is
+    # belt-and-suspenders).
     for pattern in (_AUTHOR_YEAR_PAREN_RE, _AUTHOR_YEAR_BARE_RE):
         for m in pattern.finditer(text):
             raw = m.group()
             if raw not in seen:
                 seen.add(raw)
                 markers.append(ExtractedCitationMarker(raw_marker=raw, citation_style="author_year"))
+
+    # Numeric paren style — bio journals (Frontiers, PLOS, BMC, Cell). Run
+    # last so existing author-year and bracketed-numeric matches take priority.
+    for m in _NUMERIC_PAREN_CITATION_RE.finditer(text):
+        raw = m.group()
+        if raw not in seen:
+            seen.add(raw)
+            # Reuse "numeric" style — same downstream resolution path
+            # (lookup reference list by number, fuzzy match to source docs).
+            markers.append(ExtractedCitationMarker(raw_marker=raw, citation_style="numeric"))
 
     return markers
 
