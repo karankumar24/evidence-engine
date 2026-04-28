@@ -62,11 +62,18 @@ _ACK_RE = re.compile(
 # ("patients in SUSTAIN 11 showed...") so this pattern has very low FP risk.
 # Surfaced 2026-04-27 bio pressure test: 4 of 5 false-positive SUPPORTED on
 # bibliography titles after disclosure filter freed up extraction slots.
+# Title-shape: any sentence ending with "trial." / "study." / "analysis." /
+# "report." preceded by ": a" or ": the" — the universal bibliography-entry
+# pattern across clinical journals. Catches both:
+#   "(SUSTAIN 11): a randomized, open-label, phase 3b trial."
+#   "(SUSTAIN 2): a 56-week, double-blind, phase 3a, randomised trial."
+#   ": the PIONEER 2 trial."
+# Body findings phrase as "patients in SUSTAIN 11 trial showed..." — no
+# ":\s*(?:a|the)\s+" gate before "trial.", so they don't match.
 _BIBLIOGRAPHY_RE = re.compile(
-    r"\):\s*a\s+(?:randomi[sz]ed|open[-\s]label|double[-\s]blind|"
-    r"single[-\s]blind|multicentre|multicenter|multinational|"
-    r"placebo[-\s]controlled|controlled|phase\s+\d|prospective|"
-    r"retrospective|cluster[-\s]randomi[sz]ed|cross[-\s]over)",
+    r"(?:\):\s*a|\):\s*the|:\s*a|:\s*the)\s+"
+    r"[^.]{0,200}?"
+    r"\b(?:trial|study|analysis|report|review)\.?\s*$",
     re.IGNORECASE,
 )
 
