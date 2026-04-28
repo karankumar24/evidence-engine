@@ -111,14 +111,17 @@ async def classify_verdicts_for_run(
         if existing_result.scalar_one_or_none() is not None:
             continue
 
-        # Edge case: claim whose citations all failed to resolve — bypass LLM.
-        if claim.status == "unresolvable_anchor":
-            default_verdict_type = "needs_review"
-            default_reasoning = "All citation anchors unresolvable — cited source documents could not be matched."
-            bypass_unresolvable_anchor += 1
-        elif not claim.evidence_spans:
-            default_verdict_type = "insufficient_support"
-            default_reasoning = "No evidence spans retrieved for this claim."
+        # Short-circuit only when retrieval produced NO evidence spans.
+        # If multi-doc fallback retrieved spans despite unresolvable anchors,
+        # run NLI on those spans — the cited source documents still hold the answer.
+        if not claim.evidence_spans:
+            if claim.status == "unresolvable_anchor":
+                default_verdict_type = "needs_review"
+                default_reasoning = "All citation anchors unresolvable — cited source documents could not be matched."
+                bypass_unresolvable_anchor += 1
+            else:
+                default_verdict_type = "insufficient_support"
+                default_reasoning = "No evidence spans retrieved for this claim."
         else:
             default_verdict_type = None
 
