@@ -20,6 +20,33 @@ versioning: [Semantic Versioning](https://semver.org/).
 - Retrieval pipeline no longer falls back to searching wrong cited sources when
   citations fail to resolve (commit `ef2afee`). Was producing high-confidence
   false-contradicted verdicts on claims that referenced sources not in the packet.
+- Self-verify cap now fires on actual evidence provenance, not anchor resolution
+  status (commit `b100b8d`). Was false-capping multi-doc-fallback supports at
+  0.80 even when evidence came from cited sources, not the report.
+- Self-verify is correctly applied when no cited sources uploaded, even with
+  internal citations (commit `902643e`). Single-doc CRISPR-style uploads no
+  longer 100% needs_review.
+- Disclosure boilerplate (funding, conflict-of-interest, data-availability,
+  ethics) filtered at extraction (commits `1c3644a` + `b4f42c2`). Was producing
+  false-positive SUPPORTED verdicts on funding-declaration sentences.
+- Clinical-trial bibliography titles filtered at extraction (commits `4abe8e1`
+  initial + broadened in subsequent commit). Catches all RCT title shapes
+  including `): a 56-week, double-blind, phase 3a, randomised trial.` and
+  `: the PIONEER 2 trial.` Was producing false-positive SUPPORTED verdicts
+  on bibliography reference-list entries.
+
+### Added
+- Bio test fixtures from PubMed Central (PMC): semaglutide CV review +
+  SUSTAIN 11 + SEPRA, plus 8 PMC papers across diverse sub-domains
+  (oncology venetoclax, TB rRNA, surgery anal-fistula, respiratory
+  mepolizumab, infant pneumococcal RCT, COVID variant epidemiology,
+  CRISPR gene therapy review, Alzheimer plasma biomarker).
+- `(N)` numeric-paren citation regex (`commit 4feabae`). Bio journals
+  (Frontiers, PLOS, BMC, Cell, Heliyon) commonly use `(12)` style — was
+  undetected, leading to 0 cited claims on these papers.
+- `docs/MODELS_AND_TERMS.md` — plain-English reference for every model,
+  dataset, and technique in the project (DeBERTa NLI, BGE encoder,
+  MiniLM reranker, BM25, SciFact dataset, NLI task).
 
 ### Removed
 - ML/CS test fixtures: `attention_paper.pdf`, `bert_paper.pdf`,
