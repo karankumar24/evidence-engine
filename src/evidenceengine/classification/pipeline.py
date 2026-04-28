@@ -159,10 +159,19 @@ async def classify_verdicts_for_run(
             for span in claim.evidence_spans
         ]
 
-        # Detect self-verify mode.
-        self_verify_mode = not any(
-            a.resolution_status == "resolved" and a.target_document_id is not None
-            for a in (claim.citation_anchors or [])
+        # Detect self-verify mode based on actual evidence provenance.
+        # Self-verify = ALL retrieved evidence spans come from the claim's own
+        # source document (i.e. the report). The cap defends against circular
+        # reasoning when claim and evidence live in the same doc.
+        # When multi-doc fallback retrieved evidence from a different document
+        # (a cited source), this is NOT self-verify — don't cap legitimate
+        # cross-document matches.
+        # If no evidence_spans exist, the upstream early-return already routed
+        # this claim to needs_review/insufficient_support, so this code is
+        # unreachable in that case — but defensive False keeps cap off.
+        self_verify_mode = bool(claim.evidence_spans) and all(
+            span.source_document_id == claim.source_document_id
+            for span in claim.evidence_spans
         )
         if self_verify_mode:
             self_verify_claims += 1
