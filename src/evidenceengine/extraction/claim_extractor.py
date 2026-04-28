@@ -56,6 +56,20 @@ _ACK_RE = re.compile(
 # "the authors received funding" → matches actual funding disclosure spans).
 # Surfaced in 2026-04-27 bio pressure test (semaglutide review false-positive
 # supported on funding-declaration sentence).
+# Bibliography / reference-list titles — NOT research findings.
+# Clinical-trial bibliography entries follow universal "(ACRONYM): a [design] trial"
+# shape across all biomedical journals. Body findings phrase differently
+# ("patients in SUSTAIN 11 showed...") so this pattern has very low FP risk.
+# Surfaced 2026-04-27 bio pressure test: 4 of 5 false-positive SUPPORTED on
+# bibliography titles after disclosure filter freed up extraction slots.
+_BIBLIOGRAPHY_RE = re.compile(
+    r"\):\s*a\s+(?:randomi[sz]ed|open[-\s]label|double[-\s]blind|"
+    r"single[-\s]blind|multicentre|multicenter|multinational|"
+    r"placebo[-\s]controlled|controlled|phase\s+\d|prospective|"
+    r"retrospective|cluster[-\s]randomi[sz]ed|cross[-\s]over)",
+    re.IGNORECASE,
+)
+
 _DISCLOSURE_RE = re.compile(
     # author(s) declare — tolerant of PyMuPDF "decl are" line-break artifact
     r"\b(author(?:\(s\)|s)?\s+decl\s*(?:are|ares|aration)|"
@@ -447,6 +461,8 @@ def _is_likely_claim(sentence: str, _counts: dict | None = None) -> bool:
         return reject("acknowledgement")
     if _DISCLOSURE_RE.search(s):
         return reject("disclosure_boilerplate")
+    if _BIBLIOGRAPHY_RE.search(s):
+        return reject("bibliography_entry")
     if _META_RE.match(s):
         return reject("meta")
 
@@ -580,6 +596,11 @@ _ZERO_CLAIM_MESSAGES: dict[str, str] = {
         "Content is mostly funding / conflict-of-interest / data-availability "
         "disclosure boilerplate. The document may be a cover page or back-matter "
         "section rather than a research paper."
+    ),
+    "bibliography_entry": (
+        "Content is mostly bibliography / reference-list entries (paper titles "
+        "like \"(SUSTAIN 11): a randomized, phase 3b trial\"). The document may be "
+        "a reference list section rather than research-finding content."
     ),
     "url": (
         "Most text blocks contain URLs. "
