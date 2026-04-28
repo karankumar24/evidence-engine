@@ -98,19 +98,28 @@ async def retrieve_evidence_for_run(
         # Priority 1: resolved citation anchors → search only the anchored docs.
         # Priority 2: uploaded cited sources → search all non-report docs in packet.
         # Priority 3: no cited sources → self-verification (report corpus).
-        # Distinguish "claim has citations but none resolve" from "claim has no citations".
-        # When a claim cites papers that aren't in the packet (e.g. cites BERT but only
-        # Transformer was uploaded), searching the uploaded paper for evidence produces
-        # false contradictions — NLI sees unrelated content with different numbers and
-        # confidently rules "contradicted". Skip retrieval; classification short-circuits
-        # to needs_review with reason "cited sources unavailable".
+        # Decide where to retrieve evidence from. Three cases:
+        # 1. Resolved citation anchors → search those specific cited docs.
+        # 2. Cited markers don't resolve AND OTHER cited sources are uploaded →
+        #    skip retrieval. Searching the wrong cited source would produce
+        #    mismatched evidence + false contradicted verdicts (lesson 61).
+        # 3. No cited sources uploaded at all → self-verify against the report,
+        #    even if the claim has internal citation markers. There's no
+        #    "wrong cited source" to confuse with, so self-verify is the only
+        #    way to produce any signal. Position-overlap filter handles the
+        #    circular-reasoning concern (lesson 39).
+        # 4. Uncited claim + cited sources available → broad multi-doc fallback.
         has_citation_markers = bool(claim.citation_anchors)
         if resolved_anchors:
             search_targets = [(str(a.target_document_id), a) for a in resolved_anchors]
-        elif has_citation_markers:
+        elif has_citation_markers and cited_source_ids:
+            # Cited claim with cited sources uploaded but none resolved →
+            # avoid mismatched-evidence trap.
             logger.debug(
-                "Claim %s has citation markers but none resolve to uploaded sources — skipping retrieval",
+                "Claim %s has citation markers but none resolve, and %d cited "
+                "source(s) uploaded — skipping retrieval to avoid wrong-source match",
                 claim.id,
+                len(cited_source_ids),
             )
             continue  # no spans → classification marks needs_review
         elif cited_source_ids:
@@ -121,9 +130,13 @@ async def retrieve_evidence_for_run(
                 len(cited_source_ids),
             )
         else:
+            # No cited sources uploaded; self-verify against the report.
+            # Applies whether the claim has citation markers or not — there's
+            # no other doc to retrieve from, so position-overlap-filtered
+            # self-verify is the best available signal.
             search_targets = [(str(claim.source_document_id), None)]
             logger.debug(
-                "Claim %s self-verifying against report (no citations, no cited sources)",
+                "Claim %s self-verifying against report (no cited sources uploaded)",
                 claim.id,
             )
 
