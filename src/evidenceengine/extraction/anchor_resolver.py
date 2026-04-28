@@ -75,9 +75,9 @@ def _try_surname_year_lookup(
     co-occurrence. Returns the single matching doc_id, or None if 0 or 2+ docs
     match (ambiguous).
 
-    Fixes the "(Devlin et al., 2019)" case: raw marker has only 2 tokens so
-    token coverage is ≤50%, below the 80-threshold. But "devlin" + "2019" both
-    appear in bert_paper.pdf's author list / abstract, giving a direct hit.
+    Fixes the "(Smith et al., 2023)" case: raw marker has only 2 tokens so
+    token coverage is ≤50%, below the 80-threshold. But "smith" + "2023" both
+    appear in the cited primary study's author list / abstract, giving a direct hit.
     """
     surname_lower = surname.lower()
     matches: list[str] = []
@@ -186,9 +186,9 @@ def resolve_to_source_document(
         # Clean filename: replace underscores/dots with spaces for better token matching
         filename_clean = doc.filename.replace("_", " ").replace(".", " ")
         # Build target string: paper_metadata (title + authors) takes priority over
-        # filename, because user-supplied filenames are unreliable (e.g. "bert_paper.pdf"
-        # may not fuzzy-match "BERT" in the reference entry, but the full title
-        # "BERT: Pre-training of Deep Bidirectional Transformers" will).
+        # filename, because user-supplied filenames are unreliable (e.g. "trial.pdf"
+        # may not fuzzy-match "SUSTAIN 11" in the reference entry, but the full title
+        # "Effect of once-weekly semaglutide versus thrice-daily insulin aspart..." will).
         meta = getattr(doc, "paper_metadata", None) or {}
         meta_parts = []
         if meta.get("title"):

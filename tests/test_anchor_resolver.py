@@ -275,33 +275,34 @@ def test_resolve_with_line_break_concatenation():
 def test_resolve_author_year_fallback_surname_year_scan():
     """Fallback: when references_entries is missing, scan source doc content for surname+year.
 
-    "(Devlin et al., 2019)" has only 2 tokens — not enough for 80% token
-    coverage via fuzzy match. But "devlin" and "2019" appear in bert_paper.pdf's
-    author list, so the direct scan resolves it correctly.
+    "(Smith et al., 2023)" has only 2 tokens — not enough for 80% token
+    coverage via fuzzy match. But "smith" and "2023" appear in the cited primary
+    study's author list, so the direct scan resolves it correctly.
     """
     from evidenceengine.extraction.anchor_resolver import resolve_to_source_document
 
-    bert_doc = make_source_doc(
-        filename="bert_paper.pdf",
+    target_doc = make_source_doc(
+        filename="rct-semaglutide-trial.pdf",
         raw_text=(
-            "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding. "
-            "Jacob Devlin, Ming-Wei Chang, Kenton Lee, Kristina Toutanova. Google AI Language. 2019."
+            "Effect of once-weekly semaglutide on cardiovascular outcomes in type 2 diabetes: "
+            "a phase 3 randomized controlled trial. "
+            "Sarah Smith, John Doe, Maria Lopez. NEJM. 2023."
         ),
     )
     unrelated_doc = make_source_doc(
-        filename="gpt_paper.pdf",
-        raw_text="Language models are few-shot learners. Tom Brown et al. OpenAI. 2020.",
+        filename="cohort-study.pdf",
+        raw_text="Cohort study of post-COVID condition prevalence. Tom Brown et al. Lancet. 2024.",
     )
-    sources = [bert_doc, unrelated_doc]
+    sources = [target_doc, unrelated_doc]
 
     doc_id, status = resolve_to_source_document(
-        raw_marker="(Devlin et al., 2019)",
+        raw_marker="(Smith et al., 2023)",
         citation_style="author_year",
         source_documents=sources,
         references_entries=[],  # empty — simulates extraction failure
     )
     assert status == "resolved", f"Expected resolved via surname+year scan, got: {status}"
-    assert doc_id == str(bert_doc.id)
+    assert doc_id == str(target_doc.id)
 
 
 def test_resolve_author_year_fallback_ambiguous_no_resolve():
