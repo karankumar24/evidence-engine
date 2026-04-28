@@ -5,6 +5,33 @@ versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- **Domain pivot**: EvidenceEngine retargets to biomedical and clinical research
+  papers as the sole supported domain. ML/CS support deferred indefinitely. NLI is
+  fine-tuned on SciFact (biomedical) and degrades 15-25pp on ML papers; aligning
+  scope with calibration. See `tasks/lessons.md` lesson 59.
+- Upload UX adds a subtitle signaling biomedical optimization (PubMed Central,
+  PLOS, Frontiers, BMC, NEJM as recommended sources).
+
+### Fixed
+- Classification pipeline no longer short-circuits to needs_review when retrieval
+  has produced evidence spans (commit `c1c6dac`). Was masking real NLI verdicts
+  whenever any citation anchor failed to resolve.
+- Retrieval pipeline no longer falls back to searching wrong cited sources when
+  citations fail to resolve (commit `ef2afee`). Was producing high-confidence
+  false-contradicted verdicts on claims that referenced sources not in the packet.
+
+### Removed
+- ML/CS test fixtures: `attention_paper.pdf`, `bert_paper.pdf`,
+  `gpt4_technical_report.pdf`, `mistral_paper.pdf`, `qlora_paper.pdf`,
+  `t5_paper.pdf`, `whisper_paper.pdf` (~17.5 MB).
+- ML-targeted training scripts: `scripts/prepare_ml_nli_data.py`,
+  `scripts/fine_tune_ml_nli.py`. SciNLI fine-tune no longer on roadmap.
+- ML smoke-test script: `scripts/test_new_pdfs.sh`.
+- Trimmed `_KNOWN_JOINS` in `claim_extractor.py` — removed ML-specific entries
+  (taskspecific, languagemodel, downstreamtasks, etc.). Universal regex Pass 1.6
+  handles the general case.
+
 ## [v1.2.9] — 2026-04-21 (in progress)
 
 ### Changed

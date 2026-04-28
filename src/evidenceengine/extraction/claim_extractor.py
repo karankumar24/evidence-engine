@@ -133,10 +133,14 @@ _NAV_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Known word concatenations from PyMuPDF line-break extraction in ML/scientific papers.
+# Known word concatenations from PyMuPDF line-break extraction in scientific papers.
 # PyMuPDF drops the space when two consecutive lines share a word boundary without a
 # hyphen (e.g. "been\nused" → "beenused"). Lookup applied before sent_tokenize().
+# Limited to function-word and generic-suffix joins seen across all scientific domains
+# (biomedical, clinical, life sciences). The universal regex Pass 1.6 in
+# _fix_word_boundaries covers most cases; this lookup is residual coverage.
 _KNOWN_JOINS: dict[str, str] = {
+    # Function-word + article joins (universal across all domains)
     "asthe": "as the",
     "thesame": "the same",
     "beenused": "been used",
@@ -152,27 +156,7 @@ _KNOWN_JOINS: dict[str, str] = {
     "onthe": "on the",
     "atthe": "at the",
     "isbased": "is based",
-    # Capital-prefix joins: "The\nfeature" → "Thefeature" (PyMuPDF line break
-    # where the second line starts with lowercase drops the leading space)
-    "Thefeature": "The feature",
-    "Themodel": "The model",
-    # ML paper compound joins seen in BERT/Attention papers (no hyphen, just
-    # two words fused by a PyMuPDF line-break that dropped the space)
-    "empiricallypowerful": "empirically powerful",
-    "layerto": "layer to",
-    "widerange": "wide range",
-    "andlanguage": "and language",
-    "initializemodels": "initialize models",
-    "isfeature": "is feature",
-    "outputlayer": "output layer",
-    "taskspecific": "task specific",
-    "downstreamtasks": "downstream tasks",
-    "languagemodel": "language model",
-    "trainingdata": "training data",
-    "machinelearning": "machine learning",
-    "deeplearning": "deep learning",
-    "neuralnetwork": "neural network",
-    # Hyphenation artifacts from PDF line-break extraction
+    # Generic hyphenation artifacts from PDF line-break extraction
     "re-sult": "result",
     "re-strictions": "restrictions",
     "re-lationships": "relationships",
@@ -186,39 +170,21 @@ _KNOWN_JOINS: dict[str, str] = {
     "classi-fication": "classification",
     "incor-porate": "incorporate",
     "incor-porating": "incorporating",
-    "lan-guage": "language",
-    "lan-guages": "languages",
     "ma-jor": "major",
-    "at-tend": "attend",
-    "at-tending": "attending",
-    "unidi-rectionality": "unidirectionality",
-    "unidirec-tional": "unidirectional",
-    "archi-tecture": "architecture",
-    "outper-forming": "outperforming",
-    "outper-form": "outperform",
     "param-eters": "parameters",
     "param-eter": "parameter",
-    # Word joins (no space between words due to PDF line-break)
+    # Generic word joins seen across scientific PDFs
     "suchas": "such as",
     "suchan": "such an",
-    "asnatural": "as natural",
-    "aslanguage": "as language",
     "aswell": "as well",
     "asfollows": "as follows",
-    "embeddingsare": "embeddings are",
-    "embeddingswith": "embeddings with",
-    "tocoarser": "to coarser",
-    "tofine": "to fine",
-    "areunidirectional": "are unidirectional",
     "approachesis": "approaches is",
     "approachis": "approach is",
     "advantageis": "advantage is",
     "modelis": "model is",
     "forexample": "for example",
     "forinstance": "for instance",
-    "achievesstate": "achieves state",
     "suiteof": "suite of",
-    "Dolanand": "Dolan and",
 }
 
 
