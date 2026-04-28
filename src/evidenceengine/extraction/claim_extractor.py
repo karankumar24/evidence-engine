@@ -57,7 +57,8 @@ _ACK_RE = re.compile(
 # Surfaced in 2026-04-27 bio pressure test (semaglutide review false-positive
 # supported on funding-declaration sentence).
 _DISCLOSURE_RE = re.compile(
-    r"\b(author(?:\(s\)|s)?\s+decl(?:are|ares|aration)|"
+    # author(s) declare — tolerant of PyMuPDF "decl are" line-break artifact
+    r"\b(author(?:\(s\)|s)?\s+decl\s*(?:are|ares|aration)|"
     r"received\s+(?:financial\s+)?support\s+(?:from|for)|"
     r"competing\s+interests?|conflict\s+of\s+interest|"
     r"funding\s+(?:statement|source|disclosure)|"
