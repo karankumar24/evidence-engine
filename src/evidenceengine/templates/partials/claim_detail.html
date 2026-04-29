@@ -13,7 +13,7 @@
   <!-- Claim header — pull-quote style -->
   <div class="flex items-start gap-3 pb-4 border-b border-ink-100">
     {% if verdict %}
-      {{ badge.verdict_badge(verdict.verdict_type, size="md") }}
+      {{ badge.verdict_badge(verdict.verdict_type, size="md", is_self_verify=("[Self-verify cap" in (verdict.reasoning or ""))) }}
     {% endif %}
     <h2 class="font-serif text-xl font-semibold text-ink-900 leading-snug flex-1">{{ claim.claim_text }}</h2>
   </div>
@@ -63,7 +63,7 @@
     {% set is_capped = verdict.reasoning and "[Self-verify cap" in verdict.reasoning %}
     {% call coll.collapsible("Verdict & Confidence", default_open=True, id="verd-" ~ claim.id | string) %}
       <div class="flex items-center gap-4 mb-3 flex-wrap">
-        {{ badge.verdict_badge(verdict.verdict_type, size="md") }}
+        {{ badge.verdict_badge(verdict.verdict_type, size="md", is_self_verify=("[Self-verify cap" in (verdict.reasoning or ""))) }}
         {{ conf.confidence_display(verdict.confidence_score) }}
         {% if is_capped %}
           <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide bg-verdict-insufficient/10 text-verdict-insufficient rounded-sm border border-verdict-insufficient/30"

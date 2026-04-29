@@ -20,7 +20,7 @@
   {%- endif -%}
 {%- endmacro %}
 
-{% macro verdict_badge(verdict_type, size="md") %}
+{% macro verdict_badge(verdict_type, size="md", is_self_verify=false) %}
   {%- set labels = {
     "supported": "Supported",
     "contradicted": "Contradicted",
@@ -34,11 +34,25 @@
     "needs_review": "review"
   } -%}
   {%- set t = token.get(verdict_type, "review") -%}
+  {# Self-verify supported = NLI entailed claim using a span from the SAME
+     document as the claim. Technically true, but not external corroboration —
+     show "Self-verified" with amber tone so the green "Supported" pill doesn't
+     mislead the reader into thinking we found cross-document support. #}
+  {%- set show_self = (verdict_type == "supported" and is_self_verify) -%}
   <span data-component="verdict-badge"
         data-verdict="{{ verdict_type }}"
+        data-self-verify="{{ 'true' if show_self else 'false' }}"
         class="inline-flex items-center rounded-sm font-medium tracking-wide uppercase
-               bg-verdict-{{ t }}/10 text-verdict-{{ t }} {{ _size_classes(size) }}">
-    {{ labels.get(verdict_type, verdict_type | replace('_', ' ') | title) }}
+               {% if show_self -%}
+                 bg-verdict-review/10 text-verdict-review
+               {%- else -%}
+                 bg-verdict-{{ t }}/10 text-verdict-{{ t }}
+               {%- endif %} {{ _size_classes(size) }}">
+    {% if show_self -%}
+      Self-Verified
+    {%- else -%}
+      {{ labels.get(verdict_type, verdict_type | replace('_', ' ') | title) }}
+    {%- endif %}
   </span>
 {% endmacro %}
 

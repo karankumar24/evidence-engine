@@ -21,14 +21,15 @@
        hx-push-url="false"
        hx-trigger="click, keydown[key=='Enter'||key==' ']">
     <div class="flex items-start gap-2.5">
+      {% set _q_is_capped = verdict and verdict.reasoning and "[Self-verify cap" in verdict.reasoning %}
       {% if verdict %}
-        {{ badge.verdict_badge(verdict.verdict_type, size="xs") }}
+        {{ badge.verdict_badge(verdict.verdict_type, size="xs", is_self_verify=_q_is_capped) }}
       {% endif %}
       <p class="font-serif text-sm text-ink-800 line-clamp-2 flex-1 leading-snug">{{ claim.claim_text }}</p>
     </div>
     <div class="flex items-center justify-between mt-2 text-xs">
       {% if verdict %}
-        {% set is_capped = verdict.reasoning and "[Self-verify cap" in verdict.reasoning %}
+        {% set is_capped = _q_is_capped %}
         <span class="font-mono text-ink-400 tabular-nums">
           {{ (verdict.confidence_score * 100) | round(0) | int }}%{% if is_capped %}<span class="ml-1 text-[10px] text-ink-300 italic" title="Confidence capped at 80% because evidence came from the same document being verified">(capped)</span>{% endif %}
         </span>

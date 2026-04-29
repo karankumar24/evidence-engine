@@ -87,12 +87,16 @@ _BIBLIOGRAPHY_RE = re.compile(
 # trivially "supports" via self-verify but carries no research finding.
 # Surfaced 2026-04-28 visual QA: 4/8 cardio supported = methods boilerplate
 # ("p<0.05", "ROBINS-I assessed", "Cochrane guidelines", "Open Meta-Analyst").
-# Reject only when sentence is procedural AND lacks any clinical-finding noun
-# (patient/trial/dose/outcome/risk/mortality/effect/reduction/incidence/rate).
+# v2 (2026-04-29): allow optional adverb between aux + verb to catch
+# "were strictly reserved", "was carefully assessed". Add direct "assessed using"
+# pattern. Tighten escape to require finding verb (not just clinical noun).
 _METHODS_PROCEDURAL_RE = re.compile(
-    r"\b(?:was|were|are|is)\s+(?:assessed|used|considered|performed|"
+    r"\b(?:was|were|are|is)\s+(?:\w+\s+)?"
+    r"(?:assessed|used|considered|performed|"
     r"conducted|calculated|applied|reserved|extracted|computed|"
-    r"recorded|reviewed|scored|evaluated)\b",
+    r"recorded|reviewed|scored|evaluated|measured)\b"
+    r"|\bassessed\s+using\b"
+    r"|\bp\s+(?:value|values?)\b\s+(?:below|above|of|<|>)",
     re.IGNORECASE,
 )
 _CLINICAL_NOUN_RE = re.compile(
@@ -101,6 +105,15 @@ _CLINICAL_NOUN_RE = re.compile(
     r"outcome|outcomes|risk|risks|mortality|incidence|rate|rates|"
     r"effect|effects|reduction|increase|decrease|response|responses|"
     r"adverse|efficacy|safety|hazard|odds|relative)\b",
+    re.IGNORECASE,
+)
+# Finding-style verbs that signal a research result rather than methodology.
+# Required (in addition to clinical noun) to escape the methods-procedural reject.
+_FINDING_RESULT_VERB_RE = re.compile(
+    r"\b(?:reduced|increased|decreased|showed|demonstrated|found|"
+    r"observed|reported|achieved|improved|worsened|associated|"
+    r"correlated|attributed|prevented|eliminated|delivered|"
+    r"experienced|received|developed|exhibited|presented)\b",
     re.IGNORECASE,
 )
 
@@ -497,8 +510,13 @@ def _is_likely_claim(sentence: str, _counts: dict | None = None) -> bool:
         return reject("disclosure_boilerplate")
     if _BIBLIOGRAPHY_RE.search(s):
         return reject("bibliography_entry")
-    if _METHODS_PROCEDURAL_RE.search(s) and not _CLINICAL_NOUN_RE.search(s):
-        return reject("methods_procedural")
+    if _METHODS_PROCEDURAL_RE.search(s):
+        # Escape only when sentence has BOTH a clinical noun AND a finding verb —
+        # i.e. it describes an observed result, not a methodology step.
+        has_clinical = bool(_CLINICAL_NOUN_RE.search(s))
+        has_finding = bool(_FINDING_RESULT_VERB_RE.search(s))
+        if not (has_clinical and has_finding):
+            return reject("methods_procedural")
     if _META_RE.match(s):
         return reject("meta")
 

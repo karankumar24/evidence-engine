@@ -159,17 +159,29 @@ async def run_full_pipeline(run_version_id: str) -> None:
                     "Legacy OPENAI_API_KEY is also accepted."
                 )
 
+        import time as _time
+        _stage_t = {}
+        def _stage_done(stage: str, t0: float):
+            _stage_t[stage] = _time.monotonic() - t0
+            logger.info(
+                "[stage_timing] run=%s stage=%s wall=%.2fs",
+                run_version_id, stage, _stage_t[stage],
+            )
+
         # Stages 0–2 use one session. It commits and closes before Stage 3 so
         # the DB connection is not held idle during the CPU-intensive NLI run.
         # A 190-page document can take 10+ minutes of NLI inference, which
         # causes PostgreSQL to close idle connections (InterfaceError).
         async with async_session_factory() as session:
             # ── Stage 0: Parse any pending source documents ───────────────────
+            _t = _time.monotonic()
             await _set_stage(run_version_id, "parsing", session)
             run = await session.get(RunVersion, uuid.UUID(run_version_id))
             await _parse_pending_documents(run.packet_id, session)
+            _stage_done("parsing", _t)
 
             # ── Stage 1: Extract ──────────────────────────────────────────────
+            _t = _time.monotonic()
             await _set_stage(run_version_id, "extracting", session)
 
             # Find the report SourceDocument for this run's packet
@@ -182,10 +194,13 @@ async def run_full_pipeline(run_version_id: str) -> None:
             report = result.scalar_one()
 
             await extract_claims_for_document(str(report.id), run_version_id, session)
+            _stage_done("extracting", _t)
 
             # ── Stage 2: Retrieve ─────────────────────────────────────────────
+            _t = _time.monotonic()
             await _set_stage(run_version_id, "retrieving", session)
             await retrieve_evidence_for_run(run_version_id, session)
+            _stage_done("retrieving", _t)
 
             # Mark as classifying BEFORE closing this session so the UI
             # reflects the current stage while NLI runs in the next block.
@@ -193,11 +208,13 @@ async def run_full_pipeline(run_version_id: str) -> None:
         # Session closes here — connection returned to pool.
 
         # Stage 3 uses a fresh connection so no idle timeout during NLI.
+        _t = _time.monotonic()
         async with async_session_factory() as session:
             # ── Stage 3: Classify (with error collection) ─────────────────────
             _verdicts, claim_errors = await _classify_with_error_collection(
                 run_version_id, session
             )
+            _stage_done("classifying", _t)
 
             # ── Finalize ──────────────────────────────────────────────────────
             run = await session.get(RunVersion, uuid.UUID(run_version_id))
