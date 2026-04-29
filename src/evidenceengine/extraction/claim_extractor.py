@@ -71,9 +71,36 @@ _ACK_RE = re.compile(
 # Body findings phrase as "patients in SUSTAIN 11 trial showed..." — no
 # ":\s*(?:a|the)\s+" gate before "trial.", so they don't match.
 _BIBLIOGRAPHY_RE = re.compile(
+    # Original: ":/(): a/the ... trial/study/analysis/report/review."
     r"(?:\):\s*a|\):\s*the|:\s*a|:\s*the)\s+"
     r"[^.]{0,200}?"
-    r"\b(?:trial|study|analysis|report|review)\.?\s*$",
+    r"\b(?:trial|study|analysis|report|review)\.?\s*$"
+    # Also catch ref-list shape: ends in "(ACRONYM). JournalAbbrev." pattern.
+    # Surfaced 2026-04-28: "(SUSTAIN 10). Diabetes Metab." leaked as supported.
+    # Journal-abbrev tail = 1-3 Title-Case tokens, optional period, end-of-sentence.
+    r"|\([A-Z][A-Z0-9 \-]{1,30}\)\.\s+"
+    r"[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}\.?\s*$",
+    re.IGNORECASE,
+)
+
+# Methods-procedural sentences: statistical/methodology boilerplate that NLI
+# trivially "supports" via self-verify but carries no research finding.
+# Surfaced 2026-04-28 visual QA: 4/8 cardio supported = methods boilerplate
+# ("p<0.05", "ROBINS-I assessed", "Cochrane guidelines", "Open Meta-Analyst").
+# Reject only when sentence is procedural AND lacks any clinical-finding noun
+# (patient/trial/dose/outcome/risk/mortality/effect/reduction/incidence/rate).
+_METHODS_PROCEDURAL_RE = re.compile(
+    r"\b(?:was|were|are|is)\s+(?:assessed|used|considered|performed|"
+    r"conducted|calculated|applied|reserved|extracted|computed|"
+    r"recorded|reviewed|scored|evaluated)\b",
+    re.IGNORECASE,
+)
+_CLINICAL_NOUN_RE = re.compile(
+    r"\b(?:patient|patients|trial|trials|cohort|subject|subjects|"
+    r"participant|participants|dose|dosing|treatment|treatments|"
+    r"outcome|outcomes|risk|risks|mortality|incidence|rate|rates|"
+    r"effect|effects|reduction|increase|decrease|response|responses|"
+    r"adverse|efficacy|safety|hazard|odds|relative)\b",
     re.IGNORECASE,
 )
 
@@ -470,6 +497,8 @@ def _is_likely_claim(sentence: str, _counts: dict | None = None) -> bool:
         return reject("disclosure_boilerplate")
     if _BIBLIOGRAPHY_RE.search(s):
         return reject("bibliography_entry")
+    if _METHODS_PROCEDURAL_RE.search(s) and not _CLINICAL_NOUN_RE.search(s):
+        return reject("methods_procedural")
     if _META_RE.match(s):
         return reject("meta")
 
