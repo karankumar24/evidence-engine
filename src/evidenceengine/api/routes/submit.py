@@ -156,8 +156,45 @@ async def run_status_page(
     return templates.TemplateResponse(
         request=request,
         name="run_status.html",
-        context={"run": run},
+        context={"run": run, "progress": _compute_progress(run),
+                 "stage_etas": STAGE_ETA_SECONDS},
     )
+
+
+# ── Per-stage cold-cache ETAs (seconds). Tunable. Observed 2026-04-28. ───────
+STAGE_ETA_SECONDS: dict[str, int] = {
+    "parsing": 5,
+    "extracting": 15,
+    "retrieving": 50,
+    "classifying": 35,
+}
+_STAGE_ORDER = ["parsing", "extracting", "retrieving", "classifying"]
+
+
+def _compute_progress(run: RunVersion) -> dict:
+    """Compute % through current stage + total ETA remaining, capped at 99%."""
+    from datetime import datetime, timezone
+
+    total = sum(STAGE_ETA_SECONDS.values())
+    if run.status not in _STAGE_ORDER:
+        return {"pct": 0, "remaining": total, "elapsed_in_stage": 0,
+                "stage_eta": 0, "stage_pct": 0}
+
+    idx = _STAGE_ORDER.index(run.status)
+    prior_budget = sum(STAGE_ETA_SECONDS[s] for s in _STAGE_ORDER[:idx])
+    stage_eta = STAGE_ETA_SECONDS[run.status]
+
+    elapsed = 0.0
+    if run.started_at is not None:
+        elapsed = (datetime.now(timezone.utc) - run.started_at).total_seconds()
+    elapsed_in_stage = max(0.0, elapsed - prior_budget)
+
+    stage_pct = min(99, int(100 * elapsed_in_stage / stage_eta)) if stage_eta else 0
+    overall_pct = min(99, int(100 * (prior_budget + min(elapsed_in_stage, stage_eta)) / total))
+    remaining = max(1, int(total - min(elapsed, total - 1)))
+    return {"pct": overall_pct, "remaining": remaining,
+            "elapsed_in_stage": int(elapsed_in_stage),
+            "stage_eta": stage_eta, "stage_pct": stage_pct}
 
 
 @router.get("/runs/{run_id}/status/poll", response_class=HTMLResponse)
@@ -173,7 +210,8 @@ async def run_status_poll(
     response = templates.TemplateResponse(
         request=request,
         name="partials/run_status_body.html",
-        context={"run": run},
+        context={"run": run, "progress": _compute_progress(run),
+                 "stage_etas": STAGE_ETA_SECONDS},
     )
 
     if run.status == "completed":

@@ -42,6 +42,19 @@
     {% set stage_order = {"queued": 0, "parsing": 1, "extracting": 2, "retrieving": 3, "classifying": 4, "completed": 5, "failed": 5} %}
     {% set current_order = stage_order.get(run.status, 0) %}
 
+    {# Overall progress bar + total ETA countdown. Cap visual at 99%; never show negative. #}
+    {% if progress %}
+    <div class="space-y-1">
+      <div class="flex justify-between text-xs font-mono text-ink-500">
+        <span>{{ progress.pct }}%</span>
+        <span>~{{ progress.remaining }}s remaining</span>
+      </div>
+      <div class="w-full h-1.5 bg-ink-100 rounded-sm overflow-hidden">
+        <div class="h-full bg-accent-600 transition-all duration-500" style="width: {{ progress.pct }}%"></div>
+      </div>
+    </div>
+    {% endif %}
+
     <div class="text-left space-y-3">
     {% for stage_key in ["parsing", "extracting", "retrieving", "classifying"] %}
       {% set order = stage_order[stage_key] %}
@@ -52,19 +65,22 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
             </svg>
           </span>
-          <span class="text-sm text-ink-500 line-through">{{ step_labels[stage_key] }}</span>
+          <span class="text-sm text-ink-500 line-through flex-1">{{ step_labels[stage_key] }}</span>
+          <span class="text-xs font-mono text-ink-400">~{{ stage_etas[stage_key] }}s</span>
         </div>
       {% elif current_order == order %}
         <div class="flex items-center gap-3">
           <span class="w-5 h-5 rounded-full border-2 border-accent-600 flex items-center justify-center flex-shrink-0">
             <span class="w-2 h-2 rounded-full bg-accent-600 animate-pulse"></span>
           </span>
-          <span class="text-sm font-medium text-ink-900">{{ step_labels[stage_key] }}…</span>
+          <span class="text-sm font-medium text-ink-900 flex-1">{{ step_labels[stage_key] }}…</span>
+          <span class="text-xs font-mono text-accent-700">{{ progress.stage_pct if progress else 0 }}%</span>
         </div>
       {% else %}
         <div class="flex items-center gap-3">
           <span class="w-5 h-5 rounded-full border-2 border-ink-200 flex-shrink-0"></span>
-          <span class="text-sm text-ink-400">{{ step_labels[stage_key] }}</span>
+          <span class="text-sm text-ink-400 flex-1">{{ step_labels[stage_key] }}</span>
+          <span class="text-xs font-mono text-ink-300">~{{ stage_etas[stage_key] }}s</span>
         </div>
       {% endif %}
     {% endfor %}
