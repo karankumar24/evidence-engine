@@ -272,6 +272,28 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             logger.exception("NLI prewarm failed — first classification may be slow")
     app.state.nli_prewarm = asyncio.create_task(_prewarm_nli())
 
+    # Pre-warm the dense retrieval encoder (BGE-base-en-v1.5 by default) so the
+    # first user request doesn't pay ~120s lazy load on top of pipeline work.
+    # Measured 2026-04-28: cardio fresh-PDF run = 171s (model load + work),
+    # subsequent runs = 41-82s (encoder warm). Fix closes the 130s gap.
+    async def _prewarm_dense_encoder() -> None:
+        import asyncio as _asyncio
+        import time as _time
+        def _load_encoder() -> float:
+            t0 = _time.monotonic()
+            try:
+                from evidenceengine.retrieval.dense_retriever import _ensure_loaded
+                _ensure_loaded()
+            except Exception:
+                pass
+            return _time.monotonic() - t0
+        try:
+            dur = await _asyncio.to_thread(_load_encoder)
+            logger.info("Dense encoder prewarmed in %.1fs", dur)
+        except Exception:
+            logger.exception("Dense encoder prewarm failed — first retrieval may stall")
+    app.state.dense_prewarm = asyncio.create_task(_prewarm_dense_encoder())
+
     # Recover orphaned in-flight runs from a previous server crash/restart.
     # Any run still in a pipeline stage means its background task was killed
     # mid-flight — _mark_failed was never called. Mark them failed now so the
