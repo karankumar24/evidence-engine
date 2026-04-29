@@ -184,14 +184,31 @@ def _compute_progress(run: RunVersion) -> dict:
     prior_budget = sum(STAGE_ETA_SECONDS[s] for s in _STAGE_ORDER[:idx])
     stage_eta = STAGE_ETA_SECONDS[run.status]
 
-    elapsed = 0.0
+    # Prefer the actual stage-transition timestamp (stamped by orchestrator
+    # _set_stage) over deriving elapsed-in-stage from run.started_at minus
+    # fixed budgets — the latter lies whenever an earlier stage overruns its
+    # ETA, e.g. retrieval taking 5min flips classifying to 99%/~1s instantly.
+    now = datetime.now(timezone.utc)
+    stage_started_iso = (run.pipeline_config or {}).get("stage_started_at") if run.pipeline_config else None
+    elapsed_in_stage = 0.0
+    if stage_started_iso:
+        try:
+            stage_started = datetime.fromisoformat(stage_started_iso)
+            elapsed_in_stage = max(0.0, (now - stage_started).total_seconds())
+        except ValueError:
+            stage_started_iso = None
+
+    elapsed_total = 0.0
     if run.started_at is not None:
-        elapsed = (datetime.now(timezone.utc) - run.started_at).total_seconds()
-    elapsed_in_stage = max(0.0, elapsed - prior_budget)
+        elapsed_total = (now - run.started_at).total_seconds()
+
+    if not stage_started_iso:
+        # Fallback for runs that started before this fix landed.
+        elapsed_in_stage = max(0.0, elapsed_total - prior_budget)
 
     stage_pct = min(99, int(100 * elapsed_in_stage / stage_eta)) if stage_eta else 0
     overall_pct = min(99, int(100 * (prior_budget + min(elapsed_in_stage, stage_eta)) / total))
-    remaining = max(1, int(total - min(elapsed, total - 1)))
+    remaining = max(1, int(total - min(elapsed_total, total - 1)))
     return {"pct": overall_pct, "remaining": remaining,
             "elapsed_in_stage": int(elapsed_in_stage),
             "stage_eta": stage_eta, "stage_pct": stage_pct}

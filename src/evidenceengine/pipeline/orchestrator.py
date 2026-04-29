@@ -60,11 +60,22 @@ async def _parse_pending_documents(packet_id: uuid.UUID, session: AsyncSession) 
 
 
 async def _set_stage(run_version_id: str, stage: str, session: AsyncSession) -> RunVersion:
-    """Load RunVersion, update status (and started_at if entering 'extracting'), commit."""
+    """Load RunVersion, update status (and started_at if entering 'extracting'), commit.
+
+    Also stamps `pipeline_config['stage_started_at']` with the current UTC time so
+    the progress UI can compute per-stage elapsed from the actual transition time
+    instead of subtracting fixed ETA budgets (which lies when an earlier stage
+    overruns its budget).
+    """
     run = await session.get(RunVersion, uuid.UUID(run_version_id))
     run.status = stage
+    now = datetime.now(timezone.utc)
     if stage == "extracting":
-        run.started_at = datetime.now(timezone.utc)
+        run.started_at = now
+    run.pipeline_config = {
+        **(run.pipeline_config or {}),
+        "stage_started_at": now.isoformat(),
+    }
     await session.commit()
     return run
 
