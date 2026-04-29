@@ -11,6 +11,7 @@ The caller (API endpoint or Phase 5 task runner) is responsible for RunVersion l
 
 import logging
 import os
+import time
 import uuid as uuid_lib
 from typing import Any
 
@@ -88,6 +89,15 @@ async def retrieve_evidence_for_run(
     # Avoids re-indexing/re-encoding when multiple claims cite the same source document.
     index_cache: dict[str, tuple[Any, list[dict], Any]] = {}
 
+    # Sub-stage timing aggregates for retrieval-regression diagnosis (lesson 70).
+    # Stage-level [stage_timing] only logs the whole retrieval block; this breaks
+    # it into index-build / query / rerank so we can see which substep regressed.
+    t_index_build = 0.0
+    t_query = 0.0
+    t_rerank = 0.0
+    n_index_builds = 0
+    n_rerank_calls = 0
+
     for claim in claims:
         resolved_anchors = [
             a for a in claim.citation_anchors
@@ -151,6 +161,7 @@ async def retrieve_evidence_for_run(
 
             # Load and cache BM25 index for this source document
             if doc_id_str not in index_cache:
+                _ib_t0 = time.monotonic()
                 source_doc_result = await db.execute(
                     select(SourceDocument).where(
                         SourceDocument.id == target_doc_uuid
@@ -178,6 +189,8 @@ async def retrieve_evidence_for_run(
                     else None
                 )
                 index_cache[doc_id_str] = (retriever, span_dicts, dense_embs)
+                t_index_build += time.monotonic() - _ib_t0
+                n_index_builds += 1
 
             if doc_id_str not in index_cache:
                 continue  # failed to build index above
@@ -186,11 +199,13 @@ async def retrieve_evidence_for_run(
             span_texts = [s["text"] for s in span_dicts]
 
             # BM25 top-k query
+            _q_t0 = time.monotonic()
             bm25_texts, _bm25_scores = query_index(
                 retriever,
                 claim.claim_text,
                 k=settings.retrieval_top_k_bm25,
             )
+            t_query += time.monotonic() - _q_t0
 
             # In self-verification mode, exclude any span that overlaps the
             # claim's own text position in the source document. Without this
@@ -224,9 +239,11 @@ async def retrieve_evidence_for_run(
             # cross-encoder reranker sees the full candidate set.
             if settings.dense_retrieval_enabled and dense_embs is not None:
                 dense_k = max(2, settings.retrieval_top_k_bm25 // 2)
+                _dq_t0 = time.monotonic()
                 dense_candidates = query_dense(
                     claim.claim_text, dense_embs, span_texts, k=dense_k,
                 )
+                t_query += time.monotonic() - _dq_t0
                 if overlapping_texts:
                     dense_candidates = [t for t in dense_candidates if t not in overlapping_texts]
                 bm25_set = set(bm25_texts)
@@ -238,7 +255,10 @@ async def retrieve_evidence_for_run(
                 continue
 
             # Cross-encoder reranking over BM25 ∪ dense candidates.
+            _rr_t0 = time.monotonic()
             ranked = await rerank(claim.claim_text, bm25_texts)
+            t_rerank += time.monotonic() - _rr_t0
+            n_rerank_calls += 1
             final_spans = ranked[: settings.retrieval_top_k_final]
 
             if not final_spans:
@@ -296,5 +316,12 @@ async def retrieve_evidence_for_run(
         retrieved_claim_count,
         total_claim_count,
         run_version_id,
+    )
+    logger.info(
+        "[retrieval_timing] run=%s index_build=%.2fs (n=%d) query=%.2fs rerank=%.2fs (n=%d)",
+        run_version_id,
+        t_index_build, n_index_builds,
+        t_query,
+        t_rerank, n_rerank_calls,
     )
     return all_spans
