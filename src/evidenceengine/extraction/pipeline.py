@@ -29,7 +29,10 @@ from evidenceengine.extraction.anchor_resolver import (
     resolve_to_source_document,
 )
 from evidenceengine.core.config import settings
-from evidenceengine.extraction.claim_extractor import extract_claims_from_blocks
+from evidenceengine.extraction.claim_extractor import (
+    _is_likely_claim,
+    extract_claims_from_blocks,
+)
 from evidenceengine.extraction.position_recovery import recover_position
 from evidenceengine.models.claim import CitationAnchor, Claim
 from evidenceengine.models.document import SourceDocument
@@ -139,13 +142,16 @@ async def extract_claims_for_document(
     # fill the cap first. These are the claims the tool exists to verify.
     # Uncited claims are added via stratified section sampling to ensure all
     # document sections (intro/methods/results/discussion) are represented.
+    # Defensive filter pass: extract_claims_from_blocks already applies
+    # _is_likely_claim, but rerun it here so any cap-stage rejection refills
+    # from the next candidate instead of shrinking the cap (25 -> 21).
     cited_claims = [
         c for c in extraction_result.claims
-        if getattr(c, "citation_markers", [])
+        if getattr(c, "citation_markers", []) and _is_likely_claim(c.claim_text)
     ]
     uncited_claims = [
         c for c in extraction_result.claims
-        if not getattr(c, "citation_markers", [])
+        if not getattr(c, "citation_markers", []) and _is_likely_claim(c.claim_text)
     ]
 
     if len(cited_claims) >= effective_cap:
@@ -153,6 +159,17 @@ async def extract_claims_for_document(
     else:
         remaining = effective_cap - len(cited_claims)
         sampled_claims = cited_claims + _stratified_sample(uncited_claims, remaining)
+
+    # Final refill: if anything in sampled_claims fails the filter (belt-and-
+    # suspenders), backfill from unused uncited candidates so the user always
+    # sees up to effective_cap claims.
+    used_ids = {id(c) for c in sampled_claims}
+    backfill_pool = [c for c in uncited_claims if id(c) not in used_ids]
+    sampled_claims = [c for c in sampled_claims if _is_likely_claim(c.claim_text)]
+    while len(sampled_claims) < effective_cap and backfill_pool:
+        candidate = backfill_pool.pop(0)
+        if _is_likely_claim(candidate.claim_text):
+            sampled_claims.append(candidate)
 
     discarded_count = max(0, extracted_count - len(sampled_claims))
     if discarded_count > 0:
