@@ -9,10 +9,12 @@ run_version_id and db as parameters — it does NOT create or update RunVersion 
 The caller (API endpoint or Phase 5 task runner) is responsible for RunVersion lifecycle.
 """
 
+import hashlib
 import logging
 import os
 import time
 import uuid as uuid_lib
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import select
@@ -35,6 +37,33 @@ logger = logging.getLogger(__name__)
 def _overlaps(a_start: int, a_end: int, b_start: int, b_end: int) -> bool:
     """True if [a_start, a_end) and [b_start, b_end) overlap at all."""
     return a_start < b_end and b_start < a_end
+
+
+# Bump when parser/span-extraction logic changes in a way that invalidates
+# previously-cached dense embeddings. Model-slug invalidation already lives
+# in load_or_build_dense via the filename suffix.
+_DENSE_CACHE_KEY_VERSION = "dense_v2_file_sha256"
+
+
+def _dense_cache_path_for_source(file_path: str, fallback_doc_id: str) -> str:
+    """Hash the uploaded file bytes to share dense embeddings across re-uploads.
+
+    Same PDF → same SHA256 → same cached embeddings, regardless of which
+    SourceDocument.id (per-upload UUID) the run is processing. This collapses
+    cold-cache encode cost from N/upload to 1/file-content.
+
+    Falls back to the legacy doc-id key path if the file is unreadable so a
+    single failed read can never block retrieval entirely.
+    """
+    try:
+        digest = hashlib.sha256(Path(file_path).read_bytes()).hexdigest()
+        return os.path.join(settings.index_dir, f"{_DENSE_CACHE_KEY_VERSION}_{digest}")
+    except OSError as exc:
+        logger.warning(
+            "Dense cache hash failed for %s (%s); falling back to doc-id key",
+            file_path, exc,
+        )
+        return os.path.join(settings.index_dir, fallback_doc_id)
 
 
 async def retrieve_evidence_for_run(
@@ -181,10 +210,17 @@ async def retrieve_evidence_for_run(
                     continue
 
                 span_texts = [s["text"] for s in span_dicts]
+                # BM25 index stays keyed by SourceDocument.id (per-upload).
+                # Dense embeddings keyed by file-content hash so identical
+                # re-uploads share the cached array (codex root-cause fix
+                # 2026-04-30: index_build dominates retrieval at 80-90%).
                 index_path = os.path.join(settings.index_dir, doc_id_str)
                 retriever = load_or_build_index(span_texts, index_path)
+                dense_cache_path = _dense_cache_path_for_source(
+                    source_doc.file_path, doc_id_str,
+                )
                 dense_embs = (
-                    load_or_build_dense(span_texts, index_path)
+                    load_or_build_dense(span_texts, dense_cache_path)
                     if settings.dense_retrieval_enabled
                     else None
                 )
