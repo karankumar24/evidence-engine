@@ -119,6 +119,15 @@ _LICENSE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Journal page-of-total header bleeding into sentence body. PyMuPDF can glue
+# a running-head ("Cells 2024, 13, 8004 of 27") onto the start of the next
+# paragraph's first sentence. Pattern: TitleCase + year + numbers + "X of Y".
+# Surfaced 2026-04-30 visual QA on CRISPR paper (run 3d8dae7c).
+_JOURNAL_PAGE_HEADER_RE = re.compile(
+    r"^[A-Z][a-z]{2,15}\s+\d{4},?\s+\d+,?\s+\d+\s+of\s+\d+\s+",
+    re.IGNORECASE,
+)
+
 # Methods-procedural sentences: statistical/methodology boilerplate that NLI
 # trivially "supports" via self-verify but carries no research finding.
 # Surfaced 2026-04-28 visual QA: 4/8 cardio supported = methods boilerplate
@@ -561,6 +570,8 @@ def _is_likely_claim(sentence: str, _counts: dict | None = None) -> bool:
         return reject("glossary")
     if _LICENSE_RE.search(s):
         return reject("license_boilerplate")
+    if _JOURNAL_PAGE_HEADER_RE.match(s):
+        return reject("journal_page_header_bleed")
 
     # All-caps heading/TOC: if ≥60% of alphabetic words are fully uppercase,
     # this is a heading or table-of-contents entry, not a factual claim.
@@ -782,7 +793,12 @@ def _extract_claims_sync(
             if not _is_likely_claim(sentence, rejection_counts):
                 prev_sentence = sentence
                 continue
-            key = sentence.lower()
+            # Normalised dedup key: strip whitespace AND hyphens to fold
+            # PyMuPDF line-break artifacts ("lim-ited"/"limitedby"/"limited by")
+            # into the same bucket. Display still uses the original sentence.
+            # Lesson 73 (2026-04-30): hyphen-line-break gap surfaced 4 dups on
+            # CRISPR paper because byte-equal dedup keyed on raw lower-case.
+            key = re.sub(r"[-\s]", "", sentence.lower())
             if key in seen:
                 prev_sentence = sentence
                 continue
