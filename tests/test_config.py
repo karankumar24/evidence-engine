@@ -37,13 +37,17 @@ def test_nli_tiebreaker_threshold_default(monkeypatch):
 def test_nli_entailment_supported_threshold_default(monkeypatch):
     monkeypatch.delenv("NLI_ENTAILMENT_SUPPORTED_THRESHOLD", raising=False)
     s = _fresh()
-    assert s.nli_entailment_supported_threshold == 0.86
+    # Raised 0.86 → 0.92 on 2026-04-26 for calibrated precision (DeBERTa
+    # was overconfident by ~8pp). If a threshold sweep proves the lower
+    # value better, change BOTH this assertion and config.py together.
+    assert s.nli_entailment_supported_threshold == 0.92
 
 
 def test_nli_contradiction_contradicted_threshold_default(monkeypatch):
     monkeypatch.delenv("NLI_CONTRADICTION_CONTRADICTED_THRESHOLD", raising=False)
     s = _fresh()
-    assert s.nli_contradiction_contradicted_threshold == 0.80
+    # Raised 0.80 → 0.85 symmetric with entailment threshold raise.
+    assert s.nli_contradiction_contradicted_threshold == 0.85
 
 
 def test_nli_min_confidence_for_verdict_default(monkeypatch):

@@ -22,6 +22,14 @@ primary_region = "sjc"   # San Jose — closest to the default user; change if n
   PYTHONPATH         = "/app/src"
   HF_HOME            = "/data/huggingface"
   TRANSFORMERS_CACHE = "/data/huggingface"
+  # Cap BLAS thread pools to 1 on shared-cpu-2x. Without these caps OpenMP /
+  # MKL spawn N threads per request and oversubscribe the 2 cores under
+  # concurrent load → 10x retrieval-stage variance (92s vs 1068s on identical
+  # workload, 2026-04-30). Codex root-cause review recommendation.
+  OMP_NUM_THREADS        = "1"
+  MKL_NUM_THREADS        = "1"
+  OPENBLAS_NUM_THREADS   = "1"
+  TOKENIZERS_PARALLELISM = "false"
 
 [http_service]
   internal_port = 8000
