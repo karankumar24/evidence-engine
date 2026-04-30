@@ -102,6 +102,23 @@ _META_OBJECTIVE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Glossary / abbreviation lists: "GMC indicates X; GMFR, Y; Ig G, Z" — universal
+# table-footnote shape across journals. Surfaced 2026-04-30 visual QA.
+_GLOSSARY_RE = re.compile(
+    r"\b(indicates|stands\s+for|refers\s+to|denotes|represents)\b"
+    r".*?[;,].*?[A-Z][a-z]*[,;]",
+    re.IGNORECASE,
+)
+
+# Open-access / Creative Commons license boilerplate. Universal across
+# open-access bio journals (PMC, PLOS, BMC, etc.). Not a research finding.
+_LICENSE_RE = re.compile(
+    r"\b(open[\- ]access\s+article|creative\s+commons|"
+    r"CC[\s\-]BY[\s\-]?(?:NC|ND|SA)?|"
+    r"distributed\s+under\s+the\s+terms\s+of)\b",
+    re.IGNORECASE,
+)
+
 # Methods-procedural sentences: statistical/methodology boilerplate that NLI
 # trivially "supports" via self-verify but carries no research finding.
 # Surfaced 2026-04-28 visual QA: 4/8 cardio supported = methods boilerplate
@@ -540,6 +557,10 @@ def _is_likely_claim(sentence: str, _counts: dict | None = None) -> bool:
         return reject("meta")
     if _META_OBJECTIVE_RE.search(s):
         return reject("meta_objective")
+    if _GLOSSARY_RE.search(s):
+        return reject("glossary")
+    if _LICENSE_RE.search(s):
+        return reject("license_boilerplate")
 
     # All-caps heading/TOC: if ≥60% of alphabetic words are fully uppercase,
     # this is a heading or table-of-contents entry, not a factual claim.
