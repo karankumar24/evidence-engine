@@ -79,7 +79,26 @@ _BIBLIOGRAPHY_RE = re.compile(
     # Surfaced 2026-04-28: "(SUSTAIN 10). Diabetes Metab." leaked as supported.
     # Journal-abbrev tail = 1-3 Title-Case tokens, optional period, end-of-sentence.
     r"|\([A-Z][A-Z0-9 \-]{1,30}\)\.\s+"
-    r"[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}\.?\s*$",
+    r"[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}\.?\s*$"
+    # v3 (2026-04-30): URL access-date boilerplate from ref lists.
+    # "Accessed January 24, 2024." / "Accessed July 10, 2020."
+    # Surfaced as 4 contradicted FPs on PCV20 paper — pure trash, NLI ran on
+    # date strings against retrieved spans and produced spurious contradictions.
+    r"|^accessed\s+\w+\s+\d+,?\s+\d{4}\.?\s*$",
+    re.IGNORECASE,
+)
+
+# Meta-claims about study objectives ("objective was demonstration of X",
+# "objectives included demonstrating Y") trivially self-verify because the
+# paper explicitly states what they intended — not what they found.
+# Surfaced 2026-04-30 visual QA on PCV20 paper: 2/7 supported FPs were
+# objective-meta sentences. Distinct from research findings, which describe
+# observed results, not study design.
+_META_OBJECTIVE_RE = re.compile(
+    r"\b(?:primary|secondary|key|main)?\s*objectives?\s+"
+    r"(?:was|were|include[ds]?)\s+"
+    r"(?:to\s+)?"
+    r"(?:demonstrat|prov|show|establish|test|assess|determin|evaluat|examin)",
     re.IGNORECASE,
 )
 
@@ -519,6 +538,8 @@ def _is_likely_claim(sentence: str, _counts: dict | None = None) -> bool:
             return reject("methods_procedural")
     if _META_RE.match(s):
         return reject("meta")
+    if _META_OBJECTIVE_RE.search(s):
+        return reject("meta_objective")
 
     # All-caps heading/TOC: if ≥60% of alphabetic words are fully uppercase,
     # this is a heading or table-of-contents entry, not a factual claim.
