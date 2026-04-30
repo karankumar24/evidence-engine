@@ -112,14 +112,13 @@ async def test_explanation_timeout_non_blocking():
 
 @pytest.mark.asyncio
 async def test_explanation_uses_explanation_prompt_not_verdict_prompt():
-    """System message must be EXPLANATION_SYSTEM_PROMPT, NOT llm_classifier.SYSTEM_PROMPT."""
+    """System message must be EXPLANATION_SYSTEM_PROMPT (distinct from any verdict prompt)."""
     from evidenceengine.classification import explanation as exp_mod
     from evidenceengine.classification.explanation import (
         EXPLANATION_SYSTEM_PROMPT,
         ExplanationResponse,
         generate_explanation,
     )
-    from evidenceengine.classification.llm_classifier import SYSTEM_PROMPT as VERDICT_PROMPT
 
     captured = {}
 
@@ -135,7 +134,6 @@ async def test_explanation_uses_explanation_prompt_not_verdict_prompt():
     messages = captured["messages"]
     system_msg = next(m for m in messages if m["role"] == "system")
     assert system_msg["content"] == EXPLANATION_SYSTEM_PROMPT
-    assert system_msg["content"] != VERDICT_PROMPT
 
 
 @pytest.mark.asyncio

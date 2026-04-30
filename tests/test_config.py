@@ -25,12 +25,6 @@ def test_classifier_backend_default_nli(monkeypatch):
     assert s.classifier_backend == "nli_primary"
 
 
-def test_classifier_backend_env_override_llm_primary(monkeypatch):
-    monkeypatch.setenv("CLASSIFIER_BACKEND", "llm_primary")
-    s = _fresh()
-    assert s.classifier_backend == "llm_primary"
-
-
 # ── NLI threshold constants ───────────────────────────────────────────────────
 
 
