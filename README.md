@@ -130,4 +130,10 @@ For the architecture and design decisions: [`docs/ARCHITECTURE.md`](docs/ARCHITE
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+**Project code: MIT.** See [LICENSE](LICENSE).
+
+**Bundled data and model dependencies have other licenses that you must respect when redistributing:**
+- The SciFact dataset shipped under `eval/data/scifact/` is **CC BY-NC 2.0** (non-commercial). The fine-tuned NLI checkpoint derived from SciFact inherits that restriction in the eyes of most lawyers.
+- PyMuPDF (the PDF parser) is **AGPL 3.0**. Running a public service that depends on PyMuPDF triggers AGPL source-availability requirements.
+
+See [`ATTRIBUTIONS.md`](ATTRIBUTIONS.md) for the full per-component license table and what to do if you fork.

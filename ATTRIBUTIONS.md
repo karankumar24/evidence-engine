@@ -49,7 +49,7 @@ EvidenceEngine ships under MIT (see [LICENSE](LICENSE)) but bundles or downloads
 
 ## Datasets used in development eval
 
-The internal 220-case gold benchmark referenced in commit history is private and is not redistributed in this repo. SciFact (CC BY-NC 2.0) is included under `eval/data/scifact/` and is also baked into the Docker image because the `Dockerfile` copies the full `eval/` directory; if you fork and ship a derivative, the CC BY-NC restriction follows the SciFact files.
+The internal 220-case gold benchmark referenced in commit history is private and is not redistributed in this repo. SciFact (CC BY-NC 2.0) is included in the source tree under `eval/data/scifact/` for offline evaluation. The Docker image does NOT ship SciFact: `.dockerignore` excludes `eval/data/`, so production deploys do not carry the dataset. If you fork the source repo and redistribute it, the CC BY-NC restriction follows the SciFact files in your tree; if you build and distribute the Docker image as-is, the dataset is not in it.
 
 ## Logo / images
 
