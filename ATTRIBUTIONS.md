@@ -15,7 +15,7 @@ EvidenceEngine ships under MIT (see [LICENSE](LICENSE)) but bundles or downloads
 
 | Dataset | Used for | License | Notes |
 |---|---|---|---|
-| **SciFact** (Wadden et al., 2020) | Fine-tuning the NLI classifier | **CC BY-NC 2.0** | The NC ("non-commercial") clause is real. The fine-tuned weights derived from SciFact inherit this restriction in the eyes of most lawyers. **If you want to use the SciFact-fine-tuned checkpoint commercially, talk to a lawyer or train your own checkpoint on a license-clean dataset.** EvidenceEngine itself is MIT but the *fine-tuned model file* is the load-bearing part of the verdict step. |
+| **SciFact** (Wadden et al., 2020) | Fine-tuning the NLI classifier and offline NLI eval | **CC BY-NC 2.0** | The NC ("non-commercial") clause is real. The fine-tuned weights derived from SciFact inherit this restriction in the eyes of most lawyers. **If you want to use the SciFact-fine-tuned checkpoint commercially, talk to a lawyer or train your own checkpoint on a license-clean dataset.** EvidenceEngine itself is MIT but the *fine-tuned model file* is the load-bearing part of the verdict step. The SciFact archive (`claims_dev.jsonl`, `claims_test.jsonl`, `corpus.jsonl`, etc.) is checked into this repo under `eval/data/scifact/` for offline evaluation; the SciFact CC BY-NC 2.0 terms apply to those files. |
 
 ## Libraries (runtime)
 
@@ -36,10 +36,20 @@ EvidenceEngine ships under MIT (see [LICENSE](LICENSE)) but bundles or downloads
 | `numpy`, `scipy` | BSD | |
 | `alembic` | MIT | DB migrations. |
 | `uvicorn` | BSD | ASGI server. |
+| `pydantic`, `pydantic-settings` | MIT | Config + request/response models. |
+| `asyncpg` | Apache 2.0 | Async Postgres driver. |
+| `python-docx` | MIT | DOCX parsing. |
+| `python-magic` | MIT | MIME-type detection on upload. |
+| `python-multipart` | Apache 2.0 | FastAPI form/file upload support. |
+| `openai` (SDK) | Apache 2.0 | Used only by the optional Explain endpoint to call OpenAI-compatible LLM providers. Not used in the verdict hot path. |
+| `python-json-logger` | BSD | Structured JSON logs. |
+| `datasets` (Hugging Face) | Apache 2.0 | Loads SciFact for eval scripts. |
+| `matplotlib` | PSF / matplotlib license (BSD-style) | Plots threshold sweeps in `eval/`. |
+| `jinja2` | BSD | Template engine for HTMX views. |
 
-## Datasets used in development eval (not shipped)
+## Datasets used in development eval
 
-The internal 220-case gold benchmark referenced in commit history is private and is not redistributed in this repo. SciFact dev set (CC BY-NC 2.0) is used for offline NLI calibration and is not included in the repo either.
+The internal 220-case gold benchmark referenced in commit history is private and is not redistributed in this repo. SciFact (CC BY-NC 2.0) is included under `eval/data/scifact/` and is also baked into the Docker image because the `Dockerfile` copies the full `eval/` directory; if you fork and ship a derivative, the CC BY-NC restriction follows the SciFact files.
 
 ## Logo / images
 

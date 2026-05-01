@@ -38,7 +38,7 @@ DeBERTa-v3 is overconfident on this calibration band by approximately 8 percenta
 
 ### Why 0.75 contradiction (was 0.85)
 
-Lowered on 2026-04-30 after a threshold sweep on the internal 220-case gold set. Result: +2.4pp 3-class accuracy and +1.8pp contradiction recall, with no change in false-support rate (still 9.1%). The asymmetry between the entailment threshold (0.92) and contradiction threshold (0.75) is intentional: contradiction is harder to fake on this dataset, so we can be less stingy without trust regression.
+Lowered after an internal threshold sweep on a private gold set. Lowering the threshold improved 3-class accuracy and contradiction recall without raising the false-support rate. Specific deltas are not published here because the sweep is not currently reproducible from this repo (see `CHALLENGES.md`). The asymmetry between the entailment threshold (0.92) and contradiction threshold (0.75) is intentional: contradiction is harder to fake on this dataset, so the system can be less stingy without trust regression.
 
 ### Why `needs_review` at 0.70
 

@@ -1,9 +1,11 @@
 """Cross-encoder reranker: lazy singleton + async thread pool wrapper.
 
-The CrossEncoder model (568M params, BAAI/bge-reranker-v2-m3 as of v1.2.9)
-takes ~5-10 seconds to load from disk; first run downloads ~1.1 GB to
+The CrossEncoder model (default ``cross-encoder/ms-marco-MiniLM-L6-v2``, 22M
+params; configurable via ``settings.reranker_model``) takes a couple of
+seconds to load from disk; first run downloads ~80 MB to
 ``~/.cache/huggingface``. We load it once (lazy singleton) and reuse across
-requests.
+requests. The much larger ``bge-reranker-v2-m3`` (568M params) was tried
+earlier but is unusably slow on shared CPU.
 
 Inference is synchronous PyTorch. Running it directly in an async function
 would block the FastAPI event loop. We use a single-worker ThreadPoolExecutor
@@ -39,11 +41,10 @@ def _select_device() -> str:
 def get_reranker():
     """Lazy singleton — loads model once, reuses across all requests.
 
-    Uses double-checked locking so the 5-10 s load happens exactly once even
-    under concurrent first-requests. Pins the HuggingFace revision for
-    reproducibility (RET-03) and caps max_length at 512 because
-    bge-reranker-v2-m3 supports 512 but sentence_transformers' default is 128
-    (silent truncation of long spans).
+    Uses double-checked locking so the load happens exactly once even under
+    concurrent first-requests. Pins the HuggingFace revision (when set in
+    ``settings.reranker_model_revision``) for reproducibility, and caps
+    max_length at 512 because the default 128 silently truncates long spans.
     """
     global _reranker
     if _reranker is None:

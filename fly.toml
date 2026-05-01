@@ -59,4 +59,4 @@ primary_region = "sjc"   # San Jose — closest to the default user; change if n
 
 [[vm]]
   size = "shared-cpu-2x"
-  memory = "4gb"          # bge-reranker-v2-m3 = 2.27GB on disk; needs 4GB to mmap + DeBERTa + app
+  memory = "4gb"          # DeBERTa-v3-small NLI + BGE-base + ms-marco MiniLM reranker + app all fit comfortably. Bumping to a larger NLI variant needs more RAM.

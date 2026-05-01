@@ -34,7 +34,7 @@ So when the docs say "SciFact-tuned NLI model," it means a model that performs t
 ### `BM25` — keyword retrieval
 
 - **Not a neural model at all.** BM25 is a 1990s statistics-based ranking function. Counts how many times each query word appears in each document, weighted by inverse document frequency. Fast, no training, no GPU.
-- **What it does:** First-pass keyword retrieval. Cheap. Combined with the dense retriever (BGE) for hybrid search. "BM25-only" is the fallback when corpus exceeds the dense retrieval skip threshold (1500 chunks; see `core/config.py`).
+- **What it does:** First-pass keyword retrieval. Cheap. Combined with the dense retriever (BGE) for hybrid search. "BM25-only" is the fallback when corpus exceeds the dense retrieval skip threshold (`dense_retrieval_max_corpus_size`, default 3000 chunks; see `core/config.py`).
 
 ## How the four work together in a single verification
 

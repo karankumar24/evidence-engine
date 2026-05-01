@@ -60,12 +60,12 @@ The extraction stage is offloaded to a thread pool (`asyncio.to_thread`) so that
 Hybrid retrieval: BM25 (keyword) + BGE-base-en-v1.5 dense embeddings (semantic), unioned and reranked by `cross-encoder/ms-marco-MiniLM-L6-v2`.
 
 - **BM25** (`bm25s` library): per-source-document index, queried with the claim text. Disk-cached at `INDEX_DIR`.
-- **Dense** (`BAAI/bge-base-en-v1.5`): SentenceTransformer model, max_seq_length=512, embeddings disk-cached by content hash. Falls back to BM25-only if the corpus is over 1500 chunks (skip threshold to avoid memory blow-up on shared CPU). Fail-open: if the dense path errors at runtime the pipeline still returns BM25 results.
+- **Dense** (`BAAI/bge-base-en-v1.5`): SentenceTransformer model, max_seq_length=512, embeddings disk-cached by content hash. Falls back to BM25-only when the corpus exceeds `dense_retrieval_max_corpus_size` (3000 chunks; see `core/config.py`). Fail-open: if the dense path errors at runtime the pipeline still returns BM25 results.
 - **Reranker** (`cross-encoder/ms-marco-MiniLM-L6-v2`): scores the union and keeps the top-N. The larger `bge-reranker-v2-m3` is intentionally NOT used — at 568M params it takes 70s per batch on shared CPU.
 
 Top spans become `EvidenceSpan` rows carrying `char_start`, `char_end`, `relevance_score`, and the `source_document_id` they came from.
 
-For a claim with a resolved citation anchor (e.g. `[1]` resolves to a specific cited PDF), retrieval is scoped to that document. For unresolved anchors, retrieval falls back to broad multi-document search (Mode B3) or to the report itself if there are no cited documents (Mode A self-verify).
+For a claim with a resolved citation anchor (e.g. `[1]` resolves to a specific cited PDF), retrieval is scoped to that document (Mode B1). When EVERY anchor on a claim is unresolvable (anchor exists, no upload matches), retrieval is skipped for that claim and the verdict is set to `needs_review` (Mode B2). When the claim sentence has no citation anchor at all, retrieval falls back to broad multi-document search across all uploaded cited papers (Mode B3), or to the report itself if there are no cited documents (Mode A self-verify).
 
 ### 4. Classify
 
@@ -84,11 +84,11 @@ nli_tiebreaker_threshold                  = 0.65   # reserved for future tiebrea
 verdict_needs_review_threshold            = 0.70   # any verdict below this → needs_review
 ```
 
-The 0.92 entailment threshold is unusually high because DeBERTa-v3 is overconfident on this calibration band by ~8pp. The 0.75 contradiction threshold was lowered from 0.85 on 2026-04-30 after a sweep showed +2.4pp 3-class accuracy and +1.8pp contradiction recall with no change in false-support rate.
+The 0.92 entailment threshold is unusually high because DeBERTa-v3 is overconfident on this calibration band. The 0.75 contradiction threshold was lowered from 0.85 after an internal sweep showed it improved 3-class accuracy and contradiction recall without raising the false-support rate. Specific deltas are not published here because the sweep ran against a private gold set and is not currently reproducible from this repo (see `CHALLENGES.md`).
 
 **Self-verify trust guard.** If every retrieved evidence span for a claim came from the *same* document as the claim itself (the report), the verdict is in self-verify mode and `supported` confidences are capped at `self_verify_supported_cap` (0.80). The cap applies to `supported` only — `contradicted` and `insufficient_support` are not capped. See `TRUST_MODEL.md` for why.
 
-Edge cases bypass the model entirely: zero evidence spans → `insufficient_support`; unresolvable citation anchor → `needs_review` if the broad-retrieval fallback also returned nothing useful.
+Edge cases bypass the model entirely: zero evidence spans → `insufficient_support`; all-unresolvable anchors → `needs_review` (retrieval was skipped earlier, no broad fallback for this case).
 
 ### 5. Reviewer dashboard
 
@@ -143,7 +143,7 @@ The orchestrator owns its own `async_session_factory` session — it never inher
 |---|---|---|
 | Parse | 2-5s | Skipped for tables on >50pp PDFs |
 | Extract | <1s in thread pool | NLTK + regex |
-| Retrieve | 5-30s | Dense skipped if corpus >1500 chunks |
+| Retrieve | 5-30s | Dense skipped if corpus >3000 chunks |
 | Classify | 15-60s | NLI on 25 claims * top-N spans, CPU |
 | Total | 48-80s typical, 2-4 min on large PDFs | Bottleneck is NLI on shared CPU |
 

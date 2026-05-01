@@ -32,7 +32,7 @@ Implementation specifics:
 
 ## Retrieval ceiling
 
-The hybrid BM25 + BGE-base dense + ms-marco reranker pipeline tops out at the top-N evidence chunks per claim (see `core/config.py` `evidence_top_k`). If the cited paper's PDF text is corrupted (scanned image, multi-column tables, math-heavy LaTeX) the retriever cannot find passages it cannot read. PyMuPDF parses most modern PDFs well but fails silently on older or scanned scans. There is no OCR pass.
+The hybrid BM25 + BGE-base dense + ms-marco reranker pipeline tops out at the top-N evidence chunks per claim (see `core/config.py` `retrieval_top_k_final`, default 2). If the cited paper's PDF text is corrupted (scanned image, multi-column tables, math-heavy LaTeX) the retriever cannot find passages it cannot read. PyMuPDF parses most modern PDFs well but fails silently on older or scanned scans. There is no OCR pass.
 
 ## Anchor resolution
 
@@ -41,7 +41,7 @@ Claims are mapped back to specific cited papers via the citation anchor inside t
 - Handles APA `(Smith et al., 2023)` when the matched first author + year exists in the parsed reference list.
 - Fails on inline numeric references that don't match a reference list entry, on superscript markers that PyMuPDF does not extract, and on any reference list that is itself malformed (citations that span pages, OCR'd, or in a non-standard format).
 
-When anchor resolution fails, the claim falls back to broad multi-document retrieval (Mode B3) and gets a `needs_review` verdict if the evidence is weak.
+When EVERY citation anchor on a claim is unresolvable (anchor exists but no uploaded source matches), the retriever skips that claim entirely and the verdict is set to `needs_review`. The system does not silently fall back to broad multi-document retrieval in that case, because pulling spurious evidence from unrelated cited papers is worse than declining to commit. Broad multi-document retrieval (Mode B3) only fires when there is no citation anchor on the claim sentence at all.
 
 ## Eval reproducibility
 
