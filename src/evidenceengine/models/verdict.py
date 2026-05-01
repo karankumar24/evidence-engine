@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from evidenceengine.models.claim import Claim
     from evidenceengine.models.evidence import EvidenceSpan
     from evidenceengine.models.review import ReviewDecision
-    from evidenceengine.models.run import RunVersion
 
 
 class Verdict(UUIDPrimaryKeyMixin, TimestampMixin, Base):

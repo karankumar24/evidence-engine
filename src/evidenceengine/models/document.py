@@ -10,7 +10,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from evidenceengine.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
-    from evidenceengine.models.claim import Claim
     from evidenceengine.models.run import RunVersion
 
 

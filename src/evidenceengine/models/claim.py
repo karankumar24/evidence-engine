@@ -9,10 +9,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from evidenceengine.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
-    from evidenceengine.models.document import DocumentPacket, SourceDocument
     from evidenceengine.models.evidence import EvidenceSpan
     from evidenceengine.models.review import ReviewDecision
-    from evidenceengine.models.run import RunVersion
     from evidenceengine.models.verdict import Verdict
 
 

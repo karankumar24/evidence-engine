@@ -10,8 +10,6 @@ from evidenceengine.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
     from evidenceengine.models.claim import Claim
-    from evidenceengine.models.document import SourceDocument
-    from evidenceengine.models.run import RunVersion
     from evidenceengine.models.verdict import VerdictEvidence
 
 
