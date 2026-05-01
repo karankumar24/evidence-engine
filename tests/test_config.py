@@ -46,8 +46,10 @@ def test_nli_entailment_supported_threshold_default(monkeypatch):
 def test_nli_contradiction_contradicted_threshold_default(monkeypatch):
     monkeypatch.delenv("NLI_CONTRADICTION_CONTRADICTED_THRESHOLD", raising=False)
     s = _fresh()
-    # Raised 0.80 → 0.85 symmetric with entailment threshold raise.
-    assert s.nli_contradiction_contradicted_threshold == 0.85
+    # Lowered 0.85 → 0.75 per 2026-04-30 empirical sweep on internal gold:
+    # +2.4pp 3-class acc, +1.8pp contradiction recall, FSR unchanged 9.1%.
+    # Trust model preserved (FSR is the primary metric per PROJECT.md).
+    assert s.nli_contradiction_contradicted_threshold == 0.75
 
 
 def test_nli_min_confidence_for_verdict_default(monkeypatch):

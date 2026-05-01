@@ -120,7 +120,7 @@ class Settings(BaseSettings):
     #     `contradicted`.
     nli_tiebreaker_threshold: float = 0.65
     nli_entailment_supported_threshold: float = 0.92   # raised 0.86→0.92 for calibrated precision (DeBERTa overconfident by ~8pp)
-    nli_contradiction_contradicted_threshold: float = 0.85  # raised 0.80→0.85 symmetric with entailment
+    nli_contradiction_contradicted_threshold: float = 0.75  # lowered 0.85→0.75 per 2026-04-30 sweep: +2.4pp 3-class acc, +1.8pp contra recall, FSR unchanged 9.1% (trust preserved per PROJECT.md)
     nli_min_confidence_for_verdict: float = 0.50
     # ── LLM HTTP settings (used by on-demand explanation generation) ──────────
     # The classification hot path is NLI-only. These knobs apply to the
