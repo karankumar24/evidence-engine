@@ -129,11 +129,20 @@
                 d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
         </svg>
         <div>
-          <span class="font-medium">No cited papers uploaded.</span>
-          Claims will be verified against the report itself. Accuracy is significantly
-          lower in this mode — the pipeline has no external evidence to draw from.
+          <span class="font-medium">Self-verify mode (no cited papers).</span>
+          Each claim will be checked against other paragraphs of the SAME paper.
+          Useful for catching internal inconsistency and unsupported assertions.
+          NOT a substitute for verifying citations against the actual cited papers —
+          for that, upload the cited PDFs above. Self-verify confidence is capped at 80%.
         </div>
       </div>
+
+      <!-- Privacy footer — pre-publication context demands transparency -->
+      <p class="text-xs text-ink-400 leading-relaxed pt-2">
+        Privacy: uploaded PDFs are stored on the server for this session only.
+        No training, no third-party sharing. Files persist on the Fly.io volume
+        until manually deleted.
+      </p>
 
       <!-- Submit -->
       <div class="flex items-center gap-4 pt-2">
