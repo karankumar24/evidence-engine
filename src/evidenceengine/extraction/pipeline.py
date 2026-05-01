@@ -4,9 +4,9 @@ Wires all extraction components together:
   1. Load report SourceDocument from DB
   2. Pre-filter citation blocks from parsed_content
   3. Extract references section for numeric resolution
-  4. LLM claim extraction (AsyncOpenAI)
+  4. Local NLTK sentence tokenizer + heuristic claim filter (no LLM call)
   5. Position recovery (char offsets)
-  6. Anchor resolution (RapidFuzz fuzzy matching)
+  6. Anchor resolution (difflib fuzzy matching against uploaded sources)
   7. Persist Claim + CitationAnchor rows
 
 Key invariant: CitationAnchor rows are ALWAYS written — never dropped.

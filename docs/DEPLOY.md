@@ -61,17 +61,20 @@ flyctl volumes create ee_data --region sjc --size 1 --app evidenceengine
 
 1 GB is enough for dozens of PDFs and indexes. Scale up later if needed.
 
-### 5. Set the LLM secret
+### 5. Set runtime secrets
+
+The classification path is local NLI (no LLM call). Only set these if you
+want the optional "Explain this verdict" button to work:
 
 ```sh
-flyctl secrets set LLM_API_KEY='sk-or-v1-…your-openrouter-key…' \
-    EXTRACTION_MODEL='arcee-ai/trinity-large-preview:free' \
-    CLASSIFICATION_MODEL='arcee-ai/trinity-large-preview:free' \
+flyctl secrets set LLM_API_KEY='your-gemini-or-openrouter-key' \
     CORS_ORIGINS='https://evidenceengine.fly.dev,http://127.0.0.1:8000' \
     --app evidenceengine
 ```
 
-Use the OpenRouter key already in your local `.env`. Never commit it.
+`LLM_API_KEY` is used only by the on-demand explanation endpoint. If unset,
+the Explain button shows a friendly "configure LLM_API_KEY" message and the
+rest of the pipeline runs unaffected.
 
 ### 6. Deploy
 

@@ -67,10 +67,10 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 RUN python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L6-v2')" \
     && echo "Reranker model pre-downloaded OK"
 
-# Pre-download dense retrieval model (all-MiniLM-L6-v2, 22MB) so cold starts
-# don't hit HuggingFace network. Separate RUN layer so layer cache is only
-# invalidated when this model changes.
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')" \
+# Pre-download dense retrieval model (BAAI/bge-base-en-v1.5, ~440MB) so cold
+# starts don't hit HuggingFace network. Matches settings.dense_retrieval default.
+# Separate RUN layer so layer cache is only invalidated when this model changes.
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-base-en-v1.5')" \
     && echo "Dense retrieval model pre-downloaded OK"
 
 RUN mkdir -p /app/uploads /app/indexes /app/nltk_data \

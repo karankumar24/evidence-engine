@@ -27,7 +27,7 @@ PDF upload  →  Claims pulled out  →  Evidence retrieved  →  Verdict assign
 4. **Decide the verdict.** A small classification model that was trained on a public biomedical fact checking dataset (SciFact) reads each claim alongside the retrieved evidence and outputs one of the four verdicts with a confidence score.
 5. **Show it to the reviewer.** A clean dashboard lets you go through claim by claim, see the exact source quotes, and approve or reject each verdict.
 
-The whole pipeline runs locally. No external API calls happen during classification. The only optional outside call is when you click "Explain this verdict" on a single claim, which sends just that claim and its evidence to a language model for a one paragraph plain English explanation.
+The whole pipeline runs locally. No external API calls happen during classification. The only optional request-time outside call is when you click "Explain this verdict" on a single claim, which sends just that claim and its evidence to a language model for a one paragraph plain English explanation. The server also makes a single TLS handshake to the LLM endpoint at startup (a macOS-specific warmup that is a no-op on Linux production); no real data is sent.
 
 ---
 
@@ -56,7 +56,7 @@ Tested on a 220 case internal benchmark covering all four verdict types.
 | False support rate | 9.1% | How often a weak or wrong claim got marked supported anyway. Lower is better. |
 | Contradiction recall | 72.7% | Of the claims that were actually contradicted by their sources, how many the system caught |
 
-Speed varies a lot because the deploy server is shared. A typical run takes 3 to 15 minutes for one paper. Re-uploading the same PDF is much faster because the embeddings are cached.
+Speed varies a lot because the deploy server is shared. A typical run takes 3 to 18 minutes for one paper depending on contention from other Fly.io tenants. Re-uploading the same PDF is much faster because the embeddings are cached on disk.
 
 ---
 

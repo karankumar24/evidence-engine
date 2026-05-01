@@ -57,7 +57,7 @@ Five distinct neural-or-statistical components. Each does one job.
 | **Token** | Roughly a word fragment. Models process text as tokens, not characters. |
 | **Fine-tune** | Take a pre-trained model and train it more on your specific task/data so it specializes. |
 | **Inference** | Running the model to get a prediction (the opposite of training). |
-| **Threshold** | A number that converts a probability into a decision. The NLI uses 0.92 for "supported" and 0.85 for "contradicted". |
+| **Threshold** | A number that converts a probability into a decision. The NLI uses 0.92 for "supported" and 0.75 for "contradicted" (chosen by the threshold sweep in eval/run_nli_threshold_sweep.py). |
 | **Entailment / Neutral / Contradiction** | The three NLI labels. Entailment = supports. Contradiction = contradicts. Neutral = neither. |
 | **Premise / Hypothesis** | NLI terminology. In this project: premise = the evidence span (what the source paper says); hypothesis = the claim (what the user wrote). Order matters — flipping hurts accuracy. |
 | **Pre-training vs fine-tuning** | Pre-training is the expensive process (months, GPUs, billions of words) where the model learns general language. Fine-tuning is cheap (hours, maybe one GPU, thousands of examples) where it specializes. |
