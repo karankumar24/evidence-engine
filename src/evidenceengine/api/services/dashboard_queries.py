@@ -73,12 +73,18 @@ async def load_dashboard_context(
     if run is None:
         return None
 
-    # Load all claims for this run with verdicts and review_decisions
+    # Load all claims for this run with verdicts, review_decisions, and the
+    # nested verdict_evidence -> evidence_span chain. The dashboard source-doc
+    # filter walks claim.verdicts[*].verdict_evidence[*].evidence_span to
+    # decide which claims belong to which uploaded document, so the chain
+    # must be eager-loaded under async SQLAlchemy.
     result = await db.execute(
         select(Claim)
         .where(Claim.run_version_id == run_id)
         .options(
-            selectinload(Claim.verdicts),
+            selectinload(Claim.verdicts)
+            .selectinload(Verdict.verdict_evidence)
+            .selectinload(VerdictEvidence.evidence_span),
             selectinload(Claim.review_decisions),
         )
     )

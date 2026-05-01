@@ -1,289 +1,132 @@
-# EvidenceEngine Trust Model
+# Trust Model
 
-## Overview
-
-The trust model defines how EvidenceEngine assigns verdicts to claims. The
-design philosophy is conservative: a claim is classified as `supported` only
-when the retrieved evidence directly and unambiguously confirms the specific
-value or fact stated. Any ambiguity, partial coverage, or low model confidence
-routes to `insufficient_support` or `needs_review` rather than silently
-asserting support. This conservatism is intentional — a false `supported`
-verdict erodes reviewer trust in the entire system.
-
-The trust model is enforced at three points in the pipeline: (1) the
-zero-evidence shortcut, which assigns `insufficient_support` before any LLM
-call when no evidence spans exist; (2) the system prompt disambiguation
-instructions, which explicitly teach the LLM to reject partial evidence as
-support; and (3) the confidence routing mechanism, which overrides the LLM's
-verdict to `needs_review` whenever the model's own confidence falls below a
-configurable threshold. Together these mechanisms ensure that the most common
-failure modes in automated fact-checking — hallucinated support, topical
-conflation, and low-confidence acceptance — are caught before a verdict is
-written.
+This document explains the rules that govern when EvidenceEngine assigns a verdict and how confident it is allowed to be. The short version: **the system is biased toward saying "needs review" rather than risking a false `supported`.**
 
 ---
 
-## The Four Verdicts
+## The four verdicts
 
-### Verdict Taxonomy
+| Verdict | Meaning |
+|---|---|
+| `supported` | The cited evidence directly entails the claim. NLI entailment probability cleared the 0.92 threshold. |
+| `contradicted` | The cited evidence directly contradicts the claim. NLI contradiction probability cleared the 0.75 threshold. |
+| `insufficient_support` | Evidence was retrieved but does not entail or contradict the claim with enough confidence. The claim is plausible but not justified by the cited material. |
+| `needs_review` | The system declined to commit. This is the conservative default whenever something is uncertain: confidence below threshold, no resolvable citation anchor, retrieval failure, or an edge case the heuristics do not handle. |
 
----
-
-**`supported`**
-
-*Meaning:* The retrieved evidence directly and unambiguously confirms the claim.
-The specific value, fact, or statement in the claim appears in the source
-document — not merely a related topic or surrounding context.
-
-*Example:*
-- Claim: "CO2 reached 421 ppm at Mauna Loa in May 2023."
-- Evidence: "Monthly mean CO2 was 421.47 ppm at Mauna Loa Observatory in May 2023."
-- Verdict: `supported` — the evidence quotes the specific measurement.
-
-*Decision rule:* Strong lexical and semantic alignment with the claim's specific
-assertion; model `confidence_score ≥ threshold` (default 0.7).
+A reviewer is expected to look at every verdict, but the four bins exist so you can triage: contradicted first (potentially wrong claims), then needs_review (system was uncertain), then supported (system was confident, spot-check the loud ones), then insufficient_support (probably fine, low priority).
 
 ---
 
-**`contradicted`**
+## NLI thresholds
 
-*Meaning:* The retrieved evidence directly and explicitly contradicts the claim.
-A different value or an opposing fact appears in the source document on the same
-specific topic.
+The verdict comes from `cross-encoder/nli-deberta-v3-small` fine-tuned on SciFact. The model produces `(p_entail, p_contradict, p_neutral)` for each claim-vs-evidence pair. Per-span scores are aggregated via `nli_probs_to_verdict()` in `src/evidenceengine/classification/nli_classifier.py`.
 
-*Example:*
-- Claim: "Global mean temperature rose 1.5 °C above pre-industrial levels by 2022."
-- Evidence: "The 2022 global mean surface temperature was approximately 1.15 °C
-  above the 1850–1900 baseline."
-- Verdict: `contradicted` — the evidence states a materially different value for
-  the same measurement.
-
-*Decision rule:* Evidence states a directly contrary value or fact on the same
-specific topic; model `confidence_score ≥ threshold`.
-
----
-
-**`insufficient_support`**
-
-*Meaning:* The evidence is topically related but does not directly confirm or
-contradict the claim. This covers: no evidence retrieved, evidence from a
-wrong source, evidence too vague to confirm or deny, and evidence that addresses
-the general topic but not the specific value or assertion.
-
-*Example:*
-- Claim: "Arctic sea ice extent reached a record low in September 2022."
-- Evidence: "Arctic sea ice has declined at approximately 13% per decade since
-  1979 relative to the 1981–2010 average."
-- Verdict: `insufficient_support` — the evidence confirms a long-term trend but
-  does not confirm or deny the specific September 2022 record claim.
-
-*Decision rule:* See **The Weak-Evidence Rule** below.
-
----
-
-**`needs_review`**
-
-*Meaning:* The model's confidence in its verdict is below the configured
-threshold, OR the claim's citation reference could not be resolved to a source
-document. The claim is routed to a human reviewer rather than accepting an
-uncertain or unverifiable verdict.
-
-*Example:*
-- LLM outputs `verdict_type='supported'`, `confidence_score=0.61`.
-- Threshold is 0.70.
-- `apply_confidence_threshold` overrides `verdict_type` to `needs_review`.
-
-*Decision rule:* See **Confidence Routing** below.
-
----
-
-## The Weak-Evidence Rule
-
-This is the most critical trust model decision. It deliberately breaks from
-the naive "found some evidence → call it supported" default.
-
-### Why partial evidence yields `insufficient_support`, not `supported`
-
-**1. Topical relevance is not evidentiary support.**
-
-BM25 retrieval returns documents about the same topic — not documents that
-confirm the specific claim. A paper about Arctic ice decline is topically
-relevant to any claim about ice extent, but topical relevance does not confirm
-a specific measured value or event. The retrieval stage finds the best
-*candidate* evidence; the classification stage determines whether that candidate
-is actually *confirming*.
-
-**2. The asymmetric cost of false support.**
-
-Incorrectly labelling a claim as `supported` when evidence only partially
-addresses it is a trust failure: a reviewer acting on that verdict may accept a
-claim that has not been verified. Labelling it `insufficient_support` sends it
-to the reviewer — the conservative default. The cost of routing a correctly
-supported claim to review is extra reviewer time. The cost of marking an
-unsupported claim as supported is a false assurance.
-
-**3. Evidence specificity matters.**
-
-"Sea ice has declined since 1979" does not confirm "sea ice extent was 4.67
-million km² in September 2022." The claim requires a specific measurement; the
-evidence provides only a trend. These are categorically different statements,
-even though both are about the same phenomenon.
-
-### How the weak-evidence rule is enforced
-
-Three mechanisms work together:
-
-**Mechanism 1 — Zero-evidence shortcut**
-
-If no `EvidenceSpan` rows are retrieved for a claim (the BM25 + cross-encoder
-pipeline returned nothing above the relevance threshold), the pipeline
-immediately assigns `insufficient_support` with `model_name='none'` and skips
-the LLM call entirely. The LLM never sees a "no evidence" case and cannot
-hallucinate support from an empty context window.
+The thresholds (locked by `tests/test_config.py` invariants, defined in `src/evidenceengine/core/config.py`):
 
 ```
-0 evidence spans → insufficient_support  (no LLM call)
+nli_entailment_supported_threshold        = 0.92
+nli_contradiction_contradicted_threshold  = 0.75
+nli_tiebreaker_threshold                  = 0.65
+verdict_needs_review_threshold            = 0.70
 ```
 
-**Mechanism 2 — System prompt disambiguation**
+Band invariant: `0 < verdict_needs_review_threshold < nli_tiebreaker_threshold < nli_entailment_supported_threshold < 1` and `0 < nli_tiebreaker_threshold < nli_contradiction_contradicted_threshold < 1`.
 
-The LLM classification prompt includes an explicit instruction:
+### Why 0.92 entailment
 
-> "If evidence only partially addresses the claim, or is topically related but
-> does not directly confirm the specific value or fact claimed, return
-> `insufficient_support`. Do NOT return `supported` unless the evidence
-> directly and unambiguously confirms the claim."
+DeBERTa-v3 is overconfident on this calibration band by approximately 8 percentage points. A 0.85 entailment score on this model corresponds in practice to around 75% true entailment in the SciFact dev split. Setting the supported threshold at 0.92 closes that gap. The cost is a higher rate of `needs_review` assignment on borderline claims; the benefit is a lower false-support rate.
 
-This instruction is present on every classification call. The LLM is not left
-to infer the distinction between "relevant" and "confirming" — the distinction
-is stated explicitly in the prompt.
+### Why 0.75 contradiction (was 0.85)
 
-**Mechanism 3 — Field ordering in `VerdictClassificationResponse`**
+Lowered on 2026-04-30 after a threshold sweep on the internal 220-case gold set. Result: +2.4pp 3-class accuracy and +1.8pp contradiction recall, with no change in false-support rate (still 9.1%). The asymmetry between the entailment threshold (0.92) and contradiction threshold (0.75) is intentional: contradiction is harder to fake on this dataset, so we can be less stingy without trust regression.
 
-The Pydantic response schema used with `beta.chat.completions.parse` orders its
-fields as:
+### Why `needs_review` at 0.70
 
-```
-reasoning → verdict_type → confidence_score
-```
-
-This ordering forces the model to produce chain-of-thought reasoning *before*
-it assigns a label and before it assigns a confidence score. Because language
-models generate tokens left-to-right, the reasoning field must be populated
-first — reducing shortcut label assignment where the model emits a label before
-thinking through the evidence.
+Any predicted verdict where the dominant probability falls below 0.70 (so neither `entailment` nor `contradiction` is clearly winning) routes to `needs_review`. This catches cases where the model is genuinely ambivalent rather than committing to a wrong verdict.
 
 ---
 
-## Confidence Routing
+## The self-verify cap
 
-### How low-confidence verdicts become `needs_review`
+When a user uploads a report without any cited sources, the retriever pulls evidence from other paragraphs of the *same document*. This is useful (papers often contradict themselves or make unsupported assertions internally) but it is not a substitute for verifying citations against the actual cited papers.
 
-The classification pipeline applies confidence routing as a post-processing step
-after every LLM call:
+The self-verify trust guard, in `src/evidenceengine/classification/pipeline.py`:
 
-1. The LLM returns a `VerdictClassificationResponse` containing:
-   - `reasoning` (free text)
-   - `verdict_type` (`supported` | `contradicted` | `insufficient_support`)
-   - `confidence_score` (float in `[0.0, 1.0]`)
+```python
+self_verify_mode = bool(claim.evidence_spans) and all(
+    span.source_document_id == claim.source_document_id
+    for span in claim.evidence_spans
+)
 
-2. `apply_confidence_threshold(verdict_type, confidence_score, threshold)` is
-   called. This is a pure, synchronous function — it does not call the LLM and
-   has no side effects.
-
-3. If `confidence_score < threshold`:
-   - `verdict_type` is overridden to `needs_review`
-   - The original `reasoning` text and original `confidence_score` are
-     **preserved** in the `Verdict` row so the reviewer can see what the model
-     was thinking and why it was uncertain
-
-4. The `Verdict` row is written with the final (possibly overridden)
-   `verdict_type`.
-
-### What the threshold controls
-
-| Setting | Behavior |
-|---------|----------|
-| Default threshold | 0.7 (70% model confidence) |
-| Configuration | `VERDICT_NEEDS_REVIEW_THRESHOLD` environment variable |
-| Below threshold | Verdict (any label) → `needs_review` |
-| Above threshold | Model's verdict label accepted as-is |
-
-The threshold applies to *any* verdict label — not just `supported`. A claim
-the model classifies as `contradicted` with `confidence_score=0.55` is also
-overridden to `needs_review`, because the system is not confident enough in the
-contradiction to present it without human review.
-
-`needs_review` does **not** mean "wrong." It means "uncertain enough to warrant
-human eyes." Reviewers can see the original `reasoning` and `confidence_score`
-and decide whether the verdict stands or should be overridden.
-
-### Unresolvable citation anchors → `needs_review`
-
-Separately from the confidence threshold: if a claim's citation reference `[N]`
-cannot be resolved to any uploaded `SourceDocument`, the pipeline assigns
-`needs_review` with `model_name='none'` — no LLM call is made.
-
-The rationale: without knowing which source to evaluate against, any verdict
-would be speculation. `insufficient_support` would be misleading (it implies
-evidence was sought but found wanting); `needs_review` correctly signals that a
-human must locate the source before any verdict is possible.
-
-```
-unresolvable CitationAnchor → needs_review  (no LLM call)
+cap = settings.self_verify_supported_cap   # 0.80
+if (
+    self_verify_mode
+    and classification.verdict_type == "supported"
+    and classification.confidence_score > cap
+):
+    classification = VerdictClassificationResponse(
+        verdict_type="supported",
+        confidence_score=cap,
+        reasoning=f"[Self-verify cap {cap:.2f}] {classification.reasoning}",
+    )
 ```
 
----
+Three things to notice:
 
-## Reviewer Override
+1. **The cap applies only to `supported` verdicts.** `contradicted` and `insufficient_support` are not capped. The reasoning: an internal contradiction inside a paper is a meaningful finding even when the source is the same document, so we should not gaslight the user out of it. A `supported` verdict, by contrast, becomes circular if the system is using the paper's own claims to justify the paper's own claims.
 
-When a human reviewer examines a verdict in the dashboard, they can:
+2. **Detection is provenance-based, not mode-flag-based.** The system checks whether every retrieved evidence span came from the same `source_document_id` as the claim. This means a multi-document upload where the retriever happened to find no relevant cited evidence and fell back to report-internal spans would also trigger the cap. This is intended: if the only evidence is from the same paper, treat it as self-verify regardless of how we got there.
 
-- **Accept** — confirm the verdict as correct
-- **Override** — replace the verdict with a different label
-- **Flag** — mark the claim for escalation or further investigation
+3. **The 0.80 cap is a hard ceiling on the displayed confidence, not a re-classification.** A claim with raw entailment 0.95 in self-verify mode displays as 80%, with the reasoning string prefixed `[Self-verify cap 0.80]`. The reviewer can see the cap was applied.
 
-Each action writes a `ReviewDecision` row that records the reviewer's judgment,
-timestamp, and (for overrides) the new verdict label. Crucially, the original
-`Verdict` row is **never modified**. The provenance chain is preserved: the
-original LLM verdict, the original confidence score, and the reviewer's
-decision are all stored as separate records. An audit trail of every human
-intervention is maintained without overwriting the system's output.
-
-This design means the dashboard can show both "what the system concluded" and
-"what the reviewer decided" side by side, and historical runs are fully
-reproducible.
+The UI in `src/evidenceengine/templates/upload.html` discloses this: "In self-verify mode, confidence on Supported verdicts is capped at 80%."
 
 ---
 
-## Trust Hierarchy Summary
+## Why weak evidence forces `insufficient_support`
 
-| Situation | Verdict | Rationale |
-|-----------|---------|-----------|
-| Strong, specific evidence directly confirms the claim | `supported` | Direct confirmation; confidence ≥ threshold |
-| Evidence states a different value or contrary fact | `contradicted` | Direct contradiction; confidence ≥ threshold |
-| No evidence spans retrieved for the claim | `insufficient_support` | Cannot claim support without evidence (zero-evidence shortcut) |
-| Evidence is topically related but does not confirm the specific claim | `insufficient_support` | Partial evidence is not support (prompt disambiguation) |
-| Model produces any verdict with confidence < threshold | `needs_review` | Uncertain — route to human (confidence routing) |
-| Citation `[N]` cannot be resolved to a source document | `needs_review` | No source to evaluate against (unresolvable anchor shortcut) |
+If the retriever returns evidence spans but none of them clear the entailment or contradiction thresholds, the verdict is `insufficient_support`. Not `needs_review`, not a low-confidence `supported`. Specifically:
 
-### Quick self-test
+- `supported` requires `p_entail >= 0.92` on the best aggregated score.
+- `contradicted` requires `p_contradict >= 0.75`.
+- Anything else with non-empty evidence becomes `insufficient_support`.
+- Empty evidence (zero spans retrieved) becomes `insufficient_support` directly, bypassing the model.
 
-*"A claim has two evidence spans that are about the right topic but don't quote
-the specific number — what verdict does it get?"*
+This is the central conservative rule. The system is allowed to say "I retrieved passages but they do not actually justify this claim." It is not allowed to round up a 0.65 entailment to a `supported` verdict.
 
-Answer: `insufficient_support`. The spans are topically relevant (BM25 and the
-cross-encoder found them), but the LLM classification prompt requires direct
-confirmation of the specific value. Topical relevance without specific
-confirmation → `insufficient_support`, not `supported`.
+The cost of this rule is that `insufficient_support` is sometimes assigned to claims that a careful human reader would call supported, because the retriever picked weak passages or the NLI model was conservative. The benefit is that a `supported` verdict on the dashboard is a high-precision signal: the model was confident AND the evidence came from a real cited source AND the confidence cleared a 0.92 threshold.
 
 ---
 
-## Related Documents
+## Citation anchor handling
 
-- See [docs/ARCHITECTURE.md](ARCHITECTURE.md) for the pipeline stages and data
-  model — including how `EvidenceSpan` rows are created, how `CitationAnchor`
-  rows are resolved, and how `VerdictEvidence` links verdicts to their evidence.
-- See [eval/README.md](../eval/README.md) for how verdict quality is measured —
-  including the false-positive and false-negative rate metrics that quantify
-  trust model performance on benchmark cases.
+Each claim sentence is scanned for citation markers (Vancouver `[1]`, APA `(Smith et al., 2023)`). For each marker, the resolver attempts to match it to an uploaded `SourceDocument`:
+
+- **Resolved:** Retrieval is scoped to that specific cited paper. This is Mode B1.
+- **Unresolved (anchor exists, no matching upload):** The system writes a `CitationAnchor` row with `status='unresolvable_anchor'`, marks the claim `needs_review`, and skips broad retrieval to avoid pulling spurious evidence from unrelated cited papers. This is Mode B2.
+- **No anchor:** Falls through to broad multi-document retrieval across all uploaded cited papers (Mode B3) or to self-verify (Mode A) if no cited papers were uploaded.
+
+Unresolved anchors are never silently dropped. The `unresolvable_anchor` status surfaces on the dashboard so a reviewer can see "this claim cited reference [4], but you didn't upload that paper."
+
+---
+
+## What is NOT in the trust model
+
+Removed from earlier revisions:
+
+- **`apply_confidence_threshold` / LLM-primary path.** Deleted with the Phase A refactor. The trust model is now NLI-only.
+- **Retry-on-low-confidence.** No automatic re-classification with different parameters. A low-confidence verdict stays low-confidence and routes to `needs_review`.
+- **Cross-claim consistency.** Each claim is classified independently. The system does not detect "claim A and claim B contradict each other within the same paper." That is left to the reviewer.
+
+---
+
+## Summary
+
+A `supported` verdict on the EvidenceEngine dashboard means:
+
+1. The retriever found at least one evidence span.
+2. At least one of those spans came from a real cited source (or, in self-verify mode, the same document with the cap applied).
+3. The NLI model assigned `entailment` probability of at least 0.92 to the best aggregated claim-vs-evidence pair.
+4. If the only evidence was from the same document as the claim, the displayed confidence is capped at 0.80.
+
+A reviewer who clicks the verdict can see all four pieces: the confidence score, the verbatim quote from the source, the source document name, and (if applicable) the `[Self-verify cap]` prefix on the reasoning. The provenance is the contract. The number is meaningless without the quote.

@@ -34,13 +34,13 @@ primary_region = "sjc"   # San Jose — closest to the default user; change if n
 [http_service]
   internal_port = 8000
   force_https = true
-  # Was scale-to-zero (auto_stop_machines="stop", min_machines_running=0).
-  # That killed in-flight 5-15min pipelines mid-run; ~30% of prod failures
-  # were "ServerRestart: pipeline was interrupted by server shutdown" (2026-04-20).
-  # min=1 keeps one machine always-on; suspend mode keeps it cheap when idle.
-  auto_stop_machines = "suspend"
-  auto_start_machines = true
-  min_machines_running = 1
+  # Public demo is OFFLINE pending pre-public release polish (2026-05-01).
+  # Machine stopped + auto-start disabled so HTTP requests do not wake it.
+  # To bring back online: set auto_start_machines=true, min_machines_running=1,
+  # then `fly deploy`. Volume + image persist, so restart is fast.
+  auto_stop_machines = "stop"
+  auto_start_machines = false
+  min_machines_running = 0
   kill_timeout = "900s"             # let in-flight pipelines finish on deploy
   processes = ["app"]
 

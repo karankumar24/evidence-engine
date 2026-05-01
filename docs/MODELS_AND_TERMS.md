@@ -24,7 +24,7 @@ So when the docs say "SciFact-tuned NLI model," it means a model that performs t
 - **What it is:** A model from BAAI (Beijing Academy of AI), 110 million parameters. "BGE" = **B**AAI **G**eneral **E**mbedding. "base" = the medium-size variant (also `bge-small` and `bge-large`). "en" = English. "v1.5" = version.
 - **What it does:** Takes any sentence (claim or evidence span) and produces a 768-dimensional vector — a list of 768 numbers that represents what the sentence "means". Two sentences with similar meanings have vectors that are mathematically close together (cosine similarity).
 - **This is the "encoder"** — encodes text into vectors. Used during the **retrieval** stage: the system encodes the claim into a vector, encodes every paragraph in the cited PDF into vectors, and finds the paragraphs whose vectors are closest. That's "dense retrieval" (vectors are dense — every dimension has a value).
-- **Important:** BGE-base requires the prefix `"Represent this sentence for searching relevant passages: "` on QUERY embeddings only. Documents (corpus) embeddings must NOT get this prefix. Forgetting causes ~5–8 pp accuracy regression. See lesson 54.
+- **Important:** BGE-base requires the prefix `"Represent this sentence for searching relevant passages: "` on QUERY embeddings only. Document (corpus) embeddings must NOT get this prefix. Forgetting it causes a ~5 to 8 pp accuracy regression.
 
 ### `cross-encoder/ms-marco-MiniLM-L6-v2` — the reranker
 
@@ -34,7 +34,7 @@ So when the docs say "SciFact-tuned NLI model," it means a model that performs t
 ### `BM25` — keyword retrieval
 
 - **Not a neural model at all.** BM25 is a 1990s statistics-based ranking function. Counts how many times each query word appears in each document, weighted by inverse document frequency. Fast, no training, no GPU.
-- **What it does:** First-pass keyword retrieval. Cheap. Combined with the dense retriever (BGE) for hybrid search. "BM25-only" is the fallback when corpus is too big for dense retrieval (>1500 chunks per CLAUDE.md gate).
+- **What it does:** First-pass keyword retrieval. Cheap. Combined with the dense retriever (BGE) for hybrid search. "BM25-only" is the fallback when corpus exceeds the dense retrieval skip threshold (1500 chunks; see `core/config.py`).
 
 ## How the four work together in a single verification
 

@@ -1,17 +1,14 @@
 # EvidenceEngine
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Live demo](https://img.shields.io/badge/demo-evidenceengine.fly.dev-brightgreen)](https://evidenceengine.fly.dev)
 
 **A tool that fact checks biomedical research papers against the studies they cite.**
 
 When researchers publish a review article or systematic review, they cite dozens of studies. Sometimes a citation is a stretch. Sometimes the cited study actually says the opposite. Catching this manually means reading every cited paper, and most reviewers don't have time. EvidenceEngine reads the papers for you and flags claims that don't hold up.
 
-![Dashboard claim detail](docs/screenshots/dashboard-claim.png)
-
 You upload your paper plus the studies it cites. The tool pulls out each factual claim, finds the relevant passages in the cited papers, and gives a verdict for each claim with a direct quote of the supporting (or contradicting) text. Verdicts come in four kinds: **Supported**, **Contradicted**, **Insufficient Support**, or **Needs Review**.
 
-**Try it live:** https://evidenceengine.fly.dev
+The project is a portfolio piece. Run it locally to try it (instructions below). There is no public demo right now.
 
 ---
 
@@ -48,15 +45,9 @@ The whole pipeline runs locally. No external API calls happen during classificat
 
 ## How well it works
 
-Tested on a 220 case internal benchmark covering all four verdict types.
+The system has been tuned and tested on a private collection of biomedical fact verification cases covering all four verdict types. Specific accuracy numbers are not published in this README because the eval harness needs a rewire before the numbers can be reproduced from this repo. See [`CHALLENGES.md`](CHALLENGES.md) for an honest account of what works and what doesn't.
 
-| Metric | Score | What it means |
-|---|---|---|
-| 3-class accuracy | 84.8% | How often the verdict was right when the answer was supported, contradicted, or insufficient |
-| False support rate | 9.1% | How often a weak or wrong claim got marked supported anyway. Lower is better. |
-| Contradiction recall | 72.7% | Of the claims that were actually contradicted by their sources, how many the system caught |
-
-Speed varies a lot because the deploy server is shared. A typical run takes 3 to 18 minutes for one paper depending on contention from other Fly.io tenants. Re-uploading the same PDF is much faster because the embeddings are cached on disk.
+Speed depends on hardware. On a shared CPU server (the developer environment), a typical run takes 3 to 18 minutes for one paper. On a workstation with more cores it is faster. Re-uploading the same PDF is much faster because the embeddings are cached on disk.
 
 ---
 
@@ -91,7 +82,7 @@ Open http://localhost:8000 and upload a PDF.
 
 Full setup with environment variables and production deploy steps: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
-For the architecture and design decisions: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). For why weak evidence always gets marked insufficient instead of supported: [`docs/TRUST_MODEL.md`](docs/TRUST_MODEL.md). For the full list of models and what each one does: [`docs/MODELS_AND_TERMS.md`](docs/MODELS_AND_TERMS.md).
+For the architecture and design decisions: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). For why weak evidence always gets marked insufficient instead of supported: [`docs/TRUST_MODEL.md`](docs/TRUST_MODEL.md). For the full list of models and what each one does: [`docs/MODELS_AND_TERMS.md`](docs/MODELS_AND_TERMS.md). For known limitations: [`CHALLENGES.md`](CHALLENGES.md). For model and dataset attribution: [`ATTRIBUTIONS.md`](ATTRIBUTIONS.md).
 
 ## License
 

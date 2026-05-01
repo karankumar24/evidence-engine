@@ -23,7 +23,7 @@ baked into `Dockerfile` / `fly.toml` / `alembic`.
 
 ## Deploy (seven commands)
 
-Run from the repo root (`/Users/karankumar/Desktop/vibebuild`).
+Run from the repo root.
 
 ### 1. Create the app
 
@@ -56,10 +56,10 @@ normalizes `postgres://` → `postgresql+asyncpg://` automatically.
 ### 4. Create the persistent volume (uploads + BM25 indexes)
 
 ```sh
-flyctl volumes create ee_data --region sjc --size 1 --app evidenceengine
+flyctl volumes create ee_data --region sjc --size 10 --app evidenceengine
 ```
 
-1 GB is enough for dozens of PDFs and indexes. Scale up later if needed.
+10 GB matches the current production deployment. Holds the SciFact-fine-tuned NLI model (~500 MB), the BGE and reranker model caches, uploaded PDFs, and BM25 indexes. Scale up later if needed.
 
 ### 5. Set runtime secrets
 
@@ -67,14 +67,12 @@ The classification path is local NLI (no LLM call). Only set these if you
 want the optional "Explain this verdict" button to work:
 
 ```sh
-flyctl secrets set LLM_API_KEY='your-gemini-or-openrouter-key' \
-    CORS_ORIGINS='https://evidenceengine.fly.dev,http://127.0.0.1:8000' \
+flyctl secrets set LLM_API_KEY='your-gemini-or-openai-compatible-key' \
+    CORS_ORIGINS='https://your-app.fly.dev,http://127.0.0.1:8000' \
     --app evidenceengine
 ```
 
-`LLM_API_KEY` is used only by the on-demand explanation endpoint. If unset,
-the Explain button shows a friendly "configure LLM_API_KEY" message and the
-rest of the pipeline runs unaffected.
+`LLM_API_KEY` is used only by the on-demand "Explain this verdict" endpoint. If unset, the Explain button shows a "configure LLM_API_KEY" message and the rest of the pipeline runs unaffected. Verdict classification is local NLI and does not call any external API.
 
 ### 6. Deploy
 
@@ -93,23 +91,19 @@ flyctl logs --app evidenceengine
 ### 7. Smoke-test
 
 ```sh
-curl -fsS https://evidenceengine.fly.dev/healthz           # {"status":"ok"}
-open https://evidenceengine.fly.dev/dashboard
+curl -fsS https://your-app.fly.dev/healthz           # {"status":"ok"}
+open https://your-app.fly.dev/dashboard
 ```
 
-Upload a PDF via the dashboard, watch a run complete. If you see rate-limit
-errors from OpenRouter, wait 60s — free tier limits reset fast.
+Upload a PDF via the dashboard, watch a run complete. The first run after a cold start takes longer because the NLI and dense models prewarm on first request.
 
 ---
 
 ## Known limits / gotchas
 
-- **OpenRouter free tier** rate-limits hard (roughly 20 rpm on the
-  `:free` Trinity model). For a live demo, have at most one upload in
-  flight at a time. No retry logic yet (v1.2.3 candidate).
-- **Scale-to-zero** is enabled — the first request after idle has a
-  ~2s cold-start. Disable via
-  `flyctl scale count 1 --app evidenceengine` if you need always-warm.
+- **No external rate limit on Explain endpoint.** The local NLI verdict path makes zero external calls, but the on-demand Explain button calls Gemini / your configured LLM. If you expose this to untrusted users, gate it behind auth or a per-IP rate limit. Otherwise anyone can bill arbitrary tokens against your key.
+- **Machine spec.** `fly.toml` is configured for `shared-cpu-2x` with 4 GB RAM. The NLI model fits comfortably in 4 GB; if you swap to a larger NLI variant (e.g. DeBERTa-v3-large) you will OOM unless you also bump RAM. Inference time on shared-cpu-2x for 25 claims is 15-60s depending on evidence span count.
+- **Auto-stop / always-warm.** Current `fly.toml` defaults to `auto_start_machines = false` and `min_machines_running = 0` (the public demo was scaled to zero before public release of the repo). To keep one machine always running, set `auto_start_machines = true`, `auto_stop_machines = "suspend"`, `min_machines_running = 1` and `fly deploy`.
 - **Single worker** by design (BM25 index is per-process). Scale
   horizontally via `fly scale count N`, not `--workers N`.
 - **macOS Tahoe local dev** still hits Gatekeeper grind on first run

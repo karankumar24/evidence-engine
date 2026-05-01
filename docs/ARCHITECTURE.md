@@ -2,394 +2,193 @@
 
 ## Overview
 
-EvidenceEngine is an automated fact-checking pipeline that ingests a document
-(the *report*) and its cited source files, then produces a claim-by-claim audit
-trail: every factual assertion in the report is extracted, matched against the
-evidence it cites, and classified as `supported`, `contradicted`,
-`insufficient_support`, or `needs_review`. The result is stored with full
-provenance so a human reviewer can trace any verdict back to the exact character
-offset in the source document that informed it.
+EvidenceEngine is a biomedical claim verification pipeline. You upload a manuscript (the *report*) and the studies it cites; the system extracts factual claims, retrieves supporting passages from the cited documents, classifies each claim with an NLI model, and presents the result on a reviewer dashboard with full character-offset provenance.
 
-The system is designed for document reviewers, policy researchers, and
-fact-checkers who need to process reports faster than manual cross-checking
-allows, but who still want to apply human judgment before acting on a verdict.
-EvidenceEngine is deliberately conservative: a claim is `supported` only when
-evidence directly and unambiguously confirms it; anything else routes to
-`insufficient_support` or human review.
+There are no LLM calls in the verdict hot path. Claim extraction is local NLTK + heuristic filters. Verdict classification is a local cross-encoder NLI model. The only optional external call is the on-demand "Explain this verdict" button, which sends a single claim and its top evidence spans to an LLM for a one-paragraph plain-English explanation. Everything else runs on the server with no API keys required.
 
-What distinguishes EvidenceEngine from generic RAG pipelines is the provenance
-data model. Every evidence span carries the character offsets of the text it
-came from. Every verdict is linked to the exact spans that informed it via a
-`VerdictEvidence` join table. A reviewer can click a verdict and see the raw
-sentence from the source document — not a paraphrase, the verbatim text at the
-verified offset.
+The system is deliberately conservative. A claim is `supported` only when the NLI model is highly confident in entailment AND the retrieved evidence is from a real cited source (not just the same paper). Anything below the confidence threshold falls to `needs_review` or `insufficient_support`.
+
+What distinguishes EvidenceEngine from a generic RAG pipeline is the provenance data model. Every evidence span carries the character offsets of the text it came from. Every verdict is linked to the exact spans that informed it via a `VerdictEvidence` join table. A reviewer can click a verdict and see the verbatim sentence from the source document at the verified offset, not a paraphrase.
 
 ---
 
-## System Components
-
-### Component Map
+## Pipeline at a glance
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        HTTP Clients                          │
-│         (curl / load_samples.py / browser / tests)           │
-└───────────────────────────┬─────────────────────────────────┘
-                             │ REST API  /  HTMX
-┌───────────────────────────▼─────────────────────────────────┐
-│                 FastAPI Application Layer                     │
-│  ┌──────────┐  ┌───────────┐  ┌──────────┐  ┌───────────┐  │
-│  │  Packets │  │  Pipeline │  │   Runs   │  │ Dashboard │  │
-│  │  Routes  │  │  Routes   │  │  Routes  │  │  Routes   │  │
-│  └────┬─────┘  └─────┬─────┘  └────┬─────┘  └─────┬─────┘  │
-└───────┼──────────────┼─────────────┼───────────────┼─────────┘
-        │              │             │               │
-┌───────▼──────────────▼─────────────▼───────────────▼─────────┐
-│                       Pipeline Services                        │
-│  ┌──────────┐  ┌───────────┐  ┌──────────┐  ┌────────────┐   │
-│  │ Ingestion│  │Extraction │  │Retrieval │  │Classifica- │   │
-│  │  Service │  │  Service  │  │ Service  │  │tion Service│   │
-│  └────┬─────┘  └─────┬─────┘  └────┬─────┘  └─────┬──────┘   │
-└───────┼──────────────┼─────────────┼───────────────┼───────────┘
-        │              │             │               │
-┌───────▼──────────────▼─────────────▼───────────────▼───────────┐
-│                    Pipeline Orchestrator                         │
-│         (async background job — RunVersion lifecycle)            │
-└───────────────────────────────────┬─────────────────────────────┘
-                                    │
-        ┌───────────────────────────┼──────────────────────┐
-        │                           │                      │
-┌───────▼──────────┐  ┌─────────────▼──────────┐  ┌───────▼──────────┐
-│   PostgreSQL 16   │  │  OpenRouter / any      │  │  BM25s + Cross-  │
-│   (persistence)   │  │  OpenAI-compatible LLM │  │  Encoder Reranker│
-│                   │  │  (extract + classify)  │  │  (retrieval)     │
-└───────────────────┘  └────────────────────────┘  └──────────────────┘
+PDF upload  →  Parse  →  Extract claims  →  Retrieve evidence  →  Classify  →  Reviewer dashboard
+                              │                  │                  │
+                              ▼                  ▼                  ▼
+                         NLTK + filter     BM25 + dense          NLI cross-encoder
+                         (no LLM)          + reranker            (no LLM)
 ```
 
-### Component Descriptions
-
-**FastAPI Application Layer** — The HTTP interface. Four route groups cover
-the full lifecycle: `packets` routes handle file upload and packet inspection;
-`pipeline` routes expose individual pipeline stages so callers can trigger
-each step independently; `runs` routes trigger the full four-stage orchestrated
-pipeline and let callers poll progress; `dashboard` routes serve the HTMX
-reviewer interface. Auto-generated OpenAPI docs are available at `/docs`.
-
-**Ingestion Pipeline** — Accepts PDF or DOCX files, parses each to a list of
-text blocks where every block carries `char_start` and `char_end` offsets
-into the document's raw text. The parse-then-accept pattern means all files
-are fully parsed before any database row is written — a failed parse on one
-file rolls back the entire upload and removes partially-written uploads.
-
-**Extraction Pipeline** — Uses an OpenAI-compatible LLM (default: OpenRouter's
-free `arcee-ai/trinity-large-preview:free`) to decompose
-the report's text blocks into atomic, verifiable claims. A regex-based
-citation detector first marks all `[1]`, `[2]` markers; the extractor resolves
-each claim's citation reference to a `SourceDocument` row. Any citation that
-cannot be resolved to a known source document is written as a `CitationAnchor`
-with `status='unresolvable_anchor'` — it is never silently dropped.
-
-**Retrieval Pipeline** — For each resolved `CitationAnchor`, retrieves
-evidence from the cited `SourceDocument` only (not all documents). Builds a
-disk-backed BM25 index per source document, queries it with the claim text,
-then re-ranks the top candidates with a `sentence-transformers` cross-encoder
-(`BAAI/bge-reranker-v2-m3`, 568M params, pinned to HF revision
-`953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e`). The top-N scoring spans become
-`EvidenceSpan` rows, each carrying `char_start`, `char_end`, and
-`relevance_score`.
-
-**Classification Pipeline** — Classifies each claim against its retrieved
-evidence spans. The LLM receives the claim text, all evidence spans, and an
-explicit prompt that instructs it to return `insufficient_support` for partial
-or topically-related-but-not-confirming evidence. A confidence threshold
-function (`apply_confidence_threshold`) then checks the returned
-`confidence_score`: if it falls below the configured threshold the verdict is
-overridden to `needs_review`. Two edge cases bypass the LLM entirely: zero
-evidence spans → `insufficient_support`; unresolvable citation anchor →
-`needs_review`.
-
-**Pipeline Orchestrator** — Runs all four stages as a single async background
-job triggered by `POST /api/packets/{id}/runs`. The orchestrator owns its own
-SQLAlchemy async session (`async_session_factory`) — it never inherits a
-request-scoped session — and writes `RunVersion` status (`pending` →
-`running` → `completed` / `failed`) and model version metadata throughout
-execution. A separate `_mark_failed` function opens a fresh session to persist
-failures, isolating failure writes from a potentially corrupted primary session.
-
-**Reviewer Dashboard** — A server-rendered HTMX + Alpine.js + Jinja2
-interface for human reviewers. Shows all claims for a run, sorted by severity
-(contradicted first, then needs_review, then insufficient_support, then
-supported). Reviewers can accept, override, or flag each verdict; each action
-writes a `ReviewDecision` row without modifying the original `Verdict` row.
-HTMX OOB swap updates the queue row status span in-place to preserve HTMX
-bindings.
-
-**Evaluation Harness** — A standalone CLI (`python -m eval.runner`) that runs
-the four core metrics — exact-match accuracy, false-positive rate,
-false-negative rate, and confidence calibration — against a fixture dataset of
-benchmark cases. Operates without a running web server or database, making it
-suitable for CI quality gates.
+Five stages, all running locally.
 
 ---
 
-## Data Flow
+## Stages
 
-### End-to-End Pipeline Walk-Through
+### 1. Parse
 
-#### Step 1 — Document Upload (Ingestion)
+`src/evidenceengine/ingestion/` — Accepts PDF or DOCX. Parses with PyMuPDF, producing a list of text blocks each carrying `char_start` and `char_end` offsets into the document's raw text. The parse-then-accept pattern means a failed parse rolls the whole upload back; partial state never lands in the DB.
 
-**Trigger:** `POST /api/packets` with multipart form data containing a report
-file and one or more source files.
+Table extraction is skipped for PDFs over 50 pages (PyMuPDF's table heuristic is slow on large documents and the win is small for biomedical reviews).
 
-**Input:** A PDF or DOCX report and one or more PDF/DOCX source documents.
+### 2. Extract claims
 
-**Processing:** All files are parsed to text blocks *before* any database write
-(parse-then-accept atomicity). Each text block carries `char_start` and
-`char_end` offsets into the document's `raw_text`. The offset integrity
-invariant is enforced at parse time: `raw_text[char_start:char_end] == block.text`
-must hold for every block, or the parse raises a `ValueError`. If any file
-fails to parse, the entire upload is rolled back and no rows are committed.
+`src/evidenceengine/extraction/claim_extractor.py`
 
-**Output:** A `DocumentPacket` row and multiple `SourceDocument` rows in
-PostgreSQL. The report `SourceDocument` has `is_report=True`; cited sources
-have `is_report=False`. Each `SourceDocument` stores `parsed_content` as a
-JSONB array of text blocks.
+NLTK sentence tokenizer plus a stack of filters. Filters reject:
 
-**Key invariant:** offset integrity is checked at parse time, not via a DB
-constraint — the invariant is language-level not schema-level.
+- Bibliography entries (journal-abbreviation endings, author lists with year)
+- Methods boilerplate (procedural language without finding verbs)
+- Glossary entries and figure captions
+- Page headers, license text, journal mastheads
+- Sentences starting with `-ing` participles (typically procedural)
+- Sentences with too high an `NNP` (proper-noun) ratio (typically affiliation lists)
 
----
+The filter is `_is_likely_claim()` plus `_LEGAL_UNIVERSAL_RE` (universal legal/structural rejection patterns) and `_FACTUAL_SIGNAL_RE` (positive gate requiring biomedical signal: numeric values with units, study terms like "patients", "cohort", "dose", "p<", "RR=", etc.).
 
-#### Step 2 — Claim Extraction
+Citation-first sampling biases the 25-claim cap toward sentences with citation markers (Vancouver `[1]`, APA `(Smith et al., 2023)`). The cap (`max_claims_absolute=25`, `max_claims_per_page=4`) keeps the pipeline finishable on a shared CPU. See `CHALLENGES.md` for the trade-off.
 
-**Trigger:** `POST /api/packets/{id}/extract` (or automatically when the
-orchestrator runs).
+The extraction stage is offloaded to a thread pool (`asyncio.to_thread`) so that NLTK's synchronous CPU work does not block the async event loop.
 
-**Input:** The report `SourceDocument.parsed_content` blocks.
+### 3. Retrieve evidence
 
-**Processing:**
-1. Regex citation detector finds all `[N]` markers in report text.
-2. LLM (GPT-4o-mini) decomposes the report into atomic, independently
-   verifiable claims — one claim per sentence-level factual assertion.
-3. Each claim's citation reference is resolved to a `SourceDocument` row by
-   matching citation number to upload order.
-4. Character offsets for each claim's location in the report text are
-   recovered from the parsed blocks.
+`src/evidenceengine/retrieval/pipeline.py`
 
-**Output:** `Claim` rows (with `char_start`/`char_end` offsets in report text,
-`status='pending'`) and `CitationAnchor` rows linking each claim to its cited
-`SourceDocument`. Unresolvable citations write a `CitationAnchor` with
-`status='unresolvable_anchor'`.
+Hybrid retrieval: BM25 (keyword) + BGE-base-en-v1.5 dense embeddings (semantic), unioned and reranked by `cross-encoder/ms-marco-MiniLM-L6-v2`.
 
-**Key invariant:** Every citation reference in the report is written as a
-`CitationAnchor` row, resolved or not — no anchor is silently dropped.
+- **BM25** (`bm25s` library): per-source-document index, queried with the claim text. Disk-cached at `INDEX_DIR`.
+- **Dense** (`BAAI/bge-base-en-v1.5`): SentenceTransformer model, max_seq_length=512, embeddings disk-cached by content hash. Falls back to BM25-only if the corpus is over 1500 chunks (skip threshold to avoid memory blow-up on shared CPU). Fail-open: if the dense path errors at runtime the pipeline still returns BM25 results.
+- **Reranker** (`cross-encoder/ms-marco-MiniLM-L6-v2`): scores the union and keeps the top-N. The larger `bge-reranker-v2-m3` is intentionally NOT used — at 568M params it takes 70s per batch on shared CPU.
 
----
+Top spans become `EvidenceSpan` rows carrying `char_start`, `char_end`, `relevance_score`, and the `source_document_id` they came from.
 
-#### Step 3 — Evidence Retrieval
+For a claim with a resolved citation anchor (e.g. `[1]` resolves to a specific cited PDF), retrieval is scoped to that document. For unresolved anchors, retrieval falls back to broad multi-document search (Mode B3) or to the report itself if there are no cited documents (Mode A self-verify).
 
-**Trigger:** `POST /api/packets/{id}/retrieve` (or automatically via orchestrator).
+### 4. Classify
 
-**Input:** `Claim` rows with resolved `CitationAnchor` rows pointing to
-specific `SourceDocument` rows.
+`src/evidenceengine/classification/pipeline.py` and `nli_classifier.py`
 
-**Processing:**
-1. For each resolved `CitationAnchor`, build (or load from disk) a BM25 index
-   of the cited `SourceDocument`'s text blocks.
-2. Query the BM25 index with the claim text to retrieve top-K candidates.
-3. A `sentence-transformers` cross-encoder reranker (`BAAI/bge-reranker-v2-m3`,
-   568M params, pinned revision `953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e`,
-   `max_length=512`, first-run download ~1.1 GB to `~/.cache/huggingface`)
-   re-scores the candidates against the claim text. On Apple Silicon the model
-   runs on MPS; CPU fallback otherwise.
-4. Top-N spans by reranker score are selected as evidence.
+Uses `cross-encoder/nli-deberta-v3-small` fine-tuned on SciFact (the biomedical claim verification dataset). The model file lives on the Fly.io persistent volume at `/data/models/scifact-nli`. In dev or CI without the volume, the loader falls back to the unmodified base model from Hugging Face.
 
-**Output:** `EvidenceSpan` rows, each recording `char_start`, `char_end`,
-`raw_text`, `relevance_score`, and `rank` within the cited source document.
-Recall@K metrics are logged to `RunVersion.pipeline_config`.
+For each claim, the classifier scores claim-vs-each-evidence-span pairs in NLI form (premise = evidence, hypothesis = claim). The model produces three probabilities: `entailment`, `contradiction`, `neutral`. Per-span scores are aggregated into a single verdict via `nli_probs_to_verdict()` in `nli_classifier.py`.
 
-**Key decision:** Retrieval searches only the *cited* `SourceDocument` (not all
-uploaded sources). This preserves citation semantics — evidence comes from the
-source the author cited, not from any conveniently matching passage elsewhere.
-
----
-
-#### Step 4 — Verdict Classification
-
-**Trigger:** `POST /api/packets/{id}/classify` (or automatically via orchestrator).
-
-**Input:** `Claim` rows and their associated `EvidenceSpan` rows.
-
-**Processing:**
-1. **Edge case — zero evidence spans:** If no `EvidenceSpan` rows exist for a
-   claim, assign `insufficient_support` with `model_name='none'` — no LLM call.
-2. **Edge case — unresolvable anchor:** If the claim's `CitationAnchor` is
-   unresolvable, assign `needs_review` with `model_name='none'` — no LLM call.
-3. **Standard case:** LLM classifies the claim against its evidence spans using
-   the structured-output API (`beta.chat.completions.parse`). The prompt
-   includes explicit disambiguation instructions for partial evidence.
-4. `apply_confidence_threshold(verdict_type, confidence_score, threshold)` is
-   applied. If `confidence_score < threshold`, `verdict_type` is overridden to
-   `needs_review` regardless of the LLM's original label.
-
-**Output:** `Verdict` rows (`verdict_type`, `confidence_score`, `reasoning`) and
-`VerdictEvidence` join rows linking each `Verdict` to the `EvidenceSpan` rows
-that informed it.
-
-**Key decision:** Field order in `VerdictClassificationResponse` is
-`reasoning → verdict_type → confidence_score`. This forces the LLM to produce
-chain-of-thought reasoning before assigning a label, reducing shortcut label
-assignment.
-
----
-
-#### Step 5 — Orchestration
-
-**Trigger:** `POST /api/packets/{id}/runs`
-
-**Processing:** An async background task runs steps 2–4 sequentially. The
-orchestrator:
-- Creates a `RunVersion` row with `status='pending'`
-- Updates status to `'running'` before stage execution starts
-- Records `model_versions` dict (LLM model name, cross-encoder model name) in
-  the `RunVersion` after each stage
-- On success: updates `status='completed'`, sets `completed_at`, writes
-  `pipeline_config` JSONB with per-stage metrics
-- On failure: `_mark_failed` opens a *separate* fresh session to write
-  `status='failed'` and the error message — this session is isolated from any
-  corrupted primary session
-
-**Output:** `RunVersion` row with `status='completed'` (or `'failed'`),
-populated `model_versions`, and `pipeline_config` containing metrics like
-`failed_claim_count` and recall@K values.
-
----
-
-## Provenance Data Model
-
-### Entity Relationship Overview
+Threshold band (locked by `test_config.py` invariants):
 
 ```
-DocumentPacket
-  ├── SourceDocument  (is_report=True  — the report being verified)
-  │     └── [parsed_content JSONB — text blocks with char offsets]
-  └── SourceDocument  (is_report=False — one per cited source document)
-        └── EvidenceSpan  (retrieved text span for a specific claim)
-              ├── char_start, char_end  (offsets into SourceDocument.raw_text)
-              └── relevance_score, rank
-
-RunVersion  (tracks a single pipeline execution on a DocumentPacket)
-  └── Claim  (one atomic factual statement extracted from the report)
-        ├── char_start, char_end  (offsets into report SourceDocument.raw_text)
-        ├── CitationAnchor  → SourceDocument  (resolves citation [N] to a file)
-        │     └── status: 'resolved' | 'unresolvable_anchor'
-        ├── Verdict  (supported | contradicted | insufficient_support | needs_review)
-        │     ├── verdict_type, confidence_score, reasoning
-        │     └── VerdictEvidence  → EvidenceSpan  (which spans informed this verdict)
-        └── ReviewDecision  (human reviewer action: accept / override / flag)
-              └── Preserves original Verdict — never mutates it
+nli_entailment_supported_threshold        = 0.92   # entailment must clear this for supported
+nli_contradiction_contradicted_threshold  = 0.75   # contradiction must clear this for contradicted
+nli_tiebreaker_threshold                  = 0.65   # reserved for future tiebreaker path
+verdict_needs_review_threshold            = 0.70   # any verdict below this → needs_review
 ```
 
-### Key Design Decisions
+The 0.92 entailment threshold is unusually high because DeBERTa-v3 is overconfident on this calibration band by ~8pp. The 0.75 contradiction threshold was lowered from 0.85 on 2026-04-30 after a sweep showed +2.4pp 3-class accuracy and +1.8pp contradiction recall with no change in false-support rate.
 
-**`is_report` boolean on `SourceDocument`** — A single `SourceDocument` model
-with an `is_report` flag rather than separate `Report` and `Source` tables.
-Simpler to query (one join, not two), avoids ambiguous FK chains, and makes the
-"report is also a document" semantic explicit.
+**Self-verify trust guard.** If every retrieved evidence span for a claim came from the *same* document as the claim itself (the report), the verdict is in self-verify mode and `supported` confidences are capped at `self_verify_supported_cap` (0.80). The cap applies to `supported` only — `contradicted` and `insufficient_support` are not capped. See `TRUST_MODEL.md` for why.
 
-**Offset integrity invariant** — `raw_text[char_start:char_end] == block.text`
-is enforced at parse time with a `ValueError`, not as a database constraint.
-This means malformed content is rejected before any I/O, making the invariant
-impossible to violate silently.
+Edge cases bypass the model entirely: zero evidence spans → `insufficient_support`; unresolvable citation anchor → `needs_review` if the broad-retrieval fallback also returned nothing useful.
 
-**`CitationAnchor` always written** — Whether a citation resolves or not, a
-`CitationAnchor` row is always written. This satisfies the CLAIM-06 requirement:
-unresolvable anchors are tracked explicitly so reviewers know a claim had a
-citation that couldn't be matched, rather than the claim appearing citation-free.
+### 5. Reviewer dashboard
 
-**`VerdictEvidence` join table** — Linking `Verdict` to `EvidenceSpan` through
-a join table (rather than a FK on `Verdict`) enables the "which evidence spans
-produced this verdict" query without denormalizing evidence text into the
-`Verdict` row, and allows a single span to inform multiple verdicts if needed.
+`src/evidenceengine/api/routes/dashboard.py`, `templates/dashboard_*.html`
+
+Server-rendered HTMX + Alpine.js + Jinja2. Shows all claims for a run sorted by severity (contradicted first, then needs_review, then supported, then insufficient_support). Click a claim to see verdict, confidence, NLI score breakdown, the verbatim source quote at its character offset, and per-document evidence linking via `verdict_evidence`. Approve, reject, or flag each verdict.
 
 ---
 
-## API Surface
+## Service-level layout
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/packets` | Upload report + source files; returns `packet_id` |
-| `GET` | `/api/packets/{id}` | Retrieve packet metadata and source documents |
-| `POST` | `/api/packets/{id}/extract` | Trigger claim extraction (Step 2) |
-| `POST` | `/api/packets/{id}/retrieve` | Trigger evidence retrieval (Step 3) |
-| `POST` | `/api/packets/{id}/classify` | Trigger verdict classification (Step 4) |
-| `POST` | `/api/packets/{id}/runs` | Trigger full four-stage pipeline (Steps 2–4) |
-| `GET` | `/api/runs/{id}` | Poll pipeline run status and progress |
-| `GET` | `/dashboard` | Reviewer dashboard (HTMX server-rendered) |
-| `POST` | `/dashboard/verdicts/{verdict_id}/review` | Submit a reviewer decision |
-| `GET` | `/dashboard/queue` | Partial queue refresh (HTMX target) |
+```
+┌────────────────────────────────────────────────────────────┐
+│                       HTTP Clients                          │
+│     (browser / HTMX / curl / load_samples.py / tests)       │
+└──────────────────────────┬─────────────────────────────────┘
+                           │ REST + HTMX
+┌──────────────────────────▼─────────────────────────────────┐
+│                FastAPI Application Layer                    │
+│   submit  /  packets  /  runs  /  dashboard  /  explain     │
+└──────────────────────────┬─────────────────────────────────┘
+                           │
+┌──────────────────────────▼─────────────────────────────────┐
+│                  Pipeline Orchestrator                      │
+│   (async background job, owns its own SQLAlchemy session)   │
+└──┬────────────┬──────────────┬─────────────┬───────────────┘
+   │            │              │             │
+   ▼            ▼              ▼             ▼
+┌──────┐   ┌────────┐    ┌──────────┐   ┌──────────────┐
+│Parse │   │Extract │    │Retrieve  │   │Classify      │
+│      │   │NLTK +  │    │BM25 +    │   │NLI cross-    │
+│PyMuPDF│  │filters │    │BGE +     │   │encoder       │
+│      │   │        │    │MiniLM    │   │(SciFact)     │
+└──────┘   └────────┘    └──────────┘   └──────────────┘
+                                              │
+                                              ▼
+                                     ┌──────────────────┐
+                                     │   PostgreSQL 16   │
+                                     │   (provenance)    │
+                                     └──────────────────┘
+```
 
-Individual stage endpoints (`/extract`, `/retrieve`, `/classify`) exist for
-development and debugging. Production workflows should use `/runs`, which
-handles the full lifecycle including `RunVersion` tracking.
+The orchestrator owns its own `async_session_factory` session — it never inherits a request-scoped session. A separate `_mark_failed` function opens a fresh session to persist failures, isolating failure writes from a potentially corrupted primary session.
 
----
-
-## Technology Stack
-
-| Layer | Technology | Why |
-|-------|------------|-----|
-| Web framework | FastAPI + asyncpg | Async-native; type-safe request/response; auto OpenAPI docs |
-| ORM | SQLAlchemy (async) | Complex FK chains in provenance model; async session management |
-| Database | PostgreSQL 16 | JSONB for `parsed_content`; reliable FK enforcement; Docker-composable |
-| BM25 retrieval | bm25s | Disk-backed index; no vector DB required in v1; fast keyword matching |
-| Reranking | sentence-transformers cross-encoder (`BAAI/bge-reranker-v2-m3`, pinned) | Re-scores BM25 candidates with semantic similarity; improves recall@K |
-| LLM | OpenRouter (any OpenAI-compatible provider) | Default: `arcee-ai/trinity-large-preview:free`. Structured output via `beta.chat.completions.parse` |
-| Dashboard | HTMX + Alpine.js + Jinja2 | Progressive enhancement; no JS build step; CDN-served Tailwind |
-| Package manager | uv | Fast, lockfile-based; compatible with setuptools; reproducible installs |
-| Evaluation | Pure Python CLI (`eval.runner`) | No web server dependency; CI-runnable quality gate |
-
----
-
-## Memory Footprint
-
-Per-process resident memory during a typical classification request on an
-8 GB Apple Silicon M1 Air:
-
-| Model | Params | Resident (fp32) | First-run download |
-|-------|--------|-----------------|---------------------|
-| DeBERTa-v3-large NLI (`MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli`) | 435M | ~870 MB | ~870 MB |
-| bge-reranker-v2-m3 (`BAAI/bge-reranker-v2-m3`) | 568M | ~1.1 GB | ~1.1 GB |
-| Python + FastAPI + OS overhead | — | ~1.5 GB | — |
-| BM25 index (typical packet) | — | ~few hundred MB | — |
-| **Peak resident (typical request)** | | **~3.5 GB** | |
-
-On 8 GB M1 Air the ~3.5 GB peak fits with margin, but running additional
-memory-heavy processes concurrently (e.g., browser with 50+ tabs) can trigger
-macOS RAM compression and MPS `Insufficient memory` errors mid-inference.
+`RunVersion` status transitions: `pending` → `running` → `completed` / `failed`. The dashboard polls run status and renders per-stage progress bars with ETAs based on rolling per-stage wall-clock measurements.
 
 ---
 
-## Related Documents
+## Performance characteristics (shared-cpu-2x, 4GB RAM)
 
-- See [docs/TRUST_MODEL.md](TRUST_MODEL.md) for the verdict taxonomy and
-  confidence routing design — including the weak-evidence rule and the
-  `apply_confidence_threshold` mechanism.
-- See [eval/README.md](../eval/README.md) for the evaluation harness — how
-  verdict quality is measured and regression-tested.
+| Stage | Typical | Notes |
+|---|---|---|
+| Parse | 2-5s | Skipped for tables on >50pp PDFs |
+| Extract | <1s in thread pool | NLTK + regex |
+| Retrieve | 5-30s | Dense skipped if corpus >1500 chunks |
+| Classify | 15-60s | NLI on 25 claims * top-N spans, CPU |
+| Total | 48-80s typical, 2-4 min on large PDFs | Bottleneck is NLI on shared CPU |
+
+These numbers are from the developer environment. A workstation with more cores cuts classify time roughly linearly with core count.
 
 ---
 
-*For questions a reader of this document should be able to answer:*
+## Data model (provenance)
 
-- **"Where does the claim text come from?"** — The LLM extracts it from the
-  report's `parsed_content` blocks during the Extraction stage (Step 2).
-- **"How does the system know which source document to search?"** — The
-  `CitationAnchor` resolves the claim's `[N]` citation reference to a
-  specific `SourceDocument` row; retrieval searches only that document.
-- **"What happens when a citation can't be resolved?"** — A `CitationAnchor`
-  with `status='unresolvable_anchor'` is written, and the claim is assigned
-  `needs_review` during classification (no LLM call needed).
-- **"How is evidence linked back to verdicts?"** — Via the `VerdictEvidence`
-  join table: each `Verdict` row is linked to the `EvidenceSpan` rows that
-  the LLM saw when producing that verdict.
+Key tables:
+
+- `DocumentPacket` — one upload session (one report + N cited sources)
+- `SourceDocument` — one PDF/DOCX file in a packet, with `is_report=True` for the report and `False` for cited papers
+- `RunVersion` — one pipeline run on a packet, holds status + per-stage timing + pipeline config snapshot
+- `Claim` — one extracted factual claim, links to its `SourceDocument` (the report) and `RunVersion`
+- `CitationAnchor` — a citation marker inside a claim sentence; resolves to a specific `SourceDocument` or stays unresolved
+- `EvidenceSpan` — a retrieved passage; carries `char_start`, `char_end`, `relevance_score`, `source_document_id`
+- `Verdict` — one classification result for one claim; `verdict_type`, `confidence_score`, `reasoning`
+- `VerdictEvidence` — join table linking a `Verdict` to the `EvidenceSpan`s that informed it
+- `ReviewDecision` — human reviewer action (approve / reject / flag) on a verdict
+
+The `VerdictEvidence → EvidenceSpan` chain is what lets the dashboard show "this verdict, justified by *this exact passage* from *this specific cited paper*." The recent dashboard source-doc filter (commit `8ecb201`) walks this chain to determine which claims belong to which uploaded document.
+
+---
+
+## Why no LLM in the hot path
+
+Earlier revisions of EvidenceEngine used an LLM for both extraction and classification (the deleted `evidenceengine.classification.classifier` import is the fossil). Removing the LLM from the hot path bought:
+
+- **Deterministic verdicts.** Same input → same verdict. No prompt drift, no provider-side model swap regressions.
+- **No API key required to run the verifier.** The repo can be cloned and run without OpenRouter, OpenAI, or Gemini accounts.
+- **Cost-free per-run inference.** The shared CPU server runs the full pipeline at no marginal cost.
+- **Simpler trust model.** NLI confidence scores are the only knob. No "did the LLM hallucinate the verdict" failure mode.
+
+What was lost: the LLM was better at handling ambiguous, qualitative claims ("the treatment was generally well-tolerated"). The NLI model returns `needs_review` more often on those. This is a deliberate trade-off in favor of conservatism. See `TRUST_MODEL.md`.
+
+---
+
+## Modes
+
+The system has three retrieval modes that are selected automatically based on what the user uploaded and which citations resolved:
+
+- **Mode A (self-verify):** No cited papers uploaded. The retriever pulls evidence from other paragraphs of the report itself. Useful for catching internal contradictions and unsupported assertions. `supported` verdicts are confidence-capped at 80%.
+- **Mode B1 (resolved citation):** A claim's citation anchor resolves to a specific uploaded cited paper. Retrieval is scoped to that paper.
+- **Mode B2 (unresolved citation, skip):** A claim has a citation anchor but it doesn't match any uploaded source. The claim is marked `needs_review` and skipped from broad retrieval to avoid spurious cross-document evidence.
+- **Mode B3 (broad multi-doc):** No citation anchor in the claim sentence. The retriever searches across all uploaded cited papers.
+
+Mode is recorded per-claim and surfaced in the dashboard.

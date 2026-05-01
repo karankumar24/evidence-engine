@@ -163,3 +163,4 @@ checkpoints/
 test-results/
 .venv.broken-*/
 .venv.bak-*/
+CLAUDE.md
