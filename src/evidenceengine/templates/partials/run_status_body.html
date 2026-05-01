@@ -47,7 +47,11 @@
     <div class="space-y-1">
       <div class="flex justify-between text-xs font-mono text-ink-500">
         <span>{{ progress.pct }}%</span>
-        <span>~{{ progress.remaining }}s remaining</span>
+        {% if progress.over_budget %}
+          <span class="text-amber-700">running longer than expected…</span>
+        {% else %}
+          <span>~{{ progress.remaining }}s remaining</span>
+        {% endif %}
       </div>
       <div class="w-full h-1.5 bg-ink-100 rounded-sm overflow-hidden">
         <div class="h-full bg-accent-600 transition-all duration-500" style="width: {{ progress.pct }}%"></div>

@@ -137,11 +137,18 @@
         </div>
       </div>
 
-      <!-- Privacy footer — pre-publication context demands transparency -->
+      <!-- Privacy footer — pre-publication context demands transparency.
+           Codex review 2026-04-30 flagged earlier wording as self-contradictory
+           ("session only" + "persist until deleted") and incomplete (omitted
+           LLM call disclosure for on-demand "Explain this verdict"). -->
       <p class="text-xs text-ink-400 leading-relaxed pt-2">
-        Privacy: uploaded PDFs are stored on the server for this session only.
-        No training, no third-party sharing. Files persist on the Fly.io volume
-        until manually deleted.
+        <strong>Privacy:</strong> uploaded PDFs are saved on the server's persistent
+        Fly.io volume until manually deleted. Verdict classification runs entirely
+        locally (no API calls). The optional "Explain this verdict" button calls
+        an external LLM (Gemini or OpenAI-compatible provider, depending on which
+        API key is configured) and sends the claim text + top evidence spans —
+        avoid clicking it for confidential drafts. No training, no third-party
+        sharing beyond that opt-in explain call.
       </p>
 
       <!-- Submit -->

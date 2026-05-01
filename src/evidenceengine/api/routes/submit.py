@@ -208,10 +208,25 @@ def _compute_progress(run: RunVersion) -> dict:
 
     stage_pct = min(99, int(100 * elapsed_in_stage / stage_eta)) if stage_eta else 0
     overall_pct = min(99, int(100 * (prior_budget + min(elapsed_in_stage, stage_eta)) / total))
-    remaining = max(1, int(total - min(elapsed_total, total - 1)))
+
+    # Honest "remaining" math (codex review 2026-04-30):
+    #   prior approach: total - elapsed_total → caps at 1s forever once any
+    #   stage exceeds its budget (retrieval can run 700s vs 50s budget on
+    #   noisy Fly shared CPU). User sees "~1s remaining" for 10+ minutes.
+    # New: future stage budgets + remaining-in-current-stage. When current
+    # stage exceeds its ETA, set over_budget=True so the template can render
+    # "running longer than expected" instead of a fake countdown.
+    later_budget = sum(STAGE_ETA_SECONDS[s] for s in _STAGE_ORDER[idx + 1:])
+    over_budget = elapsed_in_stage > stage_eta
+    if over_budget:
+        remaining = max(1, later_budget)  # only later stages still have valid ETA
+    else:
+        remaining = max(1, int(later_budget + (stage_eta - elapsed_in_stage)))
+
     return {"pct": overall_pct, "remaining": remaining,
             "elapsed_in_stage": int(elapsed_in_stage),
-            "stage_eta": stage_eta, "stage_pct": stage_pct}
+            "stage_eta": stage_eta, "stage_pct": stage_pct,
+            "over_budget": over_budget}
 
 
 @router.get("/runs/{run_id}/status/poll", response_class=HTMLResponse)

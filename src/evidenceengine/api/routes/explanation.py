@@ -62,7 +62,10 @@ async def explain_claim_verdict(
         .limit(3)
     )
     spans = spans_result.scalars().all()
-    span_dicts = [{"text": s.span_text, "relevance_score": s.relevance_score} for s in spans]
+    # generate_explanation reads s["span_text"] (see classification/explanation.py).
+    # Earlier code shipped key "text" → silent KeyError on every Explain click.
+    # Codex review caught 2026-04-30.
+    span_dicts = [{"span_text": s.span_text, "relevance_score": s.relevance_score} for s in spans]
 
     # Generate explanation — returns None if no API key or LLM fails
     try:
@@ -82,8 +85,12 @@ async def explain_claim_verdict(
             "</span>"
         )
 
+    # Escape model output before interpolating into HTML — model returns
+    # arbitrary text, could include angle brackets or scripts. Codex flagged
+    # this as XSS risk after fixing the silent-fail key bug above.
+    from html import escape
     return HTMLResponse(
         f'<p class="text-xs font-serif italic text-ink-600 leading-relaxed">'
-        f"{explanation}"
+        f"{escape(explanation)}"
         f"</p>"
     )
