@@ -36,6 +36,17 @@
 
     {{ _badge.status_badge(run.status, size="xs") }}
 
+    {# Sampling disclosure — when extraction surfaced more candidates than the
+       cap, tell the reviewer the dashboard is a sample so they read the
+       evidence with the right expectation. Codex audit 2026-04-30. #}
+    {% set _et = (run.pipeline_config or {}).get('extraction_telemetry') %}
+    {% if _et and _et.extracted_count and _et.sampled_count and _et.extracted_count > _et.sampled_count %}
+      <span class="text-[11px] font-mono text-ink-500 ml-2"
+            title="Pipeline extracted {{ _et.extracted_count }} candidate claims but capped at {{ _et.sampled_count }} (cited claims sampled first). Upload a shorter excerpt for full coverage.">
+        sampled {{ _et.sampled_count }} of {{ _et.extracted_count }}
+      </span>
+    {% endif %}
+
     <div class="flex-1"></div>
 
     {{ _dist.verdict_distribution(distribution) }}

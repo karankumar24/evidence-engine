@@ -125,13 +125,28 @@ async def queue_partial(
                 filtered.append(claim)
         claims = filtered
 
-    # Apply source_doc_id filter
+    # Apply source_doc_id filter.
+    # Codex audit 2026-04-30: prior code filtered by claim.source_document_id,
+    # which is always the report doc, so picking a cited source from the
+    # dropdown silently matched zero claims. Real intent: show claims whose
+    # retrieved evidence came from the picked source. Match if any of the
+    # claim's verdict's evidence spans points to source_uuid.
     if source_doc_id:
         try:
             source_uuid = uuid.UUID(source_doc_id)
-            claims = [c for c in claims if c.source_document_id == source_uuid]
         except ValueError:
-            pass  # Invalid UUID — ignore filter
+            source_uuid = None
+        if source_uuid is not None:
+            def _claim_uses_source(claim) -> bool:
+                if not claim.verdicts:
+                    return False
+                for v in claim.verdicts:
+                    for ve in (v.verdict_evidence or []):
+                        span = getattr(ve, "evidence_span", None)
+                        if span is not None and span.source_document_id == source_uuid:
+                            return True
+                return False
+            claims = [c for c in claims if _claim_uses_source(c)]
 
     # Return ONLY the items partial (not the full queue_list with filters) so
     # HTMX swap into #queue-list does not duplicate the filter UI inside the list.
