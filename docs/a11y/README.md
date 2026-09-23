@@ -29,9 +29,8 @@ clock to first byte stretches to minutes and the Playwright harness times
 out before the server responds. This is an OS/environment issue, not a code
 issue. In Docker or on prod Linux this problem does not exist.
 
-The live axe-core + Lighthouse sweep will be executed against the deployed
-staging URL once the v1.2.1 PR lands. The resulting report will be committed
-as `docs/a11y/axe-report-v1.2.1.json` with any fixes landing in a follow-up.
+The live axe-core and Lighthouse sweep has not been run yet. It needs a
+running server, and Docker is the easiest way to get one.
 
 ## What we consider "shipped" for v1.2.1 a11y
 
@@ -48,5 +47,4 @@ as `docs/a11y/axe-report-v1.2.1.json` with any fixes landing in a follow-up.
 - Live Lighthouse accessibility score.
 - Playwright screenshot diff sweep.
 
-These three are blocked on the local server-boot issue above and will run
-against the staging deploy.
+These three still need a live run against a running server.

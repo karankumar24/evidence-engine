@@ -13,7 +13,7 @@ This document explains the rules that govern when EvidenceEngine assigns a verdi
 | `insufficient_support` | Evidence was retrieved but does not entail or contradict the claim with enough confidence. The claim is plausible but not justified by the cited material. |
 | `needs_review` | The system declined to commit. This is the conservative default whenever something is uncertain: confidence below threshold, no resolvable citation anchor, retrieval failure, or an edge case the heuristics do not handle. |
 
-A reviewer is expected to look at every verdict, but the four bins exist so you can triage: contradicted first (potentially wrong claims), then needs_review (system was uncertain), then supported (system was confident, spot-check the loud ones), then insufficient_support (probably fine, low priority).
+A reviewer is expected to look at every verdict, but the four bins exist so you can triage: contradicted first (potentially wrong claims), then needs_review (system was uncertain), then insufficient_support (nothing clearly for or against), then supported (system was confident, spot-check the loud ones).
 
 ---
 
@@ -27,10 +27,10 @@ The thresholds (locked by `tests/test_config.py` invariants, defined in `src/evi
 nli_entailment_supported_threshold        = 0.92
 nli_contradiction_contradicted_threshold  = 0.75
 nli_tiebreaker_threshold                  = 0.65
-verdict_needs_review_threshold            = 0.70
+nli_min_confidence_for_verdict            = 0.50
 ```
 
-Band invariant: `0 < verdict_needs_review_threshold < nli_tiebreaker_threshold < nli_entailment_supported_threshold < 1` and `0 < nli_tiebreaker_threshold < nli_contradiction_contradicted_threshold < 1`.
+Band invariant: `0 < nli_min_confidence_for_verdict < nli_tiebreaker_threshold < nli_entailment_supported_threshold < 1` and `0 < nli_tiebreaker_threshold < nli_contradiction_contradicted_threshold < 1`.
 
 ### Why 0.92 entailment
 
@@ -38,11 +38,11 @@ DeBERTa-v3 is overconfident on this calibration band by approximately 8 percenta
 
 ### Why 0.75 contradiction (was 0.85)
 
-Lowered after an internal threshold sweep on a private gold set. Lowering the threshold improved 3-class accuracy and contradiction recall without raising the false-support rate. Specific deltas are not published here because the sweep is not currently reproducible from this repo (see `CHALLENGES.md`). The asymmetry between the entailment threshold (0.92) and contradiction threshold (0.75) is intentional: contradiction is harder to fake on this dataset, so the system can be less stingy without trust regression.
+Lowered after a threshold sweep (`eval/run_nli_threshold_sweep.py`) on the gold set in `eval/benchmark/fixtures/gold/`, which is climate and energy claims rather than biomedical. Lowering the threshold improved 3-class accuracy and contradiction recall without raising the false-support rate. Specific deltas are not quoted here because that set is not biomedical (see `CHALLENGES.md`). The asymmetry between the entailment threshold (0.92) and contradiction threshold (0.75) is intentional: contradiction is harder to fake on this dataset, so the system can be less stingy without trust regression.
 
-### Why `needs_review` at 0.70
+### When `needs_review` is used
 
-Any predicted verdict where the dominant probability falls below 0.70 (so neither `entailment` nor `contradiction` is clearly winning) routes to `needs_review`. This catches cases where the model is genuinely ambivalent rather than committing to a wrong verdict.
+`needs_review` comes from rules, not from the model's score: a claim whose citations match none of your uploads, or a model that fails to load. There is a floor, `nli_min_confidence_for_verdict = 0.50`, below which a verdict would become `needs_review`, but in practice the model's top probability is always above it.
 
 ---
 

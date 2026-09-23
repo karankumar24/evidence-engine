@@ -215,7 +215,7 @@ _PUBLISHER_RE = re.compile(
 )
 
 # Student/course header: surname followed immediately by a digit, then more names
-# "Kumar 1 Karan Kumar Dr. Tariq BIO 101" — the " \d+ " break after a word is the signal
+# "Lopez 1 Maria Lopez Dr. Chen BIO 101" — the " \d+ " break after a word is the signal
 _STUDENT_HEADER_RE = re.compile(r"^[A-Z][a-z]+ \d+ [A-Z]")
 
 # Author/org list with country or role in parentheses:

@@ -1,6 +1,6 @@
 # Fly.io deployment config for EvidenceEngine.
 #
-# First-time deploy:  see DEPLOY.md for the full runbook.
+# First-time deploy:  see docs/DEPLOY.md for the full runbook.
 #
 # App name is set by `fly launch` / `fly apps create`; override with
 # `fly deploy -a <name>` if you want a different name than the default.

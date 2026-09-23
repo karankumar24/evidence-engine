@@ -15,7 +15,7 @@ EvidenceEngine ships under MIT (see [LICENSE](LICENSE)) but bundles or downloads
 
 | Dataset | Used for | License | Notes |
 |---|---|---|---|
-| **SciFact** (Wadden et al., 2020) | Fine-tuning the NLI classifier and offline NLI eval | **CC BY-NC 2.0** | The NC ("non-commercial") clause is real. The fine-tuned weights derived from SciFact inherit this restriction in the eyes of most lawyers. **If you want to use the SciFact-fine-tuned checkpoint commercially, talk to a lawyer or train your own checkpoint on a license-clean dataset.** EvidenceEngine itself is MIT but the *fine-tuned model file* is the load-bearing part of the verdict step. The SciFact archive (`claims_dev.jsonl`, `claims_test.jsonl`, `corpus.jsonl`, etc.) is checked into this repo under `eval/data/scifact/` for offline evaluation; the SciFact CC BY-NC 2.0 terms apply to those files. |
+| **SciFact** (Wadden et al., 2020) | Fine-tuning the NLI classifier and offline NLI eval | **CC BY-NC 2.0** | The NC ("non-commercial") clause is real. The fine-tuned weights derived from SciFact inherit this restriction in the eyes of most lawyers. **If you want to use the SciFact-fine-tuned checkpoint commercially, talk to a lawyer or train your own checkpoint on a license-clean dataset.** EvidenceEngine itself is MIT but the *fine-tuned model file* is the load-bearing part of the verdict step. The eval scripts download the SciFact archive (`claims_dev.jsonl`, `claims_test.jsonl`, `corpus.jsonl`, etc.) into `eval/data/scifact/`, which is not tracked in git; the SciFact CC BY-NC 2.0 terms apply to those files. |
 
 ## Libraries (runtime)
 
@@ -49,7 +49,7 @@ EvidenceEngine ships under MIT (see [LICENSE](LICENSE)) but bundles or downloads
 
 ## Datasets used in development eval
 
-The internal 220-case gold benchmark referenced in commit history is private and is not redistributed in this repo. SciFact (CC BY-NC 2.0) is included in the source tree under `eval/data/scifact/` for offline evaluation. The Docker image does NOT ship SciFact: `.dockerignore` excludes `eval/data/`, so production deploys do not carry the dataset. If you fork the source repo and redistribute it, the CC BY-NC restriction follows the SciFact files in your tree; if you build and distribute the Docker image as-is, the dataset is not in it.
+The 220-case gold benchmark in `eval/benchmark/fixtures/gold/` (climate and energy claims) is part of this repo. SciFact (CC BY-NC 2.0) is downloaded on demand into `eval/data/scifact/` and is not tracked in git. The Docker image does NOT ship SciFact: `.dockerignore` excludes `eval/data/`, so production deploys do not carry the dataset. If you fork the source repo and redistribute it, the CC BY-NC restriction follows the SciFact files in your tree; if you build and distribute the Docker image as-is, the dataset is not in it.
 
 ## Logo / images
 

@@ -225,7 +225,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             logger.info("TLS stack prewarmed to LLM endpoint in %.1fs", dur)
         except Exception:
             logger.exception("TLS prewarm failed — first LLM pipeline call may stall")
-    app.state.tls_prewarm = asyncio.create_task(_prewarm_tls())
+    # Only with an LLM key: without one nothing here needs the network, so the
+    # server makes no outside request at startup.
+    if settings.llm_api_key:
+        app.state.tls_prewarm = asyncio.create_task(_prewarm_tls())
 
     # Pre-warm the full parse pipeline import chain. On macOS Tahoe, every .pyc
     # file read during import triggers syspolicyd scanning (~10s per file), so

@@ -49,8 +49,8 @@ python -m eval.scifact metrics eval/results/scifact-dev300.jsonl
 
 | Model | HuggingFace ID | Commit SHA |
 |-------|---------------|------------|
-| NLI classifier (primary) | `MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli` | *(see `settings.nli_model` in `core/config.py`)* |
-| Cross-encoder reranker | `BAAI/bge-reranker-v2-m3` | `953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e` (pinned in `settings.reranker_model_revision`) |
+| NLI classifier (primary) | `cross-encoder/nli-deberta-v3-small`, or the SciFact-tuned copy at `NLI_MODEL_PATH` | *(see `core/config.py`)* |
+| Cross-encoder reranker | `cross-encoder/ms-marco-MiniLM-L6-v2` | *(set `RERANKER_MODEL_REVISION` to pin one)* |
 
 ### Dataset
 
@@ -69,7 +69,7 @@ git rev-parse HEAD
 ### Hardware
 
 Reference run: MacBook Air M1 2020, 8 GB unified memory, macOS 14.
-MPS acceleration enabled for both DeBERTa and bge-reranker-v2-m3.
+MPS acceleration enabled for both the NLI model and the reranker.
 Expected peak resident memory: ~3.5 GB.
 Expected per-claim latency: 5-15 seconds.
 

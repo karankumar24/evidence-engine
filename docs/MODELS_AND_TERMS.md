@@ -15,7 +15,7 @@ So when the docs say "SciFact-tuned NLI model," it means a model that performs t
 ### `cross-encoder/nli-deberta-v3-small` — the NLI model
 
 - **What it is:** A neural network using the **DeBERTa-v3-small** architecture (released by Microsoft, ~140 million parameters). The "small" variant is the lightweight one. There's also `base` (~180M) and `large` (~435M).
-- **What it does:** Given a (claim, evidence span) pair, outputs three probabilities — entailment, neutral, contradiction. Lives at `/data/models/scifact-nli` on the Fly.io volume. It's the LAST step of the pipeline that decides "supported / contradicted / etc."
+- **What it does:** Given a (claim, evidence span) pair, outputs three probabilities — entailment, neutral, contradiction. The SciFact-tuned copy isn't in this repo: set `NLI_MODEL_PATH` to use one, or the base model is used. It's the LAST step of the pipeline that decides "supported / contradicted / etc."
 - **"Cross-encoder":** Both inputs (claim + evidence) feed into the SAME network together. Reads them jointly and decides their relationship. The opposite is a "bi-encoder" which encodes each text separately into a vector — bi-encoders are faster but less accurate.
 - **"Fine-tuned on SciFact":** Took the base DeBERTa weights, then trained further on SciFact biomedical claims so the model gets better at the *specific* style of biomedical assertions vs general English NLI.
 
@@ -67,11 +67,11 @@ Five distinct neural-or-statistical components. Each does one job.
 | **Reranking** | A second-pass scoring step after retrieval. The reranker is more accurate than the retriever but slower, so it only scores the top candidates from retrieval. |
 | **Calibration** | Whether a model's confidence numbers match its actual accuracy. Overconfident = says 90% but is right 75% of the time. |
 
-## Active in production right now (Fly.io)
+## Loaded at runtime
 
 - BM25 (statistical keyword search) ✓
 - BGE-base (dense embeddings) ✓
 - MiniLM reranker ✓
-- DeBERTa-v3-small NLI (SciFact-tuned) ✓ — weights at `/data/models/scifact-nli`
+- DeBERTa-v3-small NLI ✓ (the SciFact-tuned copy when `NLI_MODEL_PATH` points to one)
 
-The four auto-load on Fly machine boot. No manual management required.
+They download on first use and are cached after that.

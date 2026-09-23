@@ -1,6 +1,6 @@
 """SciFact evaluation runner: BM25 + rerank + classify loop with JSONL persistence.
 
-Design mirrors eval/runner.py:
+Design:
 - Per-claim results appended to JSONL immediately; crash loses zero completed work.
 - --resume skips claims already written with status="classified".
 - Bounded concurrency via asyncio.Semaphore (default=1 for M1 8GB memory safety).

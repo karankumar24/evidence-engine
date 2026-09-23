@@ -45,12 +45,12 @@ When EVERY citation anchor on a claim is unresolvable (anchor exists but no uplo
 
 ## Eval reproducibility
 
-The internal benchmark numbers that previously appeared in the README (e.g. "84.8% 3-class accuracy") were measured against a private 220-case gold set. **The repo does not currently include a working eval harness that reproduces those numbers from scratch.** Specifically:
-- `eval/runner.py` imports `evidenceengine.classification.classifier`, which was deleted during the Phase A refactor. The runner needs a rewire.
-- `eval/results/` is gitignored.
-- The gold set itself contains private data and is not part of the repo.
+The README quotes no accuracy numbers, on purpose.
+- The only committed benchmark, `eval/benchmark/fixtures/gold/` (220 cases), is climate and energy claims, not biomedical. Earlier figures such as "84.8% 3-class accuracy" were measured on this set, so they say little about biomedical papers.
+- `eval/results/` is gitignored, so no result files are committed.
+- The SciFact scripts in `eval/scifact/` evaluate on biomedical claims. See `eval/README.md` for how to run them.
 
-What this means: **do not trust the historical numbers as reproducible from this codebase as-is.** The metrics belong in CHALLENGES.md (here, honestly) until the eval harness is rewired and a result JSON is committed.
+Until a biomedical result is committed, treat any accuracy figure as unverified.
 
 ## PDF parsing failures
 
@@ -82,7 +82,7 @@ There is no audit log of which claims have been Explained. Adding one is a futur
 
 ## CI / CD
 
-There isn't any. Every deploy is manual (`fly deploy --strategy rolling`). No automated tests run on push. The `tests/` directory has unit tests but no CI runner is configured.
+There isn't any. No tests run on push; the unit tests in `tests/` run when you run `uv run pytest`. Deploys are manual too (see `docs/DEPLOY.md`).
 
 ## Speed
 

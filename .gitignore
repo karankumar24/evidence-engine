@@ -135,6 +135,7 @@ docker-compose.override.yml
 # Benchmark / eval outputs (generated artifacts, not source)
 # =============================================================================
 eval/results/
+eval/data/
 eval_results/
 benchmark_output/
 

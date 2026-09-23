@@ -71,7 +71,7 @@ For a claim with a resolved citation anchor (e.g. `[1]` resolves to a specific c
 
 `src/evidenceengine/classification/pipeline.py` and `nli_classifier.py`
 
-Uses `cross-encoder/nli-deberta-v3-small` fine-tuned on SciFact (the biomedical claim verification dataset). The model file lives on the Fly.io persistent volume at `/data/models/scifact-nli`. In dev or CI without the volume, the loader falls back to the unmodified base model from Hugging Face.
+Uses `cross-encoder/nli-deberta-v3-small` fine-tuned on SciFact (the biomedical claim verification dataset). The fine-tuned copy is not in this repo: point `NLI_MODEL_PATH` at one, or the loader uses the unmodified base model from Hugging Face.
 
 For each claim, the classifier scores claim-vs-each-evidence-span pairs in NLI form (premise = evidence, hypothesis = claim). The model produces three probabilities: `entailment`, `contradiction`, `neutral`. Per-span scores are aggregated into a single verdict via `nli_probs_to_verdict()` in `nli_classifier.py`.
 
@@ -81,10 +81,10 @@ Threshold band (locked by `test_config.py` invariants):
 nli_entailment_supported_threshold        = 0.92   # entailment must clear this for supported
 nli_contradiction_contradicted_threshold  = 0.75   # contradiction must clear this for contradicted
 nli_tiebreaker_threshold                  = 0.65   # reserved for future tiebreaker path
-verdict_needs_review_threshold            = 0.70   # any verdict below this → needs_review
+nli_min_confidence_for_verdict            = 0.50   # below this → needs_review (in practice never reached)
 ```
 
-The 0.92 entailment threshold is unusually high because DeBERTa-v3 is overconfident on this calibration band. The 0.75 contradiction threshold was lowered from 0.85 after an internal sweep showed it improved 3-class accuracy and contradiction recall without raising the false-support rate. Specific deltas are not published here because the sweep ran against a private gold set and is not currently reproducible from this repo (see `CHALLENGES.md`).
+The 0.92 entailment threshold is unusually high because DeBERTa-v3 is overconfident on this calibration band. The 0.75 contradiction threshold was lowered from 0.85 after an internal sweep showed it improved 3-class accuracy and contradiction recall without raising the false-support rate. The sweep ran on the gold set in `eval/benchmark/fixtures/gold/`, which is climate and energy claims rather than biomedical, so its numbers are not quoted here (see `CHALLENGES.md`).
 
 **Self-verify trust guard.** If every retrieved evidence span for a claim came from the *same* document as the claim itself (the report), the verdict is in self-verify mode and `supported` confidences are capped at `self_verify_supported_cap` (0.80). The cap applies to `supported` only — `contradicted` and `insufficient_support` are not capped. See `TRUST_MODEL.md` for why.
 
@@ -94,7 +94,7 @@ Edge cases bypass the model entirely: zero evidence spans → `insufficient_supp
 
 `src/evidenceengine/api/routes/dashboard.py`, `templates/dashboard_*.html`
 
-Server-rendered HTMX + Alpine.js + Jinja2. Shows all claims for a run sorted by severity (contradicted first, then needs_review, then supported, then insufficient_support). Click a claim to see verdict, confidence, NLI score breakdown, the verbatim source quote at its character offset, and per-document evidence linking via `verdict_evidence`. Approve, reject, or flag each verdict.
+Server-rendered HTMX + Alpine.js + Jinja2. Shows all claims for a run sorted by severity (contradicted first, then needs_review, then insufficient_support, then supported). Click a claim to see verdict, confidence, NLI score breakdown, the verbatim source quote at its character offset, and per-document evidence linking via `verdict_evidence`. Approve, reject, or flag each verdict.
 
 ---
 
@@ -147,7 +147,7 @@ The orchestrator owns its own `async_session_factory` session — it never inher
 | Classify | 15-60s | NLI on 25 claims * top-N spans, CPU |
 | Total | 48-80s typical, 2-4 min on large PDFs | Bottleneck is NLI on shared CPU |
 
-These numbers are from the developer environment. A workstation with more cores cuts classify time roughly linearly with core count.
+These numbers are from the developer environment. Runs on a busy shared machine took much longer (see Speed in `CHALLENGES.md`). A workstation with more cores cuts classify time roughly linearly with core count.
 
 ---
 

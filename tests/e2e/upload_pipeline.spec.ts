@@ -2,9 +2,8 @@
  * Golden-path E2E: upload a PDF, watch the pipeline run, verify the review dashboard loads.
  *
  * Run locally:  npx playwright test
- * Run vs live:  BASE_URL=https://evidenceengine.fly.dev npx playwright test
  *
- * The pipeline uses real LLM calls, so set an LLM_API_KEY in .env before running locally.
+ * No API key is needed: the verdict step runs a local model, downloaded on the first run.
  * Expect ~30-90s for the full pipeline to complete on the first run (model cold-start).
  */
 

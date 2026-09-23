@@ -115,7 +115,7 @@ def test_env_example_has_required_keys():
     env_example = Path(__file__).parent.parent.parent / ".env.example"
     assert env_example.exists(), ".env.example missing"
     content = env_example.read_text()
-    for key in ("DATABASE_URL", "OPENAI_API_KEY", "CORS_ORIGINS", "SENTRY_DSN", "DEBUG"):
+    for key in ("DATABASE_URL", "LLM_API_KEY", "CORS_ORIGINS", "SENTRY_DSN", "DEBUG"):
         assert key in content, f".env.example missing {key}"
 
 
@@ -127,7 +127,9 @@ def test_dockerfile_exists_and_is_multistage():
     content = dockerfile.read_text()
     assert "FROM node" in content, "Dockerfile missing node CSS build stage"
     assert "FROM python" in content, "Dockerfile missing Python app stage"
-    assert "USER ee" in content, "Dockerfile must run as non-root user"
+    assert "useradd --system" in content, "Dockerfile must create a non-root user"
+    entrypoint = (Path(__file__).parent.parent.parent / "scripts" / "docker-entrypoint.sh").read_text()
+    assert "gosu ee" in entrypoint, "the entrypoint must drop to the non-root user"
     assert "--reload" not in content, "Dockerfile must not use --reload in production"
 
 

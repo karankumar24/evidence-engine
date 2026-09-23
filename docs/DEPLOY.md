@@ -7,7 +7,7 @@ baked into `Dockerfile` / `fly.toml` / `alembic`.
 
 ## Prereqs (one-time)
 
-1. **Install flyctl** (already installed at `~/.fly/bin/flyctl` this session):
+1. **Install flyctl**:
    ```sh
    export PATH="$HOME/.fly/bin:$PATH"
    flyctl version     # should print fly v0.x.x
@@ -59,7 +59,7 @@ normalizes `postgres://` → `postgresql+asyncpg://` automatically.
 flyctl volumes create ee_data --region sjc --size 10 --app evidenceengine
 ```
 
-10 GB matches the current production deployment. Holds the SciFact-fine-tuned NLI model (~500 MB), the BGE and reranker model caches, uploaded PDFs, and BM25 indexes. Scale up later if needed.
+10 GB holds the SciFact-fine-tuned NLI model (~500 MB), the BGE and reranker model caches, uploaded PDFs, and BM25 indexes. Scale up later if needed.
 
 ### 5. Set runtime secrets
 
@@ -91,7 +91,7 @@ flyctl logs --app evidenceengine
 ### 7. Smoke-test
 
 ```sh
-curl -fsS https://your-app.fly.dev/healthz           # {"status":"ok"}
+curl -fsS https://your-app.fly.dev/healthz           # {"status":"ok","db":"reachable"}
 open https://your-app.fly.dev/dashboard
 ```
 

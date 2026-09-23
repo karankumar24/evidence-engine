@@ -3,8 +3,7 @@
 Bins predictions by confidence (10 equal-width bins), computes Expected
 Calibration Error (ECE), and writes a PNG reliability diagram + CSV summary.
 
-Reuses the bin-edge math from eval/reliability.py (already correct + tested).
-Adds matplotlib rendering and CSV export that the original module omits.
+Also renders the diagram with matplotlib and exports the bins as CSV.
 
 No imports from evidenceengine.* — DB-free, importable without SQLAlchemy.
 """

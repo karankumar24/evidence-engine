@@ -1,1 +1,1 @@
-"""Benchmark data layer: schema, loader, and fixture files."""
+"""Benchmark fixture files: the gold set used by eval/run_nli_*.py."""
